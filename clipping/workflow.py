@@ -12,6 +12,10 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from clipping.template import CAPTION_STYLES, DEFAULT_CAPTION_STYLE, DEFAULT_FRAMING_MODE
+from app.core.config import load_settings
+from app.core.errors import PipelineError, retry_delay
+from app.core.logging import event_record, redact
+from app.core.state import validate_job_transition
 
 
 def utcnow():
@@ -142,6 +146,7 @@ class ClippingWorkflow:
         self.storage = Path(storage).resolve()
         self.active_job = None
         self.shutdown_requested = False
+        self.settings = load_settings()
         self.database.parent.mkdir(parents=True, exist_ok=True)
         self.storage.mkdir(parents=True, exist_ok=True)
         with self.connection() as db:
@@ -152,6 +157,9 @@ class ClippingWorkflow:
                 status TEXT NOT NULL, current_step TEXT NOT NULL, error TEXT,
                 created_at TEXT NOT NULL, updated_at TEXT NOT NULL)''')
             db.execute('CREATE TABLE IF NOT EXISTS clipping_setting (key TEXT PRIMARY KEY, value TEXT)')
+            db.execute('''CREATE TABLE IF NOT EXISTS pipeline_events (
+                id TEXT PRIMARY KEY, order_id TEXT, clip_id TEXT, stage TEXT,
+                event TEXT NOT NULL, timestamp TEXT NOT NULL, data TEXT NOT NULL)''')
 
     @contextmanager
     def connection(self):
@@ -161,6 +169,12 @@ class ClippingWorkflow:
             yield db
         finally:
             db.close()
+
+    def _event(self, db, job_id, previous, status, stage, *, error=None, error_code=None):
+        record = event_record('state_transition', clip_id=job_id, stage=stage,
+                              previous=previous, status=status, error_code=error_code, message=error or '')
+        db.execute('INSERT INTO pipeline_events VALUES (?,?,?,?,?,?,?)',
+                   (uuid.uuid4().hex, None, job_id, stage, record['event'], record['timestamp'], json.dumps(record)))
 
     def create(self, data, idempotency_key=None):
         if not isinstance(data, dict):
@@ -190,6 +204,8 @@ class ClippingWorkflow:
                 job_id, key, fingerprint, json.dumps(data), json.dumps(output),
                 'queued' if preview else 'awaiting_campaign_approval',
                 'source_ingest' if preview else 'campaign_review', None, now, now))
+            self._event(db, job_id, None, 'queued' if preview else 'awaiting_campaign_approval',
+                        'source_ingest' if preview else 'campaign_review')
             db.commit()
         return self.get(job_id)
 
@@ -234,12 +250,17 @@ class ClippingWorkflow:
         return self.safe_path(relative)
 
     def _save(self, job_id, output, status, step, expected='running', error=None):
+        validate_job_transition(expected, status)
         with self.connection() as db:
+            db.execute('BEGIN IMMEDIATE')
             cursor = db.execute('''UPDATE clipping_job SET output=?, status=?, current_step=?,
                 error=?, updated_at=? WHERE id=? AND status=?''',
-                (json.dumps(output), status, step, error, utcnow(), job_id, expected))
-        if cursor.rowcount != 1:
-            raise ValueError('Job state changed; refresh before continuing')
+                (json.dumps(output), status, step, redact(error), utcnow(), job_id, expected))
+            if cursor.rowcount != 1:
+                raise ValueError('Job state changed; refresh before continuing')
+            self._event(db, job_id, expected, status, step, error=error,
+                        error_code=output.get('failure', {}).get('code'))
+            db.commit()
 
     def approve(self, job_id, step, fingerprint, approved, approver='local operator',
                 brand_draft_reference=None):
@@ -287,7 +308,7 @@ class ClippingWorkflow:
             raise ValueError('Only failed or blocked jobs can be retried')
         if 'automation_retry' in job['output']:
             job['output']['automation_retry'] = {'failed_attempts': 0, 'next_attempt_at': None,
-                                                'maximum_attempts': None}
+                                                'maximum_attempts': self.settings.worker.maximum_attempts}
         self._save(job_id, job['output'], 'queued', job['current_step'], job['status'])
         return self.get(job_id)
 
@@ -299,11 +320,14 @@ class ClippingWorkflow:
         validate_segments(parse_srt(srt), job['output']['source_duration'])
         job['payload']['transcript_srt'] = srt
         with self.connection() as db:
+            db.execute('BEGIN IMMEDIATE')
             cursor = db.execute("""UPDATE clipping_job SET payload=?, status='queued',
                 error=NULL, updated_at=? WHERE id=? AND status='awaiting_transcript'""",
                 (json.dumps(job['payload']), utcnow(), job_id))
-        if cursor.rowcount != 1:
-            raise ValueError('Job state changed; refresh before continuing')
+            if cursor.rowcount != 1:
+                raise ValueError('Job state changed; refresh before continuing')
+            self._event(db, job_id, 'awaiting_transcript', 'queued', 'transcription')
+            db.commit()
         return self.get(job_id)
 
     def record_publication(self, job_id, post_url, public_confirmed, published_at):
@@ -399,15 +423,20 @@ class ClippingWorkflow:
         # Active workers heartbeat; reclaim only abandoned processing leases.
         cutoff = (datetime.now(timezone.utc) - timedelta(minutes=5)).isoformat()
         with self.connection() as db:
+            db.execute('BEGIN IMMEDIATE')
+            rows = db.execute("SELECT id,current_step FROM clipping_job WHERE status='running' AND updated_at<?", (cutoff,)).fetchall()
             db.execute("UPDATE clipping_job SET status='queued', updated_at=? WHERE status='running' AND updated_at<?",
                        (utcnow(), cutoff))
+            for row in rows:
+                self._event(db, row['id'], 'running', 'queued', row['current_step'])
+            db.commit()
 
     def consume_once(self):
         if self.killed() or self.shutdown_requested:
             return False
         with self.connection() as db:
             db.execute('BEGIN IMMEDIATE')
-            row = db.execute("""SELECT id, output FROM clipping_job WHERE status='queued'
+            row = db.execute("""SELECT id, output, status, current_step FROM clipping_job WHERE status='queued'
                 OR (status='retry_scheduled' AND json_extract(output,
                     '$.automation_retry.next_attempt_at') <= ?)
                 ORDER BY created_at LIMIT 1""", (utcnow(),)).fetchone()
@@ -420,6 +449,7 @@ class ClippingWorkflow:
                 output['automation_retry']['next_attempt_at'] = None
             db.execute("UPDATE clipping_job SET status='running', output=?, error=NULL, updated_at=? WHERE id=?",
                        (json.dumps(output), utcnow(), job_id))
+            self._event(db, job_id, row['status'], 'running', row['current_step'])
             db.commit()
         job = self.get(job_id)
         self.active_job = job_id
@@ -442,17 +472,24 @@ class ClippingWorkflow:
                 elif isinstance(exc, SourceUnavailable):
                     output = current['output']
                     attempts = output.get('automation_retry', {}).get('failed_attempts', 0) + 1
-                    delay = (60, 300, 900)[attempts - 1] if attempts <= 3 else 1800
-                    due = (datetime.fromisoformat(utcnow()) + timedelta(seconds=delay)).isoformat()
+                    limit = self.settings.worker.maximum_attempts
+                    delay = retry_delay(attempts, maximum_attempts=limit,
+                                        base=self.settings.worker.retry_base_seconds)
+                    due = (datetime.fromisoformat(utcnow()) + timedelta(seconds=delay)).isoformat() if delay is not None else None
                     output['automation_retry'] = {'failed_attempts': attempts, 'next_attempt_at': due,
-                                                  'maximum_attempts': None}
-                    self._save(job_id, output, 'retry_scheduled', current['current_step'], error=str(exc))
+                                                  'maximum_attempts': limit}
+                    output['failure'] = PipelineError('NETWORK_ERROR', stage=current['current_step']).as_dict()
+                    self._save(job_id, output, 'retry_scheduled' if due else 'failed',
+                               current['current_step'], error=output['failure']['message'])
                 elif isinstance(exc, SourceAccessRequired):
                     output = current['output']
                     output['failure_code'] = 'source_access_required'
                     self._save(job_id, output, 'failed', current['current_step'], error=str(exc))
                 else:
-                    self._save(job_id, current['output'], 'failed', current['current_step'], error=str(exc))
+                    output = current['output']
+                    code = 'RENDER_ERROR' if current['current_step'] == 'render_and_quality_check' else 'VALIDATION_ERROR'
+                    output['failure'] = PipelineError(code, stage=current['current_step']).as_dict()
+                    self._save(job_id, output, 'failed', current['current_step'], error=redact(str(exc)))
         finally:
             self.active_job = None
         return True
@@ -462,6 +499,11 @@ class ClippingWorkflow:
         job_id, data, output = job['id'], job['payload'], job['output']
         folder = self.storage / 'jobs' / job_id
         folder.mkdir(parents=True, exist_ok=True)
+        from clipping.pipeline.checkpoints import verified_checkpoints
+        output, invalid = verified_checkpoints(output, self.storage)
+        if invalid:
+            output['invalidated_stages'] = invalid
+        self._save(job_id, output, 'running', job['current_step'])
         stages = [('source_path', 'source_ingest', media.ingest),
                   ('transcript_path', 'transcription', media.transcribe)]
         if data.get('auto_clip'):

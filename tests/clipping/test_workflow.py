@@ -232,6 +232,9 @@ def test_changed_clip_cannot_be_approved(tmp_path):
     from clipping.media import file_hash
     workflow = engine(tmp_path)
     job = workflow.create(request())
+    workflow.approve(job['id'], 'campaign_review', job['input_hash'], True)
+    workflow._save(job['id'], {}, 'running', 'render_and_quality_check', 'queued')
+    job = workflow.get(job['id'])
     artifact = workflow.storage / 'prepared.mp4'
     artifact.write_bytes(b'original video')
     workflow._save(job['id'], {'clip_path': 'prepared.mp4', 'clip_sha256': file_hash(artifact)},
@@ -247,8 +250,12 @@ def test_concurrent_reward_updates_preserve_both_receipts(tmp_path, monkeypatch)
     import threading
     workflow = engine(tmp_path)
     job = workflow.create(request())
+    workflow.approve(job['id'], 'campaign_review', job['input_hash'], True)
+    workflow._save(job['id'], {}, 'running', 'render_and_quality_check', 'queued')
+    workflow._save(job['id'], {}, 'awaiting_publication', 'publication')
+    workflow._save(job['id'], {}, 'awaiting_submission', 'submission', 'awaiting_publication')
     workflow._save(job['id'], {'submission': {'reference': 'real external confirmation'}},
-                   'completed', 'submission_recorded', job['status'])
+                   'completed', 'submission_recorded', 'awaiting_submission')
     barrier = threading.Barrier(2)
     original_get = workflow.get
     thread_calls = threading.local()

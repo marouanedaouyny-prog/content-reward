@@ -76,7 +76,7 @@ def test_download_captures_only_replay_bins_and_keeps_them_after_resume(tmp_path
 
 
 @pytest.mark.parametrize('preview', [False, True])
-def test_transient_failure_keeps_retrying_and_preserves_approval_across_restarts(tmp_path, monkeypatch, preview):
+def test_transient_failure_stops_at_limit_and_preserves_approval_across_restarts(tmp_path, monkeypatch, preview):
     from clipping import workflow as module
     engine = ClippingWorkflow(tmp_path / 'jobs.db', tmp_path / 'storage')
     job = engine.create(payload(preview))
@@ -86,17 +86,23 @@ def test_transient_failure_keeps_retrying_and_preserves_approval_across_restarts
         raise media.SourceUnavailable('Temporary connection failure')
     monkeypatch.setattr(media, 'ingest', unavailable)
     monkeypatch.setattr(module, 'utcnow', lambda: '2026-10-10T10:00:00+00:00')
-    for attempt in range(1, 9):
+    for attempt in range(1, 3):
         assert engine.consume_once()
         job = engine.get(job['id'])
         assert job['status'] == 'retry_scheduled', 'Temporary failure terminated an authorized job'
         retry = job['output']['automation_retry']
         assert retry['failed_attempts'] == attempt
         assert retry['next_attempt_at'] > module.utcnow()
-        assert retry['maximum_attempts'] is None
+        assert retry['maximum_attempts'] == 3
         engine = ClippingWorkflow(engine.database, engine.storage)
         assert not engine.consume_once(), 'Restart bypassed the saved backoff'
         monkeypatch.setattr(module, 'utcnow', lambda due=retry['next_attempt_at']: due)
+    assert engine.consume_once()
+    job = engine.get(job['id'])
+    assert job['status'] == 'failed'
+    assert job['output']['automation_retry']['failed_attempts'] == 3
+    assert job['output']['automation_retry']['next_attempt_at'] is None
+    assert not engine.consume_once()
     if not preview:
         assert job['output']['approvals']['campaign_review']['approved']
     engine.cancel(job['id'])

@@ -215,8 +215,10 @@ class Controller:
         with self.mutex:
             self.state.update(values, updated_at=timestamp())
             atomic_json(self.manifest, self.state)
-            message = {'order_id': self.state['id'], 'status': self.state['status'],
-                       'stage': self.state['stage'], **values}
+            from app.core.logging import event_record
+            message = event_record('order_updated', order_id=self.state['id'],
+                stage=self.state['stage'], status=self.state['status'],
+                **{key: value for key, value in values.items() if key not in ('stage', 'status')})
             with (self.folder / 'events.jsonl').open('a', encoding='utf-8') as log:
                 log.write(json.dumps(message, ensure_ascii=True) + '\n')
             if self.config.partial_downloads:

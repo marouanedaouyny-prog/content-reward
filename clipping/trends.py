@@ -331,8 +331,15 @@ class TrendResearchAgent:
         self._rank(run)
         if transient:
             run['failed_attempts'] += 1
-            delay = min(INTERVAL, 300 * 2 ** min(run['failed_attempts'] - 1, 6))
-            self._save(run, 'retry_scheduled', (now() + timedelta(seconds=delay)).isoformat())
+            from app.core.errors import retry_delay
+            delay = retry_delay(run['failed_attempts'], maximum_attempts=self.engine.settings.worker.maximum_attempts,
+                                base=300)
+            self._save(run, 'retry_scheduled' if delay is not None else 'failed',
+                       (now() + timedelta(seconds=delay)).isoformat() if delay is not None else None)
+            if delay is None:
+                with self.engine.connection() as db:
+                    db.execute('INSERT OR REPLACE INTO clipping_setting VALUES (?,?)',
+                               ('trends_next_scan', (now() + timedelta(seconds=INTERVAL)).isoformat()))
         else:
             self._save(run, 'partial' if run['failures'] and run['results'] else 'failed' if run['failures'] else 'completed')
             if run.get('auto_preview') and (run['results'] or not run['failures']):

@@ -65,7 +65,7 @@ def test_automatic_preview_does_not_turn_into_a_fake_video_under_dry_run(monkeyp
         engine.create_automatic_preview()
 
 
-def test_temporary_download_failure_retries_at_saved_times_and_continues_after_four_attempts(monkeypatch):
+def test_temporary_download_failure_retries_at_saved_times_then_requires_manual_resume(monkeypatch):
     from clipping import media
     from clipping import workflow as module
     assert hasattr(media, 'SourceUnavailable'), 'Transient source failure classification is missing'
@@ -77,7 +77,7 @@ def test_temporary_download_failure_retries_at_saved_times_and_continues_after_f
         raise media.SourceUnavailable('Source connection temporarily unavailable')
 
     monkeypatch.setattr(media, 'ingest', unavailable)
-    for attempt in range(1, 4):
+    for attempt in range(1, 3):
         assert engine.consume_once()
         waiting = engine.get(job['id'])
         assert waiting['status'] == 'retry_scheduled'
@@ -90,10 +90,10 @@ def test_temporary_download_failure_retries_at_saved_times_and_continues_after_f
         engine = restarted
     assert engine.consume_once()
     failed = engine.get(job['id'])
-    assert failed['status'] == 'retry_scheduled'
-    assert failed['output']['automation_retry']['failed_attempts'] == 4
-    assert failed['output']['automation_retry']['maximum_attempts'] is None
-    assert failed['output']['automation_retry']['next_attempt_at'] > module.utcnow()
+    assert failed['status'] == 'failed'
+    assert failed['output']['automation_retry']['failed_attempts'] == 3
+    assert failed['output']['automation_retry']['maximum_attempts'] == 3
+    assert failed['output']['automation_retry']['next_attempt_at'] is None
     assert not engine.consume_once()
 
 

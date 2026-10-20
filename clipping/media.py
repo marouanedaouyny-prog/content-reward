@@ -331,7 +331,8 @@ def transcribe(data, output, folder, storage):
     path = folder / 'transcript.json'
     path.write_text(json.dumps({'origin': origin, 'segments': segments}, ensure_ascii=False, indent=2),
                     encoding='utf-8')
-    result = {'transcript_path': path.relative_to(storage).as_posix(), 'transcript_origin': origin}
+    result = {'transcript_path': path.relative_to(storage).as_posix(), 'transcript_origin': origin,
+              'transcript_sha256': file_hash(path)}
     if assessment is not None:
         result['caption_assessment'] = assessment
     return result

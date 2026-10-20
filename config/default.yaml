@@ -1,0 +1,80 @@
+clips:
+  target_count: 20
+  min_duration: 15
+  max_duration: 60
+  target_duration: 35
+captions:
+  style: studio
+production:
+  caption_style: colorized
+  clips_per_source: 20
+video:
+  framing: fit
+  width: 1080
+  height: 1920
+selection:
+  minimum_score: 0.50
+  weights:
+    hook: 0.20
+    semantic: 0.15
+    replay: 0.15
+    emotion: 0.10
+    completeness: 0.10
+    velocity: 0.10
+    engagement: 0.10
+    standalone: 0.10
+  editorial:
+    baseline: 40
+    filler_penalty: 18
+    question_bonus: 14
+    referential_penalty: 20
+    mid_sentence_penalty: 20
+    concrete_bonus: 8
+    topic_bonus: 12
+    topic_extra: 8
+    topic_extra_cap: 32
+    opening_topic_bonus: 8
+    opening_topic_cap: 16
+    promotion_penalty: 35
+    completed_bonus: 10
+    question_ending_penalty: 16
+    silence_penalty: 2
+    silence_cap: 24
+    linked_penalty: 12
+    duration_penalty: 0.5
+    duration_cap: 15
+dedup:
+  timestamp_overlap_threshold: 0.65
+  transcript_similarity_threshold: 0.85
+  semantic_similarity_threshold: 0.88
+  quote_words: 8
+quality:
+  minimum_speech_ratio: 0.50
+  maximum_speech_gap: 4.0
+  maximum_black_seconds: 0.50
+  maximum_silence_ratio: 0.40
+  minimum_audio_db: -60.0
+  minimum_fps: 15.0
+  maximum_fps: 120.0
+  maximum_subtitle_chars: 48
+  duration_tolerance: 0.30
+worker:
+  concurrency: 1
+  render_concurrency: 1
+  download_concurrency: 1
+  cpu_threads: 2
+  memory_limit_mb: 2048
+  maximum_attempts: 3
+  retry_base_seconds: 5
+whisper:
+  model: tiny.en
+  device: cpu
+paths:
+  storage: storage/clipping
+  database: data/clipping.db
+  output: clips
+publishing:
+  enabled: false
+feedback:
+  minimum_samples: 5
+  maximum_adjustment: 0.10
