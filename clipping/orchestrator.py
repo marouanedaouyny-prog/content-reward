@@ -179,24 +179,27 @@ class Controller:
         self.storage = Path(storage).resolve()
         self.orders = self.storage / 'orders'
         self.orders.mkdir(parents=True, exist_ok=True)
+        from app.repositories.store import Store
+        self.store = Store(self.storage / 'content-reward.db')
+        self.store.import_orders(self.orders, lock_factory=order_lock)
         self.emit = emit or (lambda value: print(json.dumps(value, ensure_ascii=True), flush=True))
         self.sleeper = sleeper
         self.mutex = threading.RLock()
         self.engine = None
         if resume is not None:
-            identifier = json.loads((self.orders / 'latest.json').read_text())['id'] if resume == 'latest' else resume
+            latest = self.store.latest_order() if resume == 'latest' else None
+            identifier = latest['id'] if latest else resume
             try:
                 identifier = str(uuid.UUID(identifier))
             except (ValueError, TypeError, AttributeError) as exc:
                 raise ValueError('Invalid saved order identifier') from exc
             self.folder = self.orders / identifier
             self.manifest = self.folder / 'order.json'
-            if self.manifest.stat().st_size > 32 * 1024 * 1024:
-                raise ValueError('Saved order is too large')
-            self.state = json.loads(self.manifest.read_text(encoding='utf-8'))
+            self.state = self.store.get_order(identifier)
             if self.state.get('id') != identifier:
                 raise ValueError('Saved order identifier does not match its folder')
             self.config = Config(**self.state['config'])
+            self._revision = self.store.revision(identifier)
         else:
             self.config = config or Config()
             self.config.validate()
@@ -207,6 +210,7 @@ class Controller:
             self.state = {'id': identifier, 'created_at': timestamp(), 'status': 'created',
                           'stage': 'preflight', 'config': asdict(self.config), 'connection_failures': 0,
                           'resume_command': 'run-youtube-clipping.cmd --resume ' + identifier}
+            self._revision = self.store.save_order(self.state)
             atomic_json(self.manifest, self.state)
             atomic_json(self.orders / 'latest.json', {'id': identifier})
         self.config.validate()
@@ -214,6 +218,8 @@ class Controller:
     def update(self, **values):
         with self.mutex:
             self.state.update(values, updated_at=timestamp())
+            self._revision = self.store.save_order(self.state, expected_revision=self._revision,
+                sync_candidates=bool({'clip_entries', 'skipped_entries', 'moments', 'source_selection'} & values.keys()))
             atomic_json(self.manifest, self.state)
             from app.core.logging import event_record
             message = event_record('order_updated', order_id=self.state['id'],

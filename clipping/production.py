@@ -179,7 +179,7 @@ def run_production(controller, attempts, delay):
     if not all_done:
         provider = controller.state.get('discovery_provider') or controller.config.provider
         orchestrator.check_environment(replace(controller.config, provider=provider), controller.storage)
-    previous = clip_history.reservations(controller.orders, controller.state['id'])
+    previous = controller.store.reservations(controller.state['id'])
     history = previous + current_reservations(entries + controller.state.get('skipped_entries', []),
                                               controller.state['id'])
     index = 0

@@ -7,11 +7,20 @@ from app.core.config import load_settings
 
 
 def reservations(orders, current_id):
+    from app.repositories.store import Store
+    store = Store(orders.parent / 'content-reward.db')
+    from clipping.orchestrator import order_lock
+    store.import_orders(orders, lock_factory=order_lock)
+    if store.latest_order() is not None:
+        return store.reservations(current_id)
     records = []
     for manifest in orders.glob('*/order.json'):
         if manifest.parent.name == current_id:
             continue
-        state = json.loads(manifest.read_text(encoding='utf-8'))
+        try:
+            state = json.loads(manifest.read_text(encoding='utf-8'))
+        except (ValueError, OSError):
+            continue
         moments = state.get('moments', [])
         for index, entry in enumerate(state.get('clip_entries', [])):
             if not entry.get('job_id') and not entry.get('source_clip_plan'):

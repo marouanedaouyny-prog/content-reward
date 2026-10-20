@@ -31,8 +31,18 @@ def summary(controller, mode, state=None):
 
 
 def execute(options):
-    pointer = options.storage / 'orders/latest.json'
-    saved = options.resume or ('latest' if pointer.is_file() and not options.new else None)
+    from app.repositories.store import Store
+    database = options.storage / 'content-reward.db'
+    orders = options.storage / 'orders'
+    if options.status and not database.exists() and not orders.exists():
+        return {'status': 'not_started', 'mode': 'status', 'clips': [], 'index': None}, 0
+    store = Store(options.storage / 'content-reward.db')
+    store.import_orders(options.storage / 'orders', lock_factory=order_lock)
+    latest = store.latest_order()
+    if not latest and not options.new and ((orders / 'latest.json').is_file()
+                                         or any(orders.glob('*/order.json')) or store.import_warnings()):
+        raise ValueError('Historical orders need recovery before a new batch')
+    saved = options.resume or ('latest' if latest and not options.new else None)
     controller = Controller(options.storage, resume=saved) if saved else None
     if options.status:
         return (summary(controller, 'status') if controller else

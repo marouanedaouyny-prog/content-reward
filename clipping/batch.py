@@ -172,6 +172,12 @@ def deliver_clip(controller, job, entry, moment, delivery):
               'diversity_note': moment.get('diversity_note'),
               'caption_style': caption_style, 'framing_mode': controller.config.framing_mode,
               'render_template': output.get('render_template'), 'review': review}
+    controller.store.save_clip(dict(id=job['id'], order_id=controller.state['id'], source_id=source['id'],
+        path=str(clip), subtitles=str(subtitles), sha256=media.file_hash(clip), caption=entry['post_caption'],
+        caption_style=caption_style, framing=controller.config.framing_mode,
+        settings=dict(source_clip_plan=entry['source_clip_plan'], review=review,
+                      selection_quality=moment.get('quality'), selection_score=moment.get('selection'),
+                      niche=controller.config.niche)))
     controller.update(batch_results=[*controller.state.get('batch_results', []), result],
                       completed_clip_count=len(controller.state.get('batch_results', [])) + 1)
 
