@@ -6,8 +6,8 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./data:/app/data
-      - ./logs:/app/logs
+      - ../../social-connector/data:/app/data
+      - ../../social-connector/logs:/app/logs
     environment:
       - APP_ENV=development
       - APP_SECRET=${APP_SECRET:-dev-secret-change-me}

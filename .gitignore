@@ -32,3 +32,6 @@ test_empire.db
 dist/
 out/
 *.tsbuildinfo
+*.egg-info/
+/build/
+/output/

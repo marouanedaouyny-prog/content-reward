@@ -1,122 +1,28 @@
-version: '3.8'
-
 services:
-  # PostgreSQL (optional - for production)
-  # postgres:
-  #   image: postgres:16-alpine
-  #   environment:
-  #     POSTGRES_DB: empire
-  #     POSTGRES_USER: empire
-  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-  #   volumes:
-  #     - postgres_data:/var/lib/postgresql/data
-  #   ports:
-  #     - "5432:5432"
-
-  # SQLite is used by default (file-based, no service needed)
-
-  # Redis (optional - for queue scaling)
-  # redis:
-  #   image: redis:7-alpine
-  #   ports:
-  #     - "6379:6379"
-
-  # Ollama - Local LLM
-  ollama:
-    image: ollama/ollama:latest
-    container_name: empire-ollama
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    environment:
-      - OLLAMA_HOST=0.0.0.0
-    restart: unless-stopped
-    # Pull default model on startup
-    command: >
-      sh -c "ollama serve & sleep 5 && ollama pull llama3.2 && wait"
-
-  # n8n - Workflow Orchestration
-  n8n:
-    image: n8nio/n8n:latest
-    container_name: empire-n8n
-    ports:
-      - "5678:5678"
-    environment:
-      - N8N_HOST=0.0.0.0
-      - N8N_PORT=5678
-      - N8N_PROTOCOL=http
-      - WEBHOOK_URL=http://host.docker.internal:5678/
-      - GENERIC_TIMEZONE=UTC
-      - N8N_BASIC_AUTH_ACTIVE=true
-      - N8N_BASIC_AUTH_USER=admin
-      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD:-changeme}
-      - DB_TYPE=sqlite
-      - DB_SQLITE_DATABASE=/home/node/.n8n/database.sqlite
-    volumes:
-      - n8n_data:/home/node/.n8n
-      - ./n8n/workflows:/home/node/.n8n/workflows
-    restart: unless-stopped
-    depends_on:
-      - ollama
-
-  # Empire API - FastAPI backend
-  empire-api:
+  clipping-api:
     build:
       context: .
-      dockerfile: Dockerfile.api
-    container_name: empire-api
+      dockerfile: Dockerfile.clipping
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     environment:
-      - APP_ENV=development
-      - APP_SECRET=${APP_SECRET:-change-this-secret}
-      - DATABASE_URL=sqlite:///./data/empire.db
-      - STORAGE_DIR=./storage
-      - LOG_DIR=./logs
-      - OLLAMA_BASE_URL=http://ollama:11434
-      - OLLAMA_DEFAULT_MODEL=llama3.2
-      - N8N_BASE_URL=http://n8n:5678
-      - N8N_API_KEY=${N8N_API_KEY}
-      - KILL_SWITCH=false
-      - DRY_RUN=false
-      - ALLOW_PAID_SERVICES=false
-      - DEPLOY_MODE=local
+      CLIPPING_DATABASE: /app/data/clipping.db
+      CLIPPING_STORAGE: /app/storage/clipping
+      WHISPER_MODEL: "${WHISPER_MODEL:-}"
+      KILL_SWITCH: ${KILL_SWITCH:-false}
+      DRY_RUN: ${DRY_RUN:-false}
+      CLIPPING_AUTOMATION: "${CLIPPING_AUTOMATION:-}"
+      CLIPPING_TREND_AGENT: "${CLIPPING_TREND_AGENT:-true}"
+      YOUTUBE_API_KEY: "${YOUTUBE_API_KEY:-}"
+      TREND_REGION: "${TREND_REGION:-US}"
+      TREND_LANGUAGE: "${TREND_LANGUAGE:-en}"
+      INSTAGRAM_ACCESS_TOKEN: "${INSTAGRAM_ACCESS_TOKEN:-}"
+      INSTAGRAM_ACCOUNT_ID: "${INSTAGRAM_ACCOUNT_ID:-}"
+      INSTAGRAM_GRAPH_VERSION: "${INSTAGRAM_GRAPH_VERSION:-}"
+      INSTAGRAM_APP_ID: "${INSTAGRAM_APP_ID:-}"
+      INSTAGRAM_APP_SECRET: "${INSTAGRAM_APP_SECRET:-}"
+      INSTAGRAM_REDIRECT_URI: "${INSTAGRAM_REDIRECT_URI:-}"
     volumes:
-      - ./backend:/app/backend
-      - ./scripts:/app/scripts
-      - ./workflows:/app/workflows
-      - ./storage:/app/storage
-      - ./logs:/app/logs
       - ./data:/app/data
+      - ./storage/clipping:/app/storage/clipping
     restart: unless-stopped
-    depends_on:
-      - ollama
-      - n8n
-    command: >
-      sh -c "python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload"
-
-  # Empire Frontend - Next.js
-  empire-frontend:
-    build:
-      context: .
-      dockerfile: Dockerfile.frontend
-    container_name: empire-frontend
-    ports:
-      - "3000:3000"
-    environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
-      - NODE_ENV=development
-    volumes:
-      - ./frontend:/app/frontend
-      - /app/frontend/node_modules
-    restart: unless-stopped
-    depends_on:
-      - empire-api
-    command: >
-      sh -c "cd /app/frontend && npm run dev"
-
-volumes:
-  ollama_data:
-  n8n_data:
-  # postgres_data:

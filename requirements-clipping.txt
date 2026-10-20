@@ -1,5 +1,2 @@
-# Isolated clipping runtime; Python 3.11+ and system FFmpeg are required.
-fastapi>=0.115,<1
-uvicorn>=0.30,<1
-python-multipart>=0.0.20,<1
-yt-dlp[default]>=2025.3.31,<2027
+# Compatibility entry point; production dependencies live in pyproject.toml.
+-e .
