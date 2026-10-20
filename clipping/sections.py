@@ -8,6 +8,8 @@ import subprocess
 
 from clipping import media
 from clipping.planning import sentence_ending, suggest_cuts, usable_heatmap
+from app.core.config import load_settings
+from clipping.selection.dedup import compare_moments
 
 
 def remote_command(args, timeout):
@@ -69,7 +71,7 @@ def parse_captions(data, duration):
 def inspect_source(source, folder):
     folder.mkdir(parents=True, exist_ok=True)
     # Print only safe metadata, never stream URLs, cookies, headers or the full info dict.
-    fields = '%(.{id,title,duration,view_count,upload_date,channel,uploader,heatmap})j'
+    fields = '%(.{id,title,duration,view_count,like_count,comment_count,upload_date,channel,uploader,heatmap,chapters})j'
     response = remote_command([*media.ytdlp_command(), '--ignore-config', '--no-playlist',
         '--skip-download', '--no-simulate', '--write-subs', '--write-auto-subs',
         '--sub-langs', 'en-orig,en,en-US,en-GB', '--sub-format', 'json3',
@@ -95,6 +97,9 @@ def inspect_source(source, folder):
         return {'id': raw['id'], 'title': str(raw.get('title') or '')[:500],
                 'duration': duration, 'segments': segments,
                 'heatmap': usable_heatmap(raw.get('heatmap'), duration),
+                'view_count': raw.get('view_count'), 'like_count': raw.get('like_count'),
+                'comment_count': raw.get('comment_count'), 'published_at': source.get('published_at'),
+                'chapters': raw.get('chapters') if isinstance(raw.get('chapters'), list) else [],
                 'transcript_origin': 'youtube_public_captions'}
     except (ValueError, KeyError, TypeError) as exc:
         raise media.SourceAccessRequired('This source has no usable public English captions; no full download was attempted.') from exc
@@ -104,13 +109,14 @@ def _content_words(text, excluded):
     return [word for word in re.findall(r"[a-zA-Z][a-zA-Z']{2,}", text.lower()) if word not in excluded]
 
 
-def _repeated_signature(signature, previous):
+def _repeated_signature(signature, previous, threshold):
     shared = len(signature & previous)
     union, shorter = len(signature | previous), min(len(signature), len(previous))
-    return bool(union and shared / union >= .75 or shorter >= 5 and shared / shorter >= .9)
+    return bool(union and shared / union >= threshold or shorter >= 5 and shared / shorter >= threshold)
 
 
-def select_moments(source, count, target, *, strict=False, excluded=()):
+def select_moments(source, count, target, *, strict=False, excluded=(), settings=None):
+    settings = settings or load_settings()
     if isinstance(count, bool) or not isinstance(count, int) or not 1 <= count <= 20:
         raise ValueError('Choose a clip count from one through 20')
     # Source-title terms are useful for all niches; exclude common context words.
@@ -127,7 +133,7 @@ def select_moments(source, count, target, *, strict=False, excluded=()):
         try:
             pool = suggest_cuts(source['segments'], source['duration'], target, 15, 60,
                 keywords, source.get('heatmap'), limit=20, min_gap=3,
-                excluded_windows=reserved, require_standalone=strict)
+                excluded_windows=reserved, require_standalone=strict, settings=settings, source=source)
         except ValueError as exc:
             if 'No complete transcript window' not in str(exc):
                 raise
@@ -138,8 +144,13 @@ def select_moments(source, count, target, *, strict=False, excluded=()):
         for choice in pool:
             if choice['quality']['promotional']:
                 continue
+            if strict and choice['selection']['score'] < settings.selection.minimum_score:
+                continue
+            if any(compare_moments(choice, previous, settings=settings)['duplicate'] for previous in [*excluded, *choices]):
+                continue
             signature = set(_content_words(choice['source_excerpt'], common))
-            if any(_repeated_signature(signature, previous) for previous in signatures):
+            if any(_repeated_signature(signature, previous, settings.dedup.transcript_similarity_threshold)
+                   for previous in signatures):
                 continue
             choice['diversity_note'] = ('Separate source window with no near-duplicate normalized transcript '
                 'in this batch or supplied history. Distinct takeaways still need editorial review.')

@@ -8,6 +8,9 @@ from urllib.parse import parse_qs, urlparse
 
 from clipping.media import validate_segments
 from clipping.research import matches, terms
+from app.core.config import load_settings
+from clipping.selection.generation import candidate_starts
+from clipping.selection.scoring import score_candidate
 
 NOTE = 'Transcript heuristics suggest complete moments for review. No trained virality model or forecast is used.'
 REPLAY_NOTE = ('Selected using YouTube replay intensity and source transcript boundaries. '
@@ -173,7 +176,10 @@ def inspect_youtube(value):
 
 def suggest_cuts(segments, source_duration, target_duration=30, min_duration=15,
                  max_duration=60, keywords='', heatmap=None, *, limit=3, min_gap=None,
-                 excluded_windows=None, require_standalone=False):
+                 excluded_windows=None, require_standalone=False, settings=None,
+                 source=None, chapters=None):
+    settings = settings or load_settings()
+    weights = settings.selection.editorial
     values = (source_duration, target_duration, min_duration, max_duration)
     if any(isinstance(v, bool) or not isinstance(v, (float, int)) or not math.isfinite(v) for v in values):
         raise ValueError('Source and clip duration must be finite numbers')
@@ -190,6 +196,8 @@ def suggest_cuts(segments, source_duration, target_duration=30, min_duration=15,
     excluded = _excluded_intervals(excluded_windows, source_duration)
     selected_terms = terms(keywords)
     replay = usable_heatmap(heatmap, source_duration)
+    anchors = candidate_starts(segments, selected_terms, replay, chapters or (source or {}).get('chapters'),
+                               (source or {}).get('timed_energy'), (source or {}).get('timed_engagement'))
     target = max(min_duration, min(target_duration, max_duration))
     candidates = []
     for start_index, first in enumerate(segments):
@@ -251,54 +259,59 @@ def suggest_cuts(segments, source_duration, target_duration=30, min_duration=15,
         silence = max(0, duration - speech)
         largest_gap = max((current['start'] - previous['end']
                            for previous, current in zip(window, window[1:])), default=0)
-        score, reasons = 40, ['Starts and ends at subtitle boundaries']
+        score, reasons = weights['baseline'], ['Starts and ends at subtitle boundaries']
         if filler_opening(opening):
-            score -= 18
+            score -= weights['filler_penalty']
             reasons.append('Opening is a conversational filler; review the context')
         elif question and not referential:
-            score += 14
+            score += weights['question_bonus']
             reasons.append('Opening poses a question')
         if referential:
-            score -= 20
+            score -= weights['referential_penalty']
             reasons.append('Opening question refers to unseen context; name its subject before using it')
         if mid_sentence:
-            score -= 20
+            score -= weights['mid_sentence_penalty']
             reasons.append('Opening follows an unfinished source sentence; review the context')
         if re.search(r'\d|\b(?:one|two|three|step|steps)\b', excerpt, re.IGNORECASE):
-            score += 8
+            score += weights['concrete_bonus']
             reasons.append('Includes a concrete number or step')
         matched_terms = sum(matches(excerpt, term) for term in selected_terms)
         if matched_terms:
-            score += 12 + min(32, (matched_terms - 1) * 8)
+            score += weights['topic_bonus'] + min(weights['topic_extra_cap'], (matched_terms - 1) * weights['topic_extra'])
             reasons.append('Matches the source topic or niche keywords')
             opening_matches = sum(matches(opening, term) for term in selected_terms)
             if opening_matches:
-                score += min(16, opening_matches * 8)
+                score += min(weights['opening_topic_cap'], opening_matches * weights['opening_topic_bonus'])
                 reasons.append('Opening names the source topic')
         if promotional:
-            score -= 35
+            score -= weights['promotion_penalty']
             reasons.append('Contains promotional language; review before selecting')
         completed = sentence_ending(ending)
         if completed:
-            score += 10
+            score += weights['completed_bonus']
             reasons.append('Ends at sentence-ending punctuation')
         else:
             reasons.append('No sentence ending was detected within the duration limits; review the context')
         if ending.rstrip().endswith('?'):
-            score -= 16
+            score -= weights['question_ending_penalty']
             reasons.append('Ends with a question rather than its answer; review the payoff')
         if silence > 1:
-            score -= min(24, silence * 2)
+            score -= min(weights['silence_cap'], silence * weights['silence_penalty'])
             reasons.append('Contains speech gaps; compare a more continuous moment')
         if linked_opening:
-            score -= 12
+            score -= weights['linked_penalty']
             reasons.append('Opening may rely on previous context; review it')
-        score -= min(15, abs(duration - target) / 2)
+        score -= min(weights['duration_cap'], abs(duration - target) * weights['duration_penalty'])
         suggestion = {'clip_plan': {'start_seconds': first['start'],
                            'duration_seconds': round(duration, 3), 'aspect_ratio': '9:16'},
                            'editorial_score': round(score, 1), 'score_type': 'editorial_heuristic',
                            'reasons': reasons, 'source_excerpt': excerpt[:2000],
                            'caption': post_caption(excerpt if require_standalone else opening), 'note': NOTE,
+                           'strategies': sorted(anchors[start_index]),
+                           'transcript_features': {'opening_question': question and not referential,
+                               'opening_topic_matches': sum(matches(opening, term) for term in selected_terms),
+                               'topic_matches': matched_terms, 'ending_question': ending.rstrip().endswith('?'),
+                               'words_per_second': len(speech_text(excerpt).split()) / duration},
                            'quality': {'filler_opening': filler_opening(opening),
                                'context_dependent_opening': referential or unseen_subject or linked_opening,
                                'mid_sentence_opening': mid_sentence,
@@ -310,17 +323,18 @@ def suggest_cuts(segments, source_duration, target_duration=30, min_duration=15,
                                'largest_speech_gap': round(largest_gap, 3),
                                'speech_ratio': round(speech / duration, 3)}}
         if replay:
-            start, end = first['start'], last['end']
+            start, end = first['start'], window[-1]['end']
             peak = max((bin['value'] for bin in replay
                         if start <= (bin['start_time'] + bin['end_time']) / 2 < end), default=0)
             average = sum(max(0, min(end, bin['end_time']) - max(start, bin['start_time']))
                           * bin['value'] for bin in replay) / duration
             suggestion.update(score_type='youtube_replay_heatmap', replay_score=round(average, 6),
                               replay_peak=peak, note=REPLAY_NOTE)
-            reasons.insert(0, 'Contains a replayed moment from the YouTube heatmap')
+            reasons.insert(0, 'Compared with observed YouTube replay intensity for this window')
+        suggestion['selection'] = score_candidate(suggestion, settings.selection, source=source)
         candidates.append((completed, suggestion))
-    candidates.sort(key=lambda item: (-item[1].get('replay_peak', 0), not item[0],
-        -item[1].get('replay_score', 0), -item[1]['editorial_score'], item[1]['clip_plan']['start_seconds']))
+    candidates.sort(key=lambda item: (not item[0], -item[1]['selection']['score'],
+        -item[1]['editorial_score'], item[1]['clip_plan']['start_seconds']))
     chosen = []
     for _, candidate in candidates:
         plan = candidate['clip_plan']
@@ -331,7 +345,8 @@ def suggest_cuts(segments, source_duration, target_duration=30, min_duration=15,
             old_start, old_end = old['start_seconds'], old['start_seconds'] + old['duration_seconds']
             intersection = max(0, min(end, old_end) - max(start, old_start))
             if (min_gap is not None and not (end + min_gap <= old_start or old_end + min_gap <= start)
-                    or min_gap is None and intersection / (max(end, old_end) - min(start, old_start)) > .55):
+                    or min_gap is None and intersection / min(end - start, old_end - old_start)
+                    >= settings.dedup.timestamp_overlap_threshold):
                 overlaps = True
         if not overlaps:
             chosen.append(candidate)

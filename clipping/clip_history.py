@@ -1,7 +1,9 @@
 """Read durable interval reservations from prior clipping orders."""
 
 import json
-import re
+
+from clipping.selection.dedup import compare_moments
+from app.core.config import load_settings
 
 
 def reservations(orders, current_id):
@@ -23,18 +25,7 @@ def reservations(orders, current_id):
     return records
 
 
-def repeated_takeaway(excerpt, records):
-    def shingles(text):
-        words = re.findall(r"[a-z0-9']+", text.lower())
-        if len(words) < 4:
-            return set()
-        return {tuple(words[index:index + 4]) for index in range(len(words) - 3)}
-
-    current = shingles(excerpt)
-    if not current:
-        return False
-    for record in records:
-        previous = shingles(record.get('source_excerpt', ''))
-        if previous and len(current & previous) / len(current | previous) >= .8:
-            return True
-    return False
+def repeated_takeaway(excerpt, records, *, settings=None):
+    settings = settings or load_settings()
+    return any(compare_moments({'source_excerpt': excerpt}, record, settings=settings)['duplicate']
+               for record in records)
