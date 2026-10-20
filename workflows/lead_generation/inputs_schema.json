@@ -1,0 +1,35 @@
+{
+  "type": "object",
+  "title": "LeadGenerationInput",
+  "description": "Input schema for lead generation workflow execution",
+  "properties": {
+    "source_type": {
+      "type": "string",
+      "description": "Type of source to search",
+      "enum": ["web", "social_media", "directory", "manual"]
+    },
+    "search_criteria": {
+      "type": "object",
+      "description": "Criteria for filtering leads",
+      "properties": {
+        "industry": {"type": "string"},
+        "location": {"type": "string"},
+        "company_size": {"type": "string"},
+        "contact_type": {"type": "string", "enum": ["owner", "executive", "employee"]}
+      },
+      "required": ["industry"]
+    },
+    "max_results": {
+      "type": "integer",
+      "description": "Maximum number of leads to return",
+      "default": 50
+    },
+    "enrichment_allowed": {
+      "type": "boolean",
+      "description": "Whether enrichment is legally permitted",
+      "default": false
+    }
+  },
+  "required": ["source_type", "search_criteria"],
+  "additionalProperties": false
+}

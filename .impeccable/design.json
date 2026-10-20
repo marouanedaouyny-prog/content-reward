@@ -1,0 +1,540 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-10T15:28:09Z",
+  "title": "Design System: Clipping workspace",
+  "extensions": {
+    "colorMeta": {
+      "accent": {
+        "role": "primary",
+        "displayName": "Forest Green",
+        "tonalRamp": [
+          "oklch(15.00% 0.08149 171.78)",
+          "oklch(26.43% 0.08149 171.78)",
+          "oklch(37.86% 0.08149 171.78)",
+          "oklch(49.29% 0.08149 171.78)",
+          "oklch(60.71% 0.08149 171.78)",
+          "oklch(72.14% 0.08149 171.78)",
+          "oklch(83.57% 0.08149 171.78)",
+          "oklch(95.00% 0.08149 171.78)"
+        ]
+      },
+      "accent-hover": {
+        "role": "primary",
+        "displayName": "Deep Forest",
+        "tonalRamp": [
+          "oklch(15.00% 0.06527 173.86)",
+          "oklch(26.43% 0.06527 173.86)",
+          "oklch(37.86% 0.06527 173.86)",
+          "oklch(49.29% 0.06527 173.86)",
+          "oklch(60.71% 0.06527 173.86)",
+          "oklch(72.14% 0.06527 173.86)",
+          "oklch(83.57% 0.06527 173.86)",
+          "oklch(95.00% 0.06527 173.86)"
+        ]
+      },
+      "accent-active": {
+        "role": "primary",
+        "displayName": "Pressed Forest",
+        "tonalRamp": [
+          "oklch(15.00% 0.05821 172.21)",
+          "oklch(26.43% 0.05821 172.21)",
+          "oklch(37.86% 0.05821 172.21)",
+          "oklch(49.29% 0.05821 172.21)",
+          "oklch(60.71% 0.05821 172.21)",
+          "oklch(72.14% 0.05821 172.21)",
+          "oklch(83.57% 0.05821 172.21)",
+          "oklch(95.00% 0.05821 172.21)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "tonalRamp": [
+          "oklch(15.00% 0.01923 201.61)",
+          "oklch(26.43% 0.01923 201.61)",
+          "oklch(37.86% 0.01923 201.61)",
+          "oklch(49.29% 0.01923 201.61)",
+          "oklch(60.71% 0.01923 201.61)",
+          "oklch(72.14% 0.01923 201.61)",
+          "oklch(83.57% 0.01923 201.61)",
+          "oklch(95.00% 0.01923 201.61)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted Ink",
+        "tonalRamp": [
+          "oklch(15.00% 0.01943 201.19)",
+          "oklch(26.43% 0.01943 201.19)",
+          "oklch(37.86% 0.01943 201.19)",
+          "oklch(49.29% 0.01943 201.19)",
+          "oklch(60.71% 0.01943 201.19)",
+          "oklch(72.14% 0.01943 201.19)",
+          "oklch(83.57% 0.01943 201.19)",
+          "oklch(95.00% 0.01943 201.19)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Quiet Line",
+        "tonalRamp": [
+          "oklch(15.00% 0.00767 186.87)",
+          "oklch(26.43% 0.00767 186.87)",
+          "oklch(37.86% 0.00767 186.87)",
+          "oklch(49.29% 0.00767 186.87)",
+          "oklch(60.71% 0.00767 186.87)",
+          "oklch(72.14% 0.00767 186.87)",
+          "oklch(83.57% 0.00767 186.87)",
+          "oklch(95.00% 0.00767 186.87)"
+        ]
+      },
+      "field-border": {
+        "role": "neutral",
+        "displayName": "Field Line",
+        "tonalRamp": [
+          "oklch(15.00% 0.01588 181.68)",
+          "oklch(26.43% 0.01588 181.68)",
+          "oklch(37.86% 0.01588 181.68)",
+          "oklch(49.29% 0.01588 181.68)",
+          "oklch(60.71% 0.01588 181.68)",
+          "oklch(72.14% 0.01588 181.68)",
+          "oklch(83.57% 0.01588 181.68)",
+          "oklch(95.00% 0.01588 181.68)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "tonalRamp": [
+          "oklch(15.00% 0.00000 0.00)",
+          "oklch(26.43% 0.00000 0.00)",
+          "oklch(37.86% 0.00000 0.00)",
+          "oklch(49.29% 0.00000 0.00)",
+          "oklch(60.71% 0.00000 0.00)",
+          "oklch(72.14% 0.00000 0.00)",
+          "oklch(83.57% 0.00000 0.00)",
+          "oklch(95.00% 0.00000 0.00)"
+        ]
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Pale Canvas",
+        "tonalRamp": [
+          "oklch(15.00% 0.00338 145.55)",
+          "oklch(26.43% 0.00338 145.55)",
+          "oklch(37.86% 0.00338 145.55)",
+          "oklch(49.29% 0.00338 145.55)",
+          "oklch(60.71% 0.00338 145.55)",
+          "oklch(72.14% 0.00338 145.55)",
+          "oklch(83.57% 0.00338 145.55)",
+          "oklch(95.00% 0.00338 145.55)"
+        ]
+      },
+      "tint": {
+        "role": "primary",
+        "displayName": "Soft Green",
+        "tonalRamp": [
+          "oklch(15.00% 0.01247 164.80)",
+          "oklch(26.43% 0.01247 164.80)",
+          "oklch(37.86% 0.01247 164.80)",
+          "oklch(49.29% 0.01247 164.80)",
+          "oklch(60.71% 0.01247 164.80)",
+          "oklch(72.14% 0.01247 164.80)",
+          "oklch(83.57% 0.01247 164.80)",
+          "oklch(95.00% 0.01247 164.80)"
+        ]
+      },
+      "secondary-active": {
+        "role": "primary",
+        "displayName": "Pressed Soft Green",
+        "tonalRamp": [
+          "oklch(15.00% 0.02005 164.57)",
+          "oklch(26.43% 0.02005 164.57)",
+          "oklch(37.86% 0.02005 164.57)",
+          "oklch(49.29% 0.02005 164.57)",
+          "oklch(60.71% 0.02005 164.57)",
+          "oklch(72.14% 0.02005 164.57)",
+          "oklch(83.57% 0.02005 164.57)",
+          "oklch(95.00% 0.02005 164.57)"
+        ]
+      },
+      "selected-surface": {
+        "role": "primary",
+        "displayName": "Selected Paper",
+        "tonalRamp": [
+          "oklch(15.00% 0.00908 161.35)",
+          "oklch(26.43% 0.00908 161.35)",
+          "oklch(37.86% 0.00908 161.35)",
+          "oklch(49.29% 0.00908 161.35)",
+          "oklch(60.71% 0.00908 161.35)",
+          "oklch(72.14% 0.00908 161.35)",
+          "oklch(83.57% 0.00908 161.35)",
+          "oklch(95.00% 0.00908 161.35)"
+        ]
+      },
+      "progress-complete": {
+        "role": "primary",
+        "displayName": "Completed Green",
+        "tonalRamp": [
+          "oklch(15.00% 0.05195 163.12)",
+          "oklch(26.43% 0.05195 163.12)",
+          "oklch(37.86% 0.05195 163.12)",
+          "oklch(49.29% 0.05195 163.12)",
+          "oklch(60.71% 0.05195 163.12)",
+          "oklch(72.14% 0.05195 163.12)",
+          "oklch(83.57% 0.05195 163.12)",
+          "oklch(95.00% 0.05195 163.12)"
+        ]
+      },
+      "focus": {
+        "role": "functional",
+        "displayName": "Amber Focus",
+        "tonalRamp": [
+          "oklch(15.00% 0.11734 73.20)",
+          "oklch(26.43% 0.11734 73.20)",
+          "oklch(37.86% 0.11734 73.20)",
+          "oklch(49.29% 0.11734 73.20)",
+          "oklch(60.71% 0.11734 73.20)",
+          "oklch(72.14% 0.11734 73.20)",
+          "oklch(83.57% 0.11734 73.20)",
+          "oklch(95.00% 0.11734 73.20)"
+        ]
+      },
+      "error": {
+        "role": "functional",
+        "displayName": "Brick Error",
+        "tonalRamp": [
+          "oklch(15.00% 0.13622 32.46)",
+          "oklch(26.43% 0.13622 32.46)",
+          "oklch(37.86% 0.13622 32.46)",
+          "oklch(49.29% 0.13622 32.46)",
+          "oklch(60.71% 0.13622 32.46)",
+          "oklch(72.14% 0.13622 32.46)",
+          "oklch(83.57% 0.13622 32.46)",
+          "oklch(95.00% 0.13622 32.46)"
+        ]
+      },
+      "studio-tint": {
+        "role": "secondary",
+        "displayName": "Clay Paper",
+        "tonalRamp": [
+          "oklch(15.00% 0.02476 49.75)",
+          "oklch(26.43% 0.02476 49.75)",
+          "oklch(37.86% 0.02476 49.75)",
+          "oklch(49.29% 0.02476 49.75)",
+          "oklch(60.71% 0.02476 49.75)",
+          "oklch(72.14% 0.02476 49.75)",
+          "oklch(83.57% 0.02476 49.75)",
+          "oklch(95.00% 0.02476 49.75)"
+        ]
+      },
+      "studio-ink": {
+        "role": "secondary",
+        "displayName": "Clay Ink",
+        "tonalRamp": [
+          "oklch(15.00% 0.09718 37.69)",
+          "oklch(26.43% 0.09718 37.69)",
+          "oklch(37.86% 0.09718 37.69)",
+          "oklch(49.29% 0.09718 37.69)",
+          "oklch(60.71% 0.09718 37.69)",
+          "oklch(72.14% 0.09718 37.69)",
+          "oklch(83.57% 0.09718 37.69)",
+          "oklch(95.00% 0.09718 37.69)"
+        ]
+      },
+      "studio-face": {
+        "role": "secondary",
+        "displayName": "Clay Face",
+        "tonalRamp": [
+          "oklch(15.00% 0.09212 58.55)",
+          "oklch(26.43% 0.09212 58.55)",
+          "oklch(37.86% 0.09212 58.55)",
+          "oklch(49.29% 0.09212 58.55)",
+          "oklch(60.71% 0.09212 58.55)",
+          "oklch(72.14% 0.09212 58.55)",
+          "oklch(83.57% 0.09212 58.55)",
+          "oklch(95.00% 0.09212 58.55)"
+        ]
+      },
+      "studio-side": {
+        "role": "secondary",
+        "displayName": "Clay Edge",
+        "tonalRamp": [
+          "oklch(15.00% 0.11675 49.72)",
+          "oklch(26.43% 0.11675 49.72)",
+          "oklch(37.86% 0.11675 49.72)",
+          "oklch(49.29% 0.11675 49.72)",
+          "oklch(60.71% 0.11675 49.72)",
+          "oklch(72.14% 0.11675 49.72)",
+          "oklch(83.57% 0.11675 49.72)",
+          "oklch(95.00% 0.11675 49.72)"
+        ]
+      },
+      "source-tint": {
+        "role": "secondary",
+        "displayName": "Source Paper",
+        "tonalRamp": [
+          "oklch(15.00% 0.02321 264.46)",
+          "oklch(26.43% 0.02321 264.46)",
+          "oklch(37.86% 0.02321 264.46)",
+          "oklch(49.29% 0.02321 264.46)",
+          "oklch(60.71% 0.02321 264.46)",
+          "oklch(72.14% 0.02321 264.46)",
+          "oklch(83.57% 0.02321 264.46)",
+          "oklch(95.00% 0.02321 264.46)"
+        ]
+      },
+      "source-ink": {
+        "role": "secondary",
+        "displayName": "Source Blue",
+        "tonalRamp": [
+          "oklch(15.00% 0.14496 263.45)",
+          "oklch(26.43% 0.14496 263.45)",
+          "oklch(37.86% 0.14496 263.45)",
+          "oklch(49.29% 0.14496 263.45)",
+          "oklch(60.71% 0.14496 263.45)",
+          "oklch(72.14% 0.14496 263.45)",
+          "oklch(83.57% 0.14496 263.45)",
+          "oklch(95.00% 0.14496 263.45)"
+        ]
+      },
+      "caption-tint": {
+        "role": "tertiary",
+        "displayName": "Caption Paper",
+        "tonalRamp": [
+          "oklch(15.00% 0.04882 90.52)",
+          "oklch(26.43% 0.04882 90.52)",
+          "oklch(37.86% 0.04882 90.52)",
+          "oklch(49.29% 0.04882 90.52)",
+          "oklch(60.71% 0.04882 90.52)",
+          "oklch(72.14% 0.04882 90.52)",
+          "oklch(83.57% 0.04882 90.52)",
+          "oklch(95.00% 0.04882 90.52)"
+        ]
+      },
+      "caption-ink": {
+        "role": "tertiary",
+        "displayName": "Caption Ink",
+        "tonalRamp": [
+          "oklch(15.00% 0.08729 77.61)",
+          "oklch(26.43% 0.08729 77.61)",
+          "oklch(37.86% 0.08729 77.61)",
+          "oklch(49.29% 0.08729 77.61)",
+          "oklch(60.71% 0.08729 77.61)",
+          "oklch(72.14% 0.08729 77.61)",
+          "oklch(83.57% 0.08729 77.61)",
+          "oklch(95.00% 0.08729 77.61)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Page title",
+        "purpose": "The Georgia page title; 32px at the 800px breakpoint."
+      },
+      "headline": {
+        "displayName": "Panel heading",
+        "purpose": "Operational panel headings; 22px at the 480px breakpoint."
+      },
+      "title": {
+        "displayName": "Run title",
+        "purpose": "Run titles and supporting subsection headings."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Workflow explanation and detailed content; paragraphs are limited to 70ch."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Form labels and compact interface descriptions."
+      },
+      "button": {
+        "displayName": "Button",
+        "purpose": "Medium-weight action labels."
+      },
+      "small": {
+        "displayName": "Metadata",
+        "purpose": "Supporting source facts, footer and tables."
+      }
+    },
+    "shadows": [
+      {
+        "name": "studio-video-plane",
+        "value": "0 18px 32px rgba(0,0,0,.14)",
+        "purpose": "Neutral separation inside the CSS3D layout model only; not a work-panel elevation token."
+      },
+      {
+        "name": "studio-caption-plane",
+        "value": "0 12px 20px rgba(0,0,0,.12)",
+        "purpose": "Neutral separation of the forward caption plane inside the layout model only."
+      }
+    ],
+    "motion": [
+      {
+        "name": "button-state-duration",
+        "value": "160ms",
+        "purpose": "Background and border color transitions; removed by reduced-motion preference."
+      },
+      {
+        "name": "button-state-easing",
+        "value": "ease-out",
+        "purpose": "Easing for background and border color transitions."
+      },
+      {
+        "name": "studio-angle-duration",
+        "value": "180ms",
+        "purpose": "Transition after explicit angle input; no animation loop. Reduced-motion preference removes transitions and transforms."
+      },
+      {
+        "name": "studio-angle-easing",
+        "value": "cubic-bezier(.16,1,.3,1)",
+        "purpose": "Controlled CSS3D angle changes only."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "stacked",
+        "value": "800px"
+      },
+      {
+        "name": "map-and-progress",
+        "value": "600px"
+      },
+      {
+        "name": "narrow",
+        "value": "480px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The shared filled action, with hover, active, disabled and keyboard states.",
+      "html": "<button class=\"ds-button-primary\" type=\"button\">Create review task</button>",
+      "css": ".ds-button-primary{cursor:pointer;padding:10px 16px;border:1px solid var(--accent,#176753);border-radius:3px;font:600 14px system-ui;min-height:44px;background:var(--accent,#176753);color:var(--surface,#ffffff);transition:background-color 160ms ease-out,border-color 160ms ease-out;}.ds-button-primary:hover:not(:disabled){background:var(--accent-hover,#124f41);border-color:var(--accent-hover,#124f41)}.ds-button-primary:active:not(:disabled){background:#0d4134}.ds-button-primary:focus-visible{outline:3px solid var(--focus,#a56f16);outline-offset:3px;}.ds-button-primary:disabled{opacity:.65;cursor:wait}@media(prefers-reduced-motion:reduce){.ds-button-primary{transition:none}}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "An outlined supporting action with pale green interaction states.",
+      "html": "<button class=\"ds-button-secondary\" type=\"button\">Pause processing</button>",
+      "css": ".ds-button-secondary{cursor:pointer;padding:10px 16px;border:1px solid var(--accent,#176753);border-radius:3px;font:600 14px system-ui;min-height:44px;background:var(--surface,#ffffff);color:var(--accent,#176753);transition:background-color 160ms ease-out,border-color 160ms ease-out;}.ds-button-secondary:hover:not(:disabled){background:var(--tint,#eaf4ef);border-color:var(--accent,#176753)}.ds-button-secondary:active:not(:disabled){background:#dcece4;color:var(--accent,#176753);border-color:var(--accent,#176753)}.ds-button-secondary:focus-visible{outline:3px solid var(--focus,#a56f16);outline-offset:3px;}.ds-button-secondary:disabled{opacity:.65;cursor:wait}@media(prefers-reduced-motion:reduce){.ds-button-secondary{transition:none}}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "A body-sized field with even padding, muted placeholders and a visible keyboard outline.",
+      "html": "<label class=\"ds-field-label\">Campaign name<input class=\"ds-field\" name=\"campaign-name\" maxlength=\"200\"></label>",
+      "css": ".ds-field-label{display:block;margin:0 0 16px;font:600 13px/1.6 system-ui,sans-serif;color:var(--ink,#172526)}.ds-field{display:block;width:100%;margin-top:6px;padding:12px;font:400 15px/1.6 system-ui,sans-serif;color:var(--ink,#172526);background:var(--surface,#ffffff);border:1px solid #b8c6c3;border-radius:3px;caret-color:var(--accent,#176753)}.ds-field:focus-visible{outline:3px solid var(--focus,#a56f16);outline-offset:3px;}.ds-field::placeholder{color:var(--muted,#59696a);opacity:1}"
+    },
+    {
+      "name": "Workflow Progress",
+      "kind": "nav",
+      "refersTo": "progress-current",
+      "description": "The numbered ordered list sits within the preview and scrolls horizontally on small screens.",
+      "html": "<ol class=\"ds-flow\" aria-label=\"Automatic preview stages\"><li class=\"ds-flow-step ds-flow-done\">Select source</li><li class=\"ds-flow-step ds-flow-current\" aria-current=\"step\">Download video</li><li class=\"ds-flow-step\">Add subtitles</li><li class=\"ds-flow-step\">Find the moment</li><li class=\"ds-flow-step\">Prepare preview</li></ol>",
+      "css": ".ds-flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;counter-reset:stage;padding:0 0 20px;margin:20px 0 24px;list-style:none;color:var(--muted,#59696a);font:400 13px/1.6 system-ui,sans-serif;border-bottom:1px solid var(--line,#d9e0df)}.ds-flow-step{counter-increment:stage;padding:8px 0 0;border-top:2px solid var(--line,#d9e0df);min-width:0}.ds-flow-step::before{content:counter(stage,decimal-leading-zero);display:block;font-size:12px;font-variant-numeric:tabular-nums;margin-bottom:8px}.ds-flow-current{border-color:var(--accent,#176753);color:var(--accent,#176753);font-weight:650}.ds-flow-done{border-color:#8bb39f;color:var(--ink,#172526)}@media(max-width:600px){.ds-flow{grid-template-columns:repeat(5,minmax(112px,1fr));overflow-x:auto;scroll-snap-type:x proximity;font-size:12px}.ds-flow-step{scroll-snap-align:start}}"
+    },
+    {
+      "name": "Status Chip",
+      "kind": "chip",
+      "refersTo": "status-chip",
+      "description": "A non-interactive state label; failed and waiting tones retain explicit state text.",
+      "html": "<span class=\"ds-status\">Queued for preparation</span>",
+      "css": ".ds-status{display:inline-block;padding:4px 9px;color:var(--accent,#176753);background:var(--tint,#eaf4ef);border-radius:3px;font:400 13px/1.6 system-ui,sans-serif;margin:0 0 12px}.ds-status-error{color:var(--error,#9a3725);background:#fff5df}.ds-status-waiting{color:var(--ink,#172526);background:var(--canvas,#f5f7f5)}"
+    },
+    {
+      "name": "Work Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "A flat bordered preview panel with a dark text inset when no rendered video is available.",
+      "html": "<section class=\"ds-panel\"><h2 class=\"ds-panel-title\">Preview &amp; progress</h2><div class=\"ds-preview-placeholder\"><p>Start the automatic workflow. Your video and its progress will appear here.</p></div></section>",
+      "css": ".ds-panel{min-width:0;padding:24px;background:var(--surface,#ffffff);color:var(--ink,#172526);border:1px solid var(--line,#d9e0df);border-radius:12px;font:400 15px/1.6 system-ui,sans-serif}.ds-panel-title{font-size:24px;line-height:1.3;margin:0 0 12px;letter-spacing:-.02em;text-wrap:balance}.ds-preview-placeholder{display:grid;place-items:center;text-align:center;min-height:280px;padding:40px 24px;margin:24px 0;background:#101818;color:var(--tint,#eaf4ef);border-radius:8px}.ds-preview-placeholder p{max-width:36ch;margin:0}@media(max-width:480px){.ds-panel{padding:20px}.ds-panel-title{font-size:22px}.ds-preview-placeholder{min-height:240px;padding:32px 20px}}"
+    },
+    {
+      "name": "Selected Recent Run",
+      "kind": "button",
+      "refersTo": "selected-run",
+      "description": "A wrapping run selector that exposes selection with aria-pressed and preserves its controls through unchanged polling.",
+      "html": "<button class=\"ds-run ds-run-selected\" type=\"button\" aria-pressed=\"true\"><span>Automatic preview</span><small class=\"ds-run-meta\">Queued for preparation</small></button>",
+      "css": ".ds-run{cursor:pointer;padding:10px 16px;border:1px solid var(--accent,#176753);border-radius:3px;font:600 14px system-ui;min-height:44px;display:flex;flex-direction:column;text-align:left;background:var(--surface,#ffffff);border-color:var(--line,#d9e0df);color:var(--ink,#172526);transition:background-color 160ms ease-out,border-color 160ms ease-out;}.ds-run-selected{border-color:var(--accent,#176753);background:#f0f7f3}.ds-run:hover:not(:disabled),.ds-run:active:not(:disabled){background:var(--tint,#eaf4ef);color:var(--ink,#172526);border-color:var(--accent,#176753)}.ds-run:focus-visible{outline:3px solid var(--focus,#a56f16);outline-offset:3px;}.ds-run:disabled{opacity:.65;cursor:wait}.ds-run-meta{font:400 12px system-ui;color:var(--muted,#59696a)}@media(prefers-reduced-motion:reduce){.ds-run{transition:none}}.ds-run span,.ds-run-meta{overflow-wrap:anywhere}"
+    },
+    {
+      "name": "Campaign Disclosure",
+      "kind": "custom",
+      "refersTo": "campaign-disclosure",
+      "description": "The ink summary opens optional guided Campaign, Source and Clip setup inside a separate panel spanning the workspace width.",
+      "html": "<section class=\"ds-campaign-panel\"><details class=\"ds-disclosure\"><summary class=\"ds-disclosure-summary\">Set up a Content Rewards campaign</summary><p class=\"ds-disclosure-content\">Campaign brief</p></details></section>",
+      "css": ".ds-campaign-panel{min-width:0;padding:24px;background:var(--surface,#ffffff);border:1px solid var(--line,#d9e0df);border-radius:12px;font:400 15px/1.6 system-ui,sans-serif;color:var(--ink,#172526)}.ds-disclosure{margin:0}.ds-disclosure-summary{cursor:pointer;min-height:44px;padding:8px 0;margin:0;color:var(--ink,#172526);font-size:18px;font-weight:600}.ds-disclosure-summary::marker{color:var(--accent,#176753)}.ds-disclosure-summary:focus-visible{outline:3px solid var(--focus,#a56f16);outline-offset:3px;}.ds-disclosure-content{margin:8px 0 16px;max-width:70ch}@media(max-width:480px){.ds-campaign-panel{padding:20px}}"
+    },
+    {
+      "name": "Clip Studio Layout Model",
+      "kind": "custom",
+      "refersTo": "studio-video-plane",
+      "description": "Labeled video and caption planes with a rotated thickness face; the model is distinct from actual footage and flattens for reduced motion.",
+      "html": "<div class=\"ds-studio\"><div class=\"ds-scene\" aria-label=\"Clip layout model\"><div class=\"ds-model\"><div class=\"ds-edge\" aria-hidden=\"true\"></div><div class=\"ds-video-plane\"><strong>Video layer</strong></div><div class=\"ds-caption-plane\">Caption placement</div></div></div><p class=\"ds-model-note\">Vertical · 9:16 · 1080 × 1920</p><p class=\"ds-model-note\">Layout model, not a rendered video. Watch actual output in Preview.</p></div>",
+      "css": ".ds-studio{padding:24px;background:var(--studio-tint,#fce9df);color:var(--studio-ink,#74331f);border:1px solid var(--studio-face,#f6ba8c);border-radius:12px;font:400 15px/1.6 system-ui,sans-serif}.ds-scene{height:420px;display:grid;place-items:center;perspective:900px;min-width:0}.ds-model{position:relative;width:min(180px,70%);aspect-ratio:9/16;transform-style:preserve-3d;transform:rotateX(6deg) rotateY(-18deg);transition:transform 180ms cubic-bezier(.16,1,.3,1)}.ds-edge{position:absolute;top:0;bottom:0;left:0;width:12px;background:var(--studio-side,#c47547);transform:translateX(-12px) rotateY(-90deg);transform-origin:right;border-radius:3px}.ds-video-plane{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;border-radius:12px;background:var(--studio-face,#f6ba8c);color:var(--studio-ink,#74331f);transform-style:preserve-3d;box-shadow:0 18px 32px rgba(0,0,0,.14)}.ds-video-plane strong{font-size:18px;text-align:center}.ds-caption-plane{position:absolute;left:12px;right:12px;bottom:20px;padding:12px;background:var(--caption-tint,#fff2ce);color:var(--caption-ink,#765417);border-radius:8px;transform:translateZ(32px);box-shadow:0 12px 20px rgba(0,0,0,.12);font-size:12px;font-weight:600;line-height:1.4;overflow-wrap:anywhere}.ds-model-note{font-size:13px;text-align:center;margin:0 auto;max-width:70ch}@media(max-width:600px){.ds-scene{height:380px}.ds-model{width:min(180px,85%)}}@media(prefers-reduced-motion:reduce){.ds-model{transition:none;transform:none}.ds-caption-plane{transform:none}}"
+    },
+    {
+      "name": "Guided Campaign Setup",
+      "kind": "custom",
+      "refersTo": "campaign-settings",
+      "description": "Three named steps share native form controls; context tones match their legends, with current-step semantics and a flat action surface.",
+      "html": "<div class=\"ds-guided\"><p class=\"ds-guided-progress\" role=\"status\">Step 1 of 3 · Campaign brief</p><ol class=\"ds-form-steps\" aria-label=\"Campaign setup steps\"><li><button type=\"button\" data-step=\"campaign\" aria-current=\"step\">Campaign</button></li><li><button type=\"button\" data-step=\"source\">Source</button></li><li><button type=\"button\" data-step=\"clip\">Clip</button></li></ol><fieldset class=\"ds-form-pane\"><legend>Campaign brief</legend><p>Record the requirements and permission for this campaign.</p><label class=\"ds-guided-label\">Campaign name<input class=\"ds-guided-field\" name=\"title\" required maxlength=\"200\"></label></fieldset><div class=\"ds-form-actions\"><button class=\"ds-next\" type=\"button\">Next: source video</button></div></div>",
+      "css": ".ds-guided{padding:24px;background:var(--surface,#ffffff);color:var(--ink,#172526);border:1px solid var(--line,#d9e0df);border-radius:12px;font:400 15px/1.6 system-ui,sans-serif}.ds-guided-progress{color:var(--accent,#176753);font-size:13px;margin:0}.ds-form-steps{display:flex;list-style:none;padding:0;margin:20px 0 24px;gap:12px}.ds-form-steps li{flex:1;min-width:0}.ds-form-steps button,.ds-next{cursor:pointer;padding:10px 16px;min-height:44px;border:1px solid var(--line,#d9e0df);border-radius:3px;font:600 14px system-ui;transition:background-color 160ms ease-out,border-color 160ms ease-out}.ds-form-steps button{width:100%;text-align:left;color:var(--muted,#59696a);background:var(--canvas,#f5f7f5)}.ds-form-steps button:hover:not(:disabled),.ds-form-steps button:active:not(:disabled){background:var(--tint,#eaf4ef);color:var(--accent,#176753);border-color:var(--accent,#176753)}.ds-form-steps [data-step=campaign][aria-current=step]{color:var(--caption-ink,#765417);background:var(--caption-tint,#fff2ce);border-color:var(--caption-ink,#765417)}.ds-form-steps [data-step=source][aria-current=step]{color:var(--source-ink,#254ba0);background:var(--source-tint,#e7efff);border-color:var(--source-ink,#254ba0)}.ds-form-steps [data-step=clip][aria-current=step]{color:var(--studio-ink,#74331f);background:var(--studio-tint,#fce9df);border-color:var(--studio-ink,#74331f)}.ds-form-pane{min-width:0;padding:0;margin:0 0 24px;border:0}.ds-form-pane legend{font-size:18px;font-weight:600;width:100%;padding:12px 16px;margin-bottom:20px;border-radius:3px;background:var(--caption-tint,#fff2ce);color:var(--caption-ink,#765417)}.ds-form-pane p{font-size:14px;color:var(--muted,#59696a);margin:8px 0 16px}.ds-guided-label{display:block;margin:0 0 16px;font-size:13px;font-weight:600}.ds-guided-field{display:block;width:100%;margin-top:6px;padding:12px;font:inherit;color:var(--ink,#172526);background:var(--surface,#ffffff);border:1px solid #b8c6c3;border-radius:3px;caret-color:var(--accent,#176753)}.ds-form-actions{padding-top:20px;border-top:1px solid var(--line,#d9e0df);background:var(--surface,#ffffff)}.ds-next{background:var(--accent,#176753);color:var(--surface,#ffffff);border-color:var(--accent,#176753)}.ds-next:hover:not(:disabled){background:var(--accent-hover,#124f41);border-color:var(--accent-hover,#124f41)}.ds-next:active:not(:disabled){background:#0d4134}.ds-form-steps button:focus-visible,.ds-next:focus-visible,.ds-guided-field:focus-visible{outline:3px solid var(--focus,#a56f16);outline-offset:3px}.ds-form-steps button:disabled,.ds-next:disabled{opacity:.65;cursor:wait}@media(max-width:480px){.ds-guided{padding:20px}.ds-form-steps{gap:8px}.ds-form-steps button{padding:10px 8px;text-align:center;font-size:13px}.ds-next{width:100%}}@media(prefers-reduced-motion:reduce){.ds-form-steps button,.ds-next{transition:none}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Quiet Workbench",
+    "overview": "A pale canvas, white work surfaces and restrained forest green make the interface feel calm and practical. The serif page title provides a small editorial signature; familiar system type carries the operational detail. Borders and changes in surface tone establish hierarchy without decorative imagery.\n\nThe system supports sustained reading and clear states. Short labels, roomy controls and readable paragraphs keep dense workflow information approachable. Green identifies actions and selected progress; explicit text carries the meaning of each processing state.\n\nThe approved extension adds warm clay to Clip Studio, blue to source settings and pale gold to caption and campaign requirements. These colors identify editing context while green continues to carry workflow actions. A controlled CSS3D layout model shows video and caption planes; the surrounding work surfaces retain their flat treatment.\n\nThis record was extracted from `clipping/workspace.html`. Real-browser capture is unavailable because Chrome IPC is rejected in this environment. These are code-backed decisions; visual recapture and finish review remain pending.",
+    "keyCharacteristics": [
+      "Restrained green actions on a pale canvas.",
+      "Georgia page title with system type for operational content.",
+      "Flat white panels, thin borders and tonal state changes.",
+      "Scoped clay, blue and gold editing contexts; depth confined to the Clip Studio layout model.",
+      "Compact labels, readable paragraphs and visible keyboard focus.",
+      "Responsive stacking and reduced-motion support."
+    ],
+    "rules": [
+      {
+        "name": "The Green State Rule",
+        "body": "Use green for actions and selected or completed progress, while keeping processing state meaning explicit in text.",
+        "section": "colors"
+      },
+      {
+        "name": "The Editing Context Rule",
+        "body": "Reuse these paired tones for their named editing contexts; keep action, processing and completion meaning explicit.",
+        "section": "colors"
+      },
+      {
+        "name": "The Content First Type Rule",
+        "body": "Keep the serif signature on the page title and use the operational type scale for task information.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Surface Rule",
+        "body": "Establish work-surface hierarchy through borders and tone; confine shadows and three-dimensional transforms to the Clip Studio layout model.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** preserve the green action palette, pale canvas and white work surfaces.",
+      "**Do** use the shared control, inset and panel radius roles.",
+      "**Do** pair state color with a readable label and visible keyboard focus.",
+      "**Do** let controls, downloads and long text wrap within the available width.",
+      "**Do** keep color transitions brief and respect reduced-motion preference.",
+      "**Do** use the approved editing tones for Studio, Source and Campaign contexts.",
+      "**Do** label the model as a layout diagram and apply its format to campaign settings explicitly.",
+      "**Do** reveal and focus the invalid step before the guided form can submit."
+    ],
+    "donts": [
+      "**Don't** substitute decorative imagery for unavailable video output.",
+      "**Don't** carry the Studio model's shadows or transforms into the flat panel system.",
+      "**Don't** use selected or completed styling as evidence of publication, payment or successful rendering."
+    ]
+  }
+}

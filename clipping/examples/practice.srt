@@ -1,0 +1,11 @@
+1
+00:00:00,000 --> 00:00:01,500
+This is a subtitle demo.
+
+2
+00:00:01,500 --> 00:00:03,500
+These are timed sample captions.
+
+3
+00:00:03,500 --> 00:00:05,000
+Real captions should match the audio.

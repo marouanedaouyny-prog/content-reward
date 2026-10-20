@@ -1,0 +1,39 @@
+{
+  "type": "object",
+  "title": "ContentRewardsInput",
+  "description": "Input schema for content rewards workflow execution",
+  "properties": {
+    "campaign_source": {
+      "type": "string",
+      "description": "Source of campaign (url, html, pdf, manual)",
+      "enum": ["url", "html", "pdf", "manual"]
+    },
+    "source_url": {
+      "type": "string",
+      "description": "URL of the campaign source",
+      "format": "uri"
+    },
+  "html_content": {
+      "type": "string",
+      "description": "HTML content of the campaign page",
+      "minLength": 1
+    },
+    "pdf_content": {
+      "type": "string",
+      "description": "PDF content of the campaign description",
+      "minLength": 1
+    },
+    "manual_paste": {
+      "type": "string",
+      "description": "Manually pasted campaign details"
+    }
+  },
+  "required": ["campaign_source"],
+  "oneOf": [
+    {"required": ["source_url"]},
+    {"required": ["html_content"]},
+    {"required": ["pdf_content"]},
+    {"required": ["manual_paste"]}
+  ],
+  "additionalProperties": false
+}

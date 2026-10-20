@@ -1,0 +1,93 @@
+{
+  "name": "Content Rewards - Full Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "content-rewards/trigger",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "1",
+      "name": "Webhook - Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const workflowId = 'content_rewards';\nconst payload = items[0].json;\nconst idempotencyKey = `content_rewards_${payload.campaign_source}_${Date.now()}`;\n\nreturn [{ json: { workflowId, payload, idempotencyKey } }];"
+      },
+      "id": "2",
+      "name": "Prepare Job",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:8000/api/v1/workflows/content_rewards/run",
+        "method": "POST",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "={{$json}}"
+      },
+      "id": "3",
+      "name": "Call Orchestrator API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "4",
+      "name": "Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "cronExpression": "0 6 * * *",
+        "timezone": "UTC"
+      },
+      "id": "5",
+      "name": "Daily Schedule",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [250, 100]
+    },
+    {
+      "parameters": {
+        "functionCode": "return [{ json: { scheduled: true, source_type: 'manual' } }];"
+      },
+      "id": "6",
+      "name": "Scheduled Payload",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 100]
+    }
+  ],
+  "connections": {
+    "Webhook - Trigger": {
+      "main": [[{ "node": "Prepare Job", "type": "main", "index": 0 }]]
+    },
+    "Prepare Job": {
+      "main": [[{ "node": "Call Orchestrator API", "type": "main", "index": 0 }]]
+    },
+    "Call Orchestrator API": {
+      "main": [[{ "node": "Response", "type": "main", "index": 0 }]]
+    },
+    "Daily Schedule": {
+      "main": [[{ "node": "Scheduled Payload", "type": "main", "index": 0 }]]
+    },
+    "Scheduled Payload": {
+      "main": [[{ "node": "Prepare Job", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "id": "1"
+}

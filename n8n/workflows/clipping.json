@@ -1,0 +1,28 @@
+{
+  "name": "Content Rewards - Supervised Clipping",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {"httpMethod": "POST", "path": "clipping/start", "responseMode": "responseNode", "options": {}},
+      "id": "clipping-trigger", "name": "Campaign input", "type": "n8n-nodes-base.webhook", "typeVersion": 2, "position": [260, 300], "webhookId": "clipping-start"
+    },
+    {
+      "parameters": {"jsCode": "const input = $input.first().json;\nconst body = input.body ?? input;\nreturn [{ json: { workflow_id: 'content_rewards', payload: body.payload ?? body, ...(body.idempotency_key ? { idempotency_key: body.idempotency_key } : {}) } }];"},
+      "id": "clipping-input", "name": "Prepare clipping request", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [500, 300]
+    },
+    {
+      "parameters": {"method": "POST", "url": "http://clipping-api:8000/api/v1/clipping/jobs", "sendBody": true, "specifyBody": "json", "jsonBody": "={{ JSON.stringify($json) }}", "options": {"timeout": 10000}},
+      "id": "clipping-create", "name": "Create campaign review task", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [740, 300]
+    },
+    {
+      "parameters": {"respondWith": "json", "responseBody": "={{ JSON.stringify($json) }}", "options": {"responseCode": 202}},
+      "id": "clipping-response", "name": "Return job to caller", "type": "n8n-nodes-base.respondToWebhook", "typeVersion": 1.4, "position": [980, 300]
+    }
+  ],
+  "connections": {
+    "Campaign input": {"main": [[{"node": "Prepare clipping request", "type": "main", "index": 0}]]},
+    "Prepare clipping request": {"main": [[{"node": "Create campaign review task", "type": "main", "index": 0}]]},
+    "Create campaign review task": {"main": [[{"node": "Return job to caller", "type": "main", "index": 0}]]}
+  },
+  "settings": {"executionOrder": "v1"}
+}

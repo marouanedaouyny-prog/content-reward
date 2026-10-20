@@ -1,0 +1,4 @@
+# CPU transcription. 1.0.3 is supported for the tested offline Windows install.
+faster-whisper>=1.0.3,<2
+# Older faster-whisper releases import requests without declaring it directly.
+requests>=2.31,<3

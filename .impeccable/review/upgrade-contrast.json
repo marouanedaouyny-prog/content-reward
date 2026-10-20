@@ -1,0 +1,26 @@
+[
+  {
+    "role": "body",
+    "ratio": 14.68
+  },
+  {
+    "role": "muted",
+    "ratio": 5.75
+  },
+  {
+    "role": "primary",
+    "ratio": 6.77
+  },
+  {
+    "role": "empty_preview",
+    "ratio": 16.03
+  },
+  {
+    "role": "failed_status",
+    "ratio": 6.58
+  },
+  {
+    "role": "tinted_panel_copy",
+    "ratio": 5.11
+  }
+]

@@ -1,0 +1,10 @@
+FROM python:3.11-slim
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
+COPY requirements-clipping.txt requirements-transcription.txt ./
+RUN pip install --no-cache-dir -r requirements-clipping.txt -r requirements-transcription.txt
+COPY clipping ./clipping
+RUN mkdir -p /app/data /app/storage/clipping
+EXPOSE 8000
+CMD ["python", "-m", "clipping", "--host", "0.0.0.0", "--port", "8000"]

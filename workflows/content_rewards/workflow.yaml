@@ -1,0 +1,72 @@
+id: content_rewards
+version: 1.0.0
+name: Content Rewards Pipeline
+risk_level: medium
+permissions:
+  - browser
+  - filesystem
+  - social_publish
+retries:
+  max_attempts: 3
+  backoff_seconds: [30, 120, 600]
+approval:
+  publish: required
+  submit: required
+  campaign_acceptance: required
+  rights_approval: required
+  final_clip_approval: required
+  publish_approval: required
+  submission_approval: required
+timeouts:
+  step_timeout_seconds: 300
+  overall_timeout_seconds: 86400
+  browser_timeout_seconds: 120
+idempotency_strategy:
+  key_prefix: content_rewards_{{workflow_id}}
+  cache_store: redis_or_sqlite
+  deduplicate_on: input_hash
+manual_approval_rules:
+  - action: publish
+    condition: always_required
+    gate: publish_approval
+  - action: submit
+    condition: always_required
+    gate: submission_approval
+  - action: campaign_acceptance
+    condition: budget_remaining_lt_10
+    gate: campaign_acceptance
+  - action: rights_approval
+    condition: has_unverified_rights
+    gate: rights_approval
+  - action: final_clip_approval
+    condition: clip_qc_passed
+    gate: final_clip_approval
+cost_tracking:
+  estimated_cost: 0
+  billing_status: free_tier_or_local
+  provider: local_or_ollama
+  model: local_model
+  requests_today: 0
+  tokens_today: 0
+steps:
+  - worker: campaign_discovery
+    payload:
+      source_type: "manual"
+      manual_paste: "Test campaign"
+  - worker: campaign_parser
+    payload: {}
+  - worker: source_download
+    payload:
+      source_urls: ["https://www.youtube.com/watch?v=dQw4w9WgXcQ"]
+  - worker: clip_generator
+    payload:
+      clip_plan:
+        aspect_ratio: "9:16"
+        duration_seconds: 60
+  - worker: quality_check
+    payload: {}
+  - worker: social_connector_publish
+    payload:
+      platforms: ["linkedin", "facebook", "instagram", "tiktok", "youtube"]
+      caption: "Auto-generated from campaign"
+      schedule: "immediate"

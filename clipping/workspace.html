@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Clipping workspace</title>
+  <style>
+    :root {
+      color-scheme:light;
+      --ink:#172526; --muted:#59696a; --line:#d9e0df;
+      --accent:#176753; --accent-hover:#124f41; --surface:#ffffff;
+      --canvas:#f5f7f5; --tint:#eaf4ef; --focus:#a56f16; --error:#9a3725; --space:8px;
+      --studio-tint:#fce9df; --studio-ink:#74331f; --studio-face:#f6ba8c; --studio-side:#c47547;
+      --source-tint:#e7efff; --source-ink:#254ba0; --caption-tint:#fff2ce; --caption-ink:#765417;
+    }
+    * { box-sizing:border-box; }
+    html { scroll-padding-top:24px; scrollbar-color:#a5bab1 var(--canvas); }
+    body { margin:0; background:var(--canvas); color:var(--ink); font:15px/1.6 system-ui,sans-serif; }
+    ::selection { background:#cfe7db; color:var(--ink); }
+    input,textarea { caret-color:var(--accent); }
+    header,main { max-width:1240px; margin:auto; }
+    header { display:flex; align-items:center; justify-content:space-between; gap:32px; padding:32px 32px 24px; }
+    main { padding:0 32px 32px; }
+    h1 { font:36px/1.15 Georgia,serif; margin:0 0 8px; letter-spacing:-.025em; }
+    h2 { font-size:24px; line-height:1.3; margin:0 0 12px; letter-spacing:-.02em; }
+    h3 { font-size:18px; margin:0 0 12px; }
+    h1,h2,h3 { text-wrap:balance; }
+    p { margin:8px 0 16px; max-width:70ch; }
+    .muted,small { color:var(--muted); }
+    small { font-size:12px; }
+    header p { margin-bottom:0; }
+    .connection { display:flex; align-items:center; justify-content:flex-end; gap:16px; }
+    .connection p { margin:0; font-size:13px; }
+    #health { display:flex; align-items:center; gap:8px; }
+    #health::before { content:''; flex-shrink:0; width:8px; height:8px; border-radius:50%; background:var(--line); }
+    #health.connected::before { background:var(--accent); }
+    #health.paused::before { background:var(--error); }
+    .workspace-nav { display:flex; flex-wrap:wrap; gap:32px; border-bottom:1px solid var(--line); margin-bottom:24px; }
+    .workspace-nav a { display:inline-flex; align-items:center; min-height:44px; padding:8px 0 12px; color:var(--muted); font-size:14px; font-weight:600; text-decoration:none; }
+    .workspace-nav a:hover { color:var(--accent); text-decoration:underline; }
+    .columns { display:grid; grid-template-columns:minmax(0,320px) minmax(0,1fr); grid-template-areas:'automatic preview' 'history preview'; grid-template-rows:auto 1fr; gap:24px; align-items:start; }
+    section { min-width:0; padding:24px; background:var(--surface); border:1px solid var(--line); border-radius:12px; }
+    .autopilot-panel { grid-area:automatic; background:var(--tint); }
+    .preview-panel { grid-area:preview; }
+    .run-history { grid-area:history; min-width:0; }
+    #automatic-start { width:100%; margin-top:8px; min-height:48px; }
+    #automatic-message { font-size:13px; margin:12px 0 16px; }
+    .automation-note { font-size:13px; margin:0; }
+    #history { margin:0; padding:0 4px; }
+    #history>summary { font-size:14px; color:var(--ink); }
+    .jobs { display:grid; gap:8px; margin:12px 0 0; max-height:360px; overflow-y:auto; padding:4px; }
+    .job { text-align:left; display:flex; flex-direction:column; background:var(--surface); border-color:var(--line); color:var(--ink); }
+    .job.selected { border-color:var(--accent); background:#f0f7f3; }
+    .job:hover:not(:disabled),.job:active:not(:disabled) { background:var(--tint); color:var(--ink); border-color:var(--accent); }
+    .job span,.job small { overflow-wrap:anywhere; }
+    .job small { font-weight:400; }
+    .flow { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:12px; counter-reset:stage; padding:0 0 20px; margin:20px 0 24px; list-style:none; color:var(--muted); font-size:13px; border-bottom:1px solid var(--line); }
+    .flow li { counter-increment:stage; padding:8px 0 0; border-top:2px solid var(--line); min-width:0; }
+    .flow li::before { content:counter(stage,decimal-leading-zero); display:block; font-size:12px; font-variant-numeric:tabular-nums; margin-bottom:8px; }
+    .flow li.current { border-color:var(--accent); color:var(--accent); font-weight:650; }
+    .flow li.done { border-color:#8bb39f; color:var(--ink); }
+    #detail { min-height:360px; }
+    #detail>h3 { overflow-wrap:anywhere; margin:0 0 8px; }
+    .status { display:inline-block; padding:4px 9px; color:var(--accent); background:var(--tint); border-radius:3px; font-size:13px; margin:0 0 12px; }
+    .status.is-error { color:var(--error); background:#fff5df; }
+    .status.is-waiting { color:var(--ink); background:var(--canvas); }
+    .preview-placeholder { display:grid; place-items:center; text-align:center; min-height:280px; padding:40px 24px; margin:24px 0; background:#101818; color:var(--tint); border-radius:8px; }
+    .preview-placeholder p { max-width:36ch; margin:0; }
+    video { display:block; width:100%; max-height:520px; object-fit:contain; margin:24px auto; background:#101818; border-radius:8px; }
+    .brief { padding:16px 0; margin:16px 0; border-bottom:1px solid var(--line); }
+    .brief p { white-space:pre-wrap; overflow-wrap:anywhere; margin:8px 0 12px; }
+    .brief a { font-size:14px; }
+    .brief small { display:block; max-width:70ch; font-variant-numeric:tabular-nums; }
+    .downloads { display:flex; gap:16px; flex-wrap:wrap; font-size:13px; margin:16px 0 24px; }
+    .downloads a { min-height:44px; display:inline-flex; align-items:center; }
+    .run-issue { margin:20px 0; padding:16px; background:#fff5df; border:1px solid #d5b47a; border-radius:8px; }
+    .run-issue>p { margin:0 0 8px; font-size:14px; }
+    .run-issue details { margin:0; }
+    .run-issue summary { margin:0; }
+    .campaign-panel { margin-top:24px; }
+    #manual-intake { margin:0; }
+    #manual-intake>summary { color:var(--ink); font-size:18px; font-weight:600; margin:0; }
+    #intake { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:32px; margin-top:24px; }
+    fieldset { min-width:0; padding:0; margin:0; border:0; }
+    legend { font-size:18px; font-weight:600; width:100%; padding-bottom:12px; margin-bottom:20px; border-bottom:1px solid var(--line); }
+    label { display:block; margin:0 0 16px; font-size:13px; font-weight:600; }
+    input,select,textarea { display:block; width:100%; margin-top:6px; padding:12px; font:inherit; color:var(--ink); background:var(--surface); border:1px solid #b8c6c3; border-radius:3px; }
+    input::placeholder,textarea::placeholder { color:var(--muted); opacity:1; }
+    textarea { min-height:82px; resize:vertical; }
+    input[type=checkbox] { flex-shrink:0; width:16px; height:16px; margin:3px 0 0; accent-color:var(--accent); }
+    input[type=file] { max-width:100%; overflow:hidden; }
+    .check { display:flex; align-items:flex-start; gap:10px; font-size:14px; font-weight:400; }
+    .row { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px; }
+    button { cursor:pointer; padding:10px 16px; min-height:44px; border:1px solid var(--accent); border-radius:3px; background:var(--accent); color:var(--surface); font:600 14px system-ui; transition:background-color 160ms ease-out,border-color 160ms ease-out; }
+    button:hover:not(:disabled) { background:var(--accent-hover); border-color:var(--accent-hover); }
+    button:active:not(:disabled) { background:#0d4134; }
+    button.secondary { background:var(--surface); color:var(--accent); }
+    button.secondary:hover:not(:disabled) { background:var(--tint); border-color:var(--accent); }
+    button.secondary:active:not(:disabled) { background:#dcece4; color:var(--accent); border-color:var(--accent); }
+    button:disabled { opacity:.65; cursor:wait; }
+    button:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible { outline:3px solid var(--focus); outline-offset:3px; }
+    .buttons { display:flex; gap:12px; flex-wrap:wrap; margin-top:16px; }
+    #intake>.buttons { grid-column:1/-1; margin:0; padding-top:20px; border-top:1px solid var(--line); }
+    a { color:var(--accent); text-underline-offset:3px; }
+    details { margin-bottom:16px; }
+    summary { cursor:pointer; min-height:44px; padding:8px 0; margin-bottom:12px; }
+    summary::marker { color:var(--accent); }
+    .error { white-space:pre-wrap; overflow-wrap:anywhere; color:var(--error); font-size:13px; }
+    #message { margin:0 0 24px; padding:16px; background:#fff5df; border:1px solid #d5b47a; border-radius:8px; }
+    #message:empty { display:none; }
+    .table-wrap { overflow-x:auto; margin:14px 0; }
+    table { border-collapse:collapse; width:100%; font-size:13px; font-variant-numeric:tabular-nums; }
+    th,td { padding:12px; text-align:left; border-bottom:1px solid var(--line); white-space:nowrap; }
+    .idea { padding:16px 0; border-bottom:1px solid var(--line); margin:16px 0; }
+    #workflow-map { margin-top:24px; scroll-margin-top:24px; }
+    .map-inputs { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:48px; margin-top:24px; }
+    .map-stream { min-width:0; }
+    .map-stream ol { padding-left:22px; margin:16px 0 24px; }
+    .map-stream li { padding:0 0 20px 8px; }
+    .map-stream li:last-child { padding-bottom:0; }
+    .map-stream li::marker { color:var(--accent); font-variant-numeric:tabular-nums; }
+    .map-stream li strong,.map-stream li small { display:block; }
+    .map-state { margin:4px 0 8px; color:var(--muted); font-size:13px; overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
+    .map-connections { display:block; width:100%; height:56px; color:var(--accent); }
+    .map-join { padding:24px; background:var(--tint); border-radius:8px; }
+    .map-result { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:32px; }
+    .map-result p:last-child { margin-bottom:0; font-size:14px; }
+    #map-run-status { margin:20px 0 0; padding-top:16px; border-top:1px solid var(--line); }
+    .map-handoff { margin:20px 0 0; font-size:13px; }
+    .research-brief { margin:20px 0; padding:16px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+    .research-brief small { display:block; margin:12px 0; }
+    .research-brief p { overflow-wrap:anywhere; }
+    .research-brief button { margin-top:16px; }
+    .studio-section { margin-top:24px; background:var(--studio-tint); border-color:var(--studio-face); }
+    .studio-section h2 { color:var(--studio-ink); }
+    .studio-layout { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); align-items:center; gap:48px; }
+    .studio-copy>p { color:var(--studio-ink); }
+    .studio-controls { max-width:400px; margin-top:24px; }
+    .studio-formats { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:24px; }
+    .studio-formats button { background:var(--surface); color:var(--studio-ink); border-color:var(--studio-face); }
+    .studio-formats button[aria-pressed=true] { background:var(--studio-ink); color:var(--surface); border-color:var(--studio-ink); }
+    .studio-formats button:hover:not(:disabled) { background:var(--studio-face); color:var(--studio-ink); border-color:var(--studio-ink); }
+    .studio-angle-label { color:var(--studio-ink); }
+    .studio-angle-label output { float:right; font-variant-numeric:tabular-nums; }
+    #studio-angle { padding:0; border:0; min-height:32px; background:transparent; accent-color:var(--studio-ink); }
+    #studio-motion-note,#studio-apply-note { color:var(--studio-ink); font-size:13px; }
+    .studio-scene { min-width:0; height:420px; display:grid; place-items:center; perspective:900px; }
+    .clip-model { position:relative; width:min(var(--model-width,180px),70%); aspect-ratio:var(--frame-ratio,9 / 16); transform-style:preserve-3d; transform:rotateX(6deg) rotateY(var(--view-angle,-18deg)); transition:transform 180ms cubic-bezier(.16,1,.3,1); }
+    .model-edge { position:absolute; top:0; bottom:0; left:0; width:12px; background:var(--studio-side); transform:translateX(-12px) rotateY(-90deg); transform-origin:right; border-radius:3px; }
+    .source-plane { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:20px; border-radius:12px; background:var(--studio-face); color:var(--studio-ink); transform-style:preserve-3d; box-shadow:0 18px 32px rgba(0,0,0,.14); }
+    .source-plane strong { font-size:18px; text-align:center; }
+    #studio-duration { color:var(--studio-ink); font-size:12px; text-align:center; }
+    .caption-plane { position:absolute; left:12px; right:12px; bottom:20px; padding:12px; background:var(--caption-tint); color:var(--caption-ink); border-radius:8px; transform:translateZ(32px); box-shadow:0 12px 20px rgba(0,0,0,.12); }
+    .caption-plane span { display:block; font-size:12px; font-weight:600; line-height:1.4; max-height:5.6em; overflow:hidden; overflow-wrap:anywhere; }
+    .clip-model[data-format="16:9"] .source-plane { justify-content:flex-start; padding:12px; }
+    .clip-model[data-format="16:9"] .source-plane strong { font-size:14px; }
+    .clip-model[data-format="16:9"] .caption-plane { bottom:12px; }
+    .clip-model[data-format="16:9"] .caption-plane span { max-height:2.8em; }
+    .clip-model[data-format="1:1"] .source-plane { justify-content:flex-start; }
+    .studio-model-note { color:var(--studio-ink); text-align:center; font-size:13px; margin:0 auto; }
+    #studio-format-label { font-variant-numeric:tabular-nums; }
+    .form-lead,.form-steps,#form-error { grid-column:1/-1; }
+    .form-lead p { margin:0; }
+    #form-progress { color:var(--accent); font-size:13px; margin-top:8px; }
+    .form-steps { display:none; list-style:none; padding:0; margin:20px 0 24px; gap:12px; }
+    #intake[data-guided=true] { display:block; }
+    #intake[data-guided=true] .form-steps { display:flex; }
+    .form-steps li { flex:1; min-width:0; }
+    .form-steps button { width:100%; text-align:left; color:var(--muted); background:var(--canvas); border-color:var(--line); }
+    .form-steps button:hover:not(:disabled) { background:var(--tint); color:var(--accent); border-color:var(--accent); }
+    .form-steps [data-form-step=campaign][aria-current=step] { color:var(--caption-ink); background:var(--caption-tint); border-color:var(--caption-ink); }
+    .form-steps [data-form-step=source][aria-current=step] { color:var(--source-ink); background:var(--source-tint); border-color:var(--source-ink); }
+    .form-steps [data-form-step=clip][aria-current=step] { color:var(--studio-ink); background:var(--studio-tint); border-color:var(--studio-ink); }
+    .form-pane { margin-bottom:24px; }
+    .form-pane legend { padding:12px 16px; border:0; border-radius:3px; }
+    #form-campaign legend { background:var(--caption-tint); color:var(--caption-ink); }
+    #form-source legend { background:var(--source-tint); color:var(--source-ink); }
+    #form-clip legend { background:var(--studio-tint); color:var(--studio-ink); }
+    .form-pane>p:first-of-type { font-size:14px; color:var(--muted); }
+    .setup-review { padding:16px 0; margin:20px 0; border-top:1px solid var(--line); }
+    .setup-review p { margin-bottom:0; font-size:13px; }
+    .form-actions { position:sticky; bottom:0; z-index:1; background:var(--surface); }
+    #trending-research { margin-top:24px; scroll-margin-top:24px; }
+    .trends-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:24px; }
+    .trends-heading p { max-width:62ch; }
+    .trends-heading .buttons { margin:0; flex-shrink:0; }
+    .trends-agent-state { padding:16px; margin:20px 0 24px; border-radius:8px; background:var(--source-tint); color:var(--source-ink); }
+    .trends-agent-state p { margin:0 0 8px; font-size:13px; }
+    .trends-agent-state p:last-child { margin-bottom:0; }
+    .trend-row { padding:20px 0; border-top:1px solid var(--line); }
+    .trend-row h3 { margin:0 0 8px; overflow-wrap:anywhere; }
+    .trend-row p { margin:8px 0; font-size:13px; }
+    .trend-facts { font-variant-numeric:tabular-nums; }
+    .trend-signal { color:var(--source-ink); }
+    #trends-errors:empty { display:none; }
+    #form-error:empty { display:none; }
+    footer { padding:24px 0 0; color:var(--muted); font-size:12px; }
+    @media(max-width:800px) {
+      .trends-heading { flex-direction:column; }
+      .trends-heading .buttons { flex-shrink:1; }
+      header { padding:24px; align-items:flex-start; flex-direction:column; gap:16px; }
+      main { padding:0 24px 24px; }
+      .connection { justify-content:flex-start; flex-wrap:wrap; }
+      .workspace-nav { gap:24px; }
+      .columns { grid-template-columns:minmax(0,1fr); grid-template-areas:'automatic' 'preview' 'history'; grid-template-rows:auto auto auto; }
+      #intake { grid-template-columns:minmax(0,1fr); }
+      .studio-layout { gap:24px; }
+      .map-inputs { gap:24px; }
+      h1 { font-size:32px; }
+    }
+    @media(max-width:600px) {
+      .map-inputs,.map-result { grid-template-columns:minmax(0,1fr); }
+      .studio-layout { grid-template-columns:minmax(0,1fr); }
+      .studio-controls { max-width:none; }
+      .studio-scene { height:380px; }
+      .clip-model { width:min(var(--model-width,180px),85%); }
+      .map-stream+.map-stream { border-top:1px solid var(--line); padding-top:24px; }
+      .map-connections { display:none; }
+      .map-join { margin-top:24px; }
+      .flow { grid-template-columns:repeat(5,minmax(112px,1fr)); overflow-x:auto; scroll-snap-type:x proximity; font-size:12px; }
+      .flow li { scroll-snap-align:start; }
+    }
+    @media(max-width:480px) {
+      header { padding:16px; }
+      main { padding:0 16px 24px; }
+      section { padding:20px; }
+      h2 { font-size:22px; }
+      .workspace-nav { gap:12px; }
+      .workspace-nav a { font-size:13px; }
+      .row { grid-template-columns:minmax(0,1fr); gap:0; }
+      .preview-placeholder { min-height:240px; padding:32px 20px; }
+      .map-join { padding:20px; }
+      #intake>.buttons { flex-direction:column; }
+      #intake>.buttons button { width:100%; }
+      .form-steps { gap:8px; }
+      .form-steps button { padding:10px 8px; text-align:center; font-size:13px; }
+      .studio-formats button { flex:1; padding:10px 8px; font-size:13px; }
+    }
+    @media(prefers-reduced-motion:reduce) { button,.clip-model { transition:none; } .clip-model { transform:none; } .caption-plane { transform:none; } }
+  </style>
+</head>
+<body>
+<header>
+  <div><h1>Clipping workspace</h1><p class="muted">From a source video to a subtitled short, automatically.</p></div>
+  <div class="connection"><p id="health" class="muted" role="status">Connecting…</p><button id="kill" type="button" class="secondary">Pause processing</button></div>
+</header>
+<main>
+  <nav class="workspace-nav" aria-label="Workspace sections"><a href="#workspace">Preview</a><a href="#clip-studio">Clip studio</a><a href="#trending-research">Trending research</a><a href="#workflow-map">Workflow map</a><a href="#manual-intake" id="campaign-nav">Campaign setup</a><a href="#social-accounts">Instagram account</a></nav>
+  <p id="message" role="alert"></p>
+  <div class="columns" id="workspace">
+    <section class="autopilot-panel" aria-labelledby="new-heading">
+      <h2 id="new-heading">Find a YouTube highlight</h2>
+      <p class="muted">Search popular long videos across six niches. Choose one moment using replay data when available, then add subtitles from its spoken audio.</p>
+      <button id="automatic-start" type="button">Search long videos &amp; make one clip</button>
+      <p id="automatic-message" class="muted" role="status">One vertical clip, burned-in subtitles, and a post caption. No Instagram connection needed.</p>
+      <p class="automation-note"><a href="#workflow-map">See how research feeds the workflow</a></p>
+    </section>
+    <section class="preview-panel" aria-labelledby="jobs-heading">
+      <h2 id="jobs-heading">Preview &amp; progress</h2>
+      <ol class="flow" aria-label="Automatic preview stages"><li>Search long videos</li><li>Download best source</li><li>Transcribe speech</li><li>Select highlight</li><li>Burn captions</li></ol>
+      <div id="detail"><div class="preview-placeholder"><p>Start the automatic workflow. Your video and its progress will appear here.</p></div></div>
+    </section>
+    <aside class="run-history" aria-label="Saved workflows"><details id="history"><summary>Recent runs</summary><div id="jobs" class="jobs"></div></details></aside>
+  </div>
+  <section class="studio-section" id="clip-studio" aria-labelledby="studio-heading">
+    <div class="studio-layout">
+      <div class="studio-copy">
+        <h2 id="studio-heading">Frame your next clip</h2>
+        <p>Explore the video frame and caption layer in 3D, then carry your format into a campaign task.</p>
+        <div class="studio-controls">
+          <div class="studio-formats" role="group" aria-label="Inspect clip format"><button type="button" data-studio-format="9:16" aria-pressed="true">Vertical</button><button type="button" data-studio-format="1:1" aria-pressed="false">Square</button><button type="button" data-studio-format="16:9" aria-pressed="false">Landscape</button></div>
+          <label class="studio-angle-label">View angle <output id="studio-angle-value" for="studio-angle">−18°</output><input id="studio-angle" type="range" min="-30" max="30" value="-18" aria-describedby="studio-motion-note"></label>
+          <p id="studio-motion-note">Change the angle to inspect the video and caption layers.</p>
+          <div class="buttons"><button type="button" id="studio-use-format" class="secondary">Use format in campaign</button><button type="button" id="studio-front" class="secondary">Front view</button></div>
+          <p id="studio-apply-note" role="status">The automatic IShowSpeed preview keeps its saved settings.</p>
+        </div>
+      </div>
+      <div>
+        <div class="studio-scene" aria-label="Clip layout model">
+          <div class="clip-model" id="studio-model"><div class="model-edge" aria-hidden="true"></div><div class="source-plane"><strong>Video layer</strong></div><div class="caption-plane"><span id="studio-caption">Caption placement</span></div></div>
+        </div>
+        <p class="studio-model-note" id="studio-format-label">Vertical · 9:16 · 1080 × 1920</p>
+        <p class="studio-model-note" id="studio-duration">30s desired length</p>
+        <p class="studio-model-note">Layout model, not a rendered video. Watch actual output in Preview.</p>
+      </div>
+    </div>
+  </section>
+  <section id="trending-research" aria-labelledby="trends-heading">
+    <div class="trends-heading"><div><h2 id="trends-heading">YouTube long-video search</h2><p>Search six niches for recent videos over 20 minutes and up to two hours. Compare views and growth signals, then clip one source. Replay data guides the moment when available; its selection method is shown with the result.</p></div><div class="buttons"><button type="button" id="trends-run">Search long videos</button><button type="button" id="trends-toggle" class="secondary">Pause research agent</button></div></div>
+    <div class="trends-agent-state"><p id="trends-provider">Connecting to research…</p><p id="trends-status" role="status">Loading saved research.</p><p id="trends-next"></p></div>
+    <p id="trends-summary" class="muted">The agent searches automatically while the app runs. A high view count does not establish permission to clip or repost.</p>
+    <button type="button" id="trends-best" disabled>Prepare the best research preview</button>
+    <div id="trends-errors" role="alert"></div><div id="trends-results" aria-live="polite"><p>No saved research loaded yet.</p></div>
+    <details><summary>How sources are selected</summary><p>Recent YouTube searches cover gaming, AI &amp; technology, business, fitness, sport, and culture &amp; comedy. The agent refreshes every six hours. Counts, dates and search coverage may be incomplete.</p><p>Views per hour since upload is a lifetime average. Recent growth is shown only when two saved observations are available. These are research signals; the transcript and campaign rules determine which clip you can use.</p><p>Private previews do not publish or submit anything. To use a source in a reward campaign, record permission and review the actual clip first.</p></details>
+  </section>
+  <section class="campaign-panel" aria-labelledby="campaign-heading">
+      <details id="manual-intake"><summary id="campaign-heading">Set up a Content Rewards campaign</summary>
+      <form id="intake" novalidate>
+        <div class="form-lead"><p>Keep the campaign rules, source and clip settings together. Your task is saved for review before campaign processing begins.</p><p id="form-progress" role="status">Campaign, source and clip settings</p></div>
+        <ol class="form-steps" aria-label="Campaign setup steps"><li><button type="button" data-form-step="campaign" aria-controls="form-campaign">Campaign</button></li><li><button type="button" data-form-step="source" aria-controls="form-source">Source</button></li><li><button type="button" data-form-step="clip" aria-controls="form-clip">Clip</button></li></ol>
+        <fieldset id="form-campaign" class="form-pane" data-form-pane="campaign"><legend>Campaign brief</legend>
+          <p>Record the requirements and permission for this campaign.</p>
+          <label>Campaign name<input name="title" required maxlength="200"></label>
+          <label>Campaign page URL<input name="campaign_url" type="url" required placeholder="https://…"></label>
+          <div class="row"><label>Platform<select name="platform"><option value="youtube">YouTube Shorts</option><option value="instagram">Instagram Reels</option><option value="tiktok">TikTok</option></select></label><label>Campaign experience<select name="experience"><option value="current">Current Content Rewards app</option><option value="legacy">Legacy Whop campaign</option></select></label></div>
+          <label>Campaign requirements<textarea name="rules" required placeholder="Duration, permitted edits, branding, tags, mentions, disclosures, and submission rules"></textarea></label>
+          <label>Source permission<textarea name="rights_notes" required placeholder="Where the campaign authorizes this footage and which assets you may use"></textarea></label>
+          <div class="row"><label>Minimum clip length (seconds)<input name="duration_min" type="number" min="0" placeholder="If specified"></label><label>Maximum clip length (seconds)<input name="duration_max" type="number" min="1" placeholder="If specified"></label></div>
+          <label>Reward rate per 1,000 views (optional)<input name="rate" type="number" min="0" step="0.01" placeholder="Copy the actual campaign rate"></label>
+          <label class="check"><input name="pre_post_review" type="checkbox">This campaign requires brand approval of a draft before posting.</label>
+        </fieldset>
+        <fieldset id="form-source" class="form-pane" data-form-pane="source"><legend>Source video</legend>
+          <p>Prepare an authorized source or use a local practice clip.</p>
+          <label class="check"><input name="dry_run" type="checkbox" checked>Practice mode: generate a sample video and stop after clip review.</label>
+          <h3>Choose a YouTube source</h3>
+          <input name="saved_source_path" type="hidden">
+          <label>Upload authorized video<input name="video" type="file" accept=".mp4,.mov,.mkv,.webm"></label>
+          <label>Or use its source URL<input name="source_url" type="url" placeholder="https://…"></label>
+          <button type="button" id="source-check" class="secondary">Check YouTube video details</button><p id="source-details" class="muted" role="status">Paste a single recorded video link. Check the campaign's source permissions before clipping it.</p>
+          <label>Spoken language<select name="language"><option value="">Detect automatically</option><option value="en">English</option><option value="fr">French</option><option value="ar">Arabic</option></select></label>
+          <p id="transcription-status" class="muted" role="status"></p>
+          <details><summary>Use your own timed subtitles</summary><label>Import an SRT file<input name="srt_file" type="file" accept=".srt"></label><label>SRT transcript<textarea name="transcript_srt" placeholder="1&#10;00:00:00,000 --> 00:00:05,000&#10;The words spoken in the video."></textarea></label><button id="sample-srt" type="button" class="secondary">Load five-second subtitle demo</button><p class="muted">The demo contains sample text for practice footage. Use a matching transcript for real speech. <a href="/examples/practice.srt">Download sample SRT</a></p></details>
+        </fieldset>
+        <fieldset id="form-clip" class="form-pane" data-form-pane="clip"><legend>Clip settings</legend>
+          <p>Set the desired frame and length, then keep the required caption and disclosure.</p>
+          <div class="row"><label>Start time (seconds)<input name="start" type="number" min="0" step="0.1" value="0" required></label><label>Clip length (seconds)<input name="duration" type="number" min="1" max="180" step="0.1" value="30" required></label></div>
+          <label>Format<select name="aspect"><option value="9:16">Vertical · 9:16</option><option value="1:1">Square · 1:1</option><option value="16:9">Landscape · 16:9</option></select></label>
+          <label>Post caption<textarea name="caption" placeholder="Include required mentions, tags, and clear disclosure."></textarea></label>
+          <label class="check"><input name="auto_clip" type="checkbox">Suggest and prepare the strongest transcript window after campaign approval. Clip length becomes the desired length; the selected moment still needs your review.</label>
+          <details id="research-tools"><summary>Research daily clip ideas across niches</summary>
+            <label>Niche keywords, separated by commas<input name="research_keywords" maxlength="200" placeholder="AI, gaming, interview, fitness"></label>
+            <p class="muted">Use historical metadata to compare similar posts. Your transcript supplies the actual moments to cut. Engagement is not a prediction of views or earnings.</p>
+            <label>Local research sample<input id="metadata-file" type="file" accept=".csv,.jsonl,.ndjson"></label>
+            <div class="row"><label>Language filter<input id="research-language" maxlength="12" placeholder="en or ar; leave empty for all"></label><label>Country label filter<input id="research-country" maxlength="12" placeholder="US or MA; leave empty for all"></label></div>
+            <div class="buttons"><button id="metadata-analyze" class="secondary" type="button">Analyze sample</button><button id="metadata-demo" class="secondary" type="button">Try synthetic research demo</button></div>
+            <p class="muted">CSV or JSONL, up to 25 MB / 100,000 rows. The linked Hugging Face dataset is currently inaccessible and specifies research use; this tool does not download it.</p>
+            <div id="metadata-report" aria-live="polite"></div>
+            <button id="suggest-cuts" class="secondary" type="button">Suggest cuts from my timed subtitles</button><p class="muted">Paste or import the matching SRT in the Source step first. Without SRT, enable automatic planning and preparation will transcribe the approved source or pause for subtitles.</p>
+            <p id="research-message" class="error" role="alert"></p><div id="clip-ideas" aria-live="polite"></div>
+          </details>
+          <p class="muted">Choose a complete moment. Review its crop, captions, context, and campaign requirements before publishing.</p>
+          <div class="setup-review"><strong>Task settings</strong><p id="draft-summary">Review the source, caption and campaign limits before creating the task.</p></div>
+        </fieldset>
+        <p id="form-error" class="error" role="alert"></p>
+        <div class="buttons form-actions"><button type="button" id="form-back" class="secondary" hidden>Back</button><button type="button" id="form-next" hidden>Next: source video</button><button type="submit" id="review-submit">Create review task</button><button type="button" class="secondary" id="practice">Try a five-second practice clip</button></div>
+      </form>
+      </details>
+  </section>
+  <section class="campaign-panel" id="social-accounts" aria-labelledby="instagram-heading">
+    <h2 id="instagram-heading">Instagram account</h2>
+    <p>Connect your Instagram account or check its saved access. Review the account and permissions before using it in your workflow.</p>
+    <span id="instagram-status" class="status" role="status">Loading account status…</span>
+    <p id="instagram-identity" class="muted"></p>
+    <p id="instagram-permissions">Publishing access has not been verified. Posting remains disabled.</p>
+    <p id="instagram-checked" class="muted"></p>
+    <p id="instagram-expiry" class="muted"></p>
+    <p id="instagram-message" role="status"></p>
+    <div class="buttons"><button type="button" id="instagram-connect" disabled>Connect Instagram</button><button type="button" id="instagram-verify" class="secondary" disabled>Verify Instagram access</button></div>
+    <p id="instagram-oauth-note" class="muted"></p>
+  </section>
+  <section id="workflow-map" aria-labelledby="map-heading">
+    <h2 id="map-heading">How research becomes a clip</h2>
+    <p class="muted">Two inputs meet at planning: metadata suggests what to test; your video and timed subtitles supply the actual moment.</p>
+    <div class="map-inputs">
+      <div class="map-stream">
+        <h3>TikTok metadata</h3>
+        <p id="research-map-status" class="map-state" role="status">No real sample imported. Research is optional; automatic previews can run without it.</p>
+        <ol>
+          <li><strong>Import a local sample</strong><small>CSV or JSONL with dates, captions, clip lengths and historical engagement. Metadata contains no video footage.</small></li>
+          <li><strong>Compare similar posts</strong><small>Keep posting month, language and country together. Groups need at least ten posts.</small></li>
+          <li><strong>Prepare one test brief</strong><small>A topic keyword and a typical length, with the evidence and its limits. Apply it to the campaign form.</small></li>
+        </ol>
+        <button id="open-research" type="button" class="secondary">Open research tools</button>
+      </div>
+      <div class="map-stream">
+        <h3>Source video</h3>
+        <ol>
+          <li><strong>Prepare the source</strong><p id="map-source" class="map-state">Waiting for a run.</p><small>Use the automatic source for a private test, or an authorized source for a campaign.</small></li>
+          <li><strong>Build timed subtitles</strong><p id="map-transcript" class="map-state">Waiting for the source.</p><small>Transcribe the actual audio or import a matching SRT. No invented speech.</small></li>
+        </ol>
+      </div>
+    </div>
+    <svg class="map-connections" viewBox="0 0 1000 56" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path d="M250 0V16H500V48M750 0V16H500M492 40L500 48L508 40" fill="none" stroke="currentColor" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div class="map-join">
+      <div class="map-result">
+        <div><h3>Plan the moment</h3><p id="map-plan" class="map-state">Waiting for subtitles.</p><p class="muted">Topic keywords and desired length guide complete transcript windows. Campaign limits constrain the cut.</p></div>
+        <div><h3>Render and check</h3><p id="map-preview" class="map-state">Not ready. A rendered file must exist first.</p><p class="muted">Crop the video, add timed subtitles, check the output and prepare a local preview.</p></div>
+      </div>
+      <p id="map-run-status" class="map-state" role="status">Start a run to see its saved progress here.</p>
+    </div>
+    <p class="map-handoff">A private test ends at the preview. Campaign work continues through clip approval, confirmed publication, submission and recorded reward decisions. Metadata views do not establish earnings.</p>
+  </section>
+  <footer>Automatic tests finish with a local preview. Campaign posting and reward submission use the campaign workflow. <a href="https://contentrewards.com/creators" target="_blank" rel="noreferrer">Content Rewards creator guide</a></footer>
+</main>
+<script>
+  let selected=null, shownRevision='', shownJobs='', paused=false, refreshing=false;
+  const form=document.querySelector('#intake');
+  const field=name=>form.elements.namedItem(name);
+  const scrollBehavior=()=>window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ? 'auto' : 'smooth';
+  document.querySelector('#campaign-nav').onclick=()=>{document.querySelector('#manual-intake').open=true;window.clipForm?.show('campaign');};
+  const statuses={awaiting_campaign_approval:'Review campaign and rights',queued:'Queued for preparation',running:'Preparing your clip',retry_scheduled:'Connection unavailable · automatic retry scheduled',awaiting_transcript:'Timed subtitles needed',awaiting_clip_approval:'Review the finished clip',awaiting_publication:'Ready for you to publish',awaiting_submission:'Submit the public post URL',completed:'Workflow completed',failed:'Preparation failed',cancelled:'Cancelled',blocked:'Processing paused'};
+  const statusLabel=job=>job.payload.preview_only && job.status==='completed' ? 'Preview ready' : statuses[job.status] || job.status;
+  function node(tag,text,cls) {const element=document.createElement(tag);if(text!==undefined) element.textContent=text;if(cls) element.className=cls;return element;}
+  function report(error) {document.querySelector('#message').textContent=error?.message || '';}
+  async function importSrt(file,target) {if(!file) return;if(file.size>2000000) throw new Error('The SRT file must be under 2 MB.');target.value=await file.text();}
+  field('srt_file').onchange=async()=>{try {await importSrt(field('srt_file').files[0],field('transcript_srt'));report(null);} catch(error) {report(error);}};
+  document.querySelector('#sample-srt').onclick=async()=>{try {if(!field('dry_run').checked) throw new Error('Enable practice mode to use the sample captions.');const response=await fetch('/examples/practice.srt');if(!response.ok) throw new Error('The subtitle demo is unavailable.');field('transcript_srt').value=await response.text();field('start').value='0';field('duration').value='5';window.clipStudio?.refresh();report(null);} catch(error) {report(error);}};
+  async function api(url,data) {
+    const response=await fetch(url,data===undefined ? {} : {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    const result=await response.json();
+    if(!response.ok) throw new Error(typeof result.detail==='string' ? result.detail : 'Check the required fields and try again.');
+    return result;
+  }
+  function action(parent,title,fn,secondary=false) {
+    const button=node('button',title,secondary ? 'secondary' : '');button.type='button';
+    button.onclick=async()=>{button.disabled=true;report(null);try {await fn();shownRevision='';await refresh();} catch(error) {report(error);} finally {button.disabled=false;}};
+    parent.append(button);return button;
+  }
+  function labeled(parent,title,type='text',value='') {
+    const label=node('label',title),input=node(type==='textarea' ? 'textarea' : 'input');
+    if(type!=='textarea') input.type=type;input.value=value;input.required=true;label.append(input);parent.append(label);return input;
+  }
+  function localTime() {const date=new Date();return new Date(date.getTime()-date.getTimezoneOffset()*60000).toISOString().slice(0,16);}
+  function iso(input) {if(!input.value) throw new Error('Record the actual date and time.');return new Date(input.value).toISOString();}
+  function link(parent,title,url) {const a=node('a',title);a.href=url;a.target='_blank';a.rel='noreferrer';parent.append(a);}
+  function renderProgress(job) {
+    const flow=document.querySelector('.flow'),preview=job.payload.preview_only;
+    const labels=preview ? ['Select source','Download video','Add subtitles','Find the moment','Prepare preview'] : ['Campaign review','Prepare clip','Clip approval','Publish','Submit'];
+    const indices=preview ? {source_ingest:1,transcription:2,clip_planning:3,render_and_quality_check:4,preview_complete:5} : {campaign_review:0,source_ingest:1,transcription:1,clip_planning:1,render_and_quality_check:1,clip_review:2,publication:3,submission:4,submission_recorded:5,dry_run_complete:5};
+    const current=indices[job.current_step] ?? 0;flow.replaceChildren();flow.setAttribute('aria-label',preview ? 'Automatic preview stages' : 'Campaign workflow stages');
+    labels.forEach((label,index)=>{const item=node('li',label,index<current ? 'done' : index===current ? 'current' : '');if(index===current)item.setAttribute('aria-current','step');flow.append(item);});
+  }
+  function renderWorkflowMap(job) {
+    const output=job.output,data=job.payload;
+    const state=(id,ready,step,complete,pending)=>{
+      document.querySelector(`#map-${id}`).textContent=ready ? complete :
+        job.current_step===step && job.status==='failed' ? 'Failed at this stage. See the run error above.' :
+        job.current_step===step && job.status==='running' ? 'Working on this stage…' : pending;
+    };
+    state('source',output.source_path,'source_ingest','Available: source video prepared.', 'Waiting for source preparation.');
+    state('transcript',output.transcript_path,'transcription','Available: timed source subtitles.', 'Waiting for timed source subtitles.');
+    const plan=output.selected_clip_plan;
+    state('plan',plan,'clip_planning',plan ? `Selected: ${plan.start_seconds}s start / ${plan.duration_seconds}s long.` : '',
+      data.auto_clip ? 'Waiting for subtitles to select a moment.' : 'Manual cut settings supplied in the campaign form.');
+    state('preview',output.clip_path,'render_and_quality_check','Ready: local video rendered. Review the preview above.', 'Not ready. No rendered preview saved.');
+    document.querySelector('#map-run-status').textContent=`Selected run: ${data.campaign.title} · ${statusLabel(job)}${data.dry_run ? ' · Synthetic practice footage' : ''}.`;
+  }
+  function renderJob(job) {
+    renderProgress(job);
+    renderWorkflowMap(job);
+    const root=document.querySelector('#detail');root.replaceChildren();
+    const campaign=job.payload.campaign,output=job.output,base=`/api/v1/jobs/${job.id}`;
+    const preview=job.payload.preview_only;
+    const tone=job.status==='failed' ? ' is-error' : ['blocked','cancelled','retry_scheduled'].includes(job.status) ? ' is-waiting' : '';
+    root.append(node('span',statusLabel(job),`status${tone}`),node('h3',campaign.title));
+    const brief=node('div',undefined,'brief');link(brief,preview ? 'Open selected source' : 'Open campaign brief',campaign.url);
+    if(preview) {const source=output.source_selection || job.payload.source_selection;if(source) brief.append(node('p',source.title),node('small',`${Number(source.views).toLocaleString()} views in the saved ${source.checked_on} snapshot. ${source.method}`));if(output.caption) brief.append(node('strong','Post caption'),node('p',output.caption));if(output.transcript_origin) brief.append(node('small',`Subtitle source: ${output.transcript_origin}`));}
+    else for(const [title,text] of [['Requirements',campaign.rules],['Source permission',campaign.rights_notes],['Post caption',job.payload.caption || 'Add the required caption when publishing.']]) {brief.append(node('strong',title),node('p',text));}root.append(brief);
+    if(output.clip_path) {
+      const video=node('video');video.controls=true;video.preload='metadata';video.src=`${base}/artifacts/clip`;video.setAttribute('aria-label','Generated clip preview');root.append(video);
+      const downloads=node('div',undefined,'downloads');for(const [kind,title] of [['clip','Download clip'],['subtitles','Download subtitles'],['package',preview ? 'Preview details' : 'Submission package']]) link(downloads,title,`${base}/artifacts/${kind}`);root.append(downloads);
+    } else if(preview) {
+      const stage=node('div',undefined,'preview-placeholder');
+      const emptyStates={failed:'No preview was created. Retry the saved run when the source is available.',
+        cancelled:'This run was cancelled before a preview was created.',
+        blocked:'Processing is paused. Resume when you are ready to continue.',
+        awaiting_transcript:'Timed subtitles are needed before this preview can be prepared.',
+        retry_scheduled:'Waiting for the source connection. Your preview will continue automatically.'};
+      stage.append(node('p',emptyStates[job.status] || 'Your subtitled preview will appear here as preparation finishes.'));root.append(stage);
+    }
+    if(job.error) {
+      const issue=node('div',undefined,'run-issue'),details=node('details');
+      const explanation=job.status==='retry_scheduled' ? 'Source connection unavailable. The workflow will retry automatically.' : job.status==='failed' ? 'This run could not finish. Your saved progress is retained.' : job.status==='awaiting_transcript' ? 'Timed subtitles are needed to continue.' : job.error;
+      details.append(node('summary','View error details'),node('p',job.error,'error'));
+      issue.append(node('p',explanation),details);root.append(issue);
+    }
+    if(output.clip_suggestions && window.renderClipIdeas && !preview) {
+      root.append(node('p',`Selected cut: ${output.selected_clip_plan.start_seconds}s, ${output.selected_clip_plan.duration_seconds}s long. ${output.planning_note}`,'muted'));
+      const ideas=node('details'),summary=node('summary','Review alternative cuts');ideas.append(summary);window.renderClipIdeas(ideas,output.clip_suggestions,job.payload);link(ideas,'Download cut suggestions',`${base}/artifacts/ideas`);root.append(ideas);
+    }
+    const controls=node('div'),buttons=node('div',undefined,'buttons');root.append(controls);
+    if(job.waiting_step) {
+      controls.append(node('p',job.waiting_step==='campaign_review' ? 'Confirm that you joined this campaign and may use the source footage under its rules.' : 'Watch the complete clip and confirm that its crop, subtitles, and content satisfy the brief.'));
+      let brandReference;
+      if(job.waiting_step==='clip_review' && campaign.pre_post_review && !job.payload.dry_run) brandReference=labeled(controls,'Brand draft approval reference');
+      action(buttons,job.waiting_step==='campaign_review' ? 'Approve campaign and rights' : 'Approve this clip',async()=>{if(brandReference && !brandReference.reportValidity()) return;await api(`${base}/approve`,{step_name:job.waiting_step,fingerprint:job.approval_fingerprint,approved:true,brand_draft_reference:brandReference?.value || null});});
+      action(buttons,'Reject',()=>api(`${base}/approve`,{step_name:job.waiting_step,fingerprint:job.approval_fingerprint,approved:false}),true);
+    } else if(job.status==='awaiting_transcript') {
+      controls.append(node('p','Paste a timed SRT transcript for the source video. Preparation will continue from the saved source.'));
+      const srt=labeled(controls,'Timed subtitles (SRT)','textarea'),file=labeled(controls,'Or import an SRT file','file');file.accept='.srt';file.required=false;file.onchange=async()=>{try {await importSrt(file.files[0],srt);report(null);} catch(error) {report(error);}};action(buttons,'Continue with these subtitles',()=>srt.reportValidity() ? api(`${base}/transcript`,{srt:srt.value}) : undefined);
+    } else if(job.status==='awaiting_publication') {
+      controls.append(node('p',`Publish the reviewed clip on ${campaign.platform} using an account allowed by the brief. Record its public URL after processing finishes.`));
+      if(campaign.experience!=='legacy') controls.append(node('p','The current creator guide requires URL submission within 30 minutes of posting. Publish when you are ready to submit.'));
+      const url=labeled(controls,'Public post URL','url'),date=labeled(controls,'Actual publication time','datetime-local',localTime());
+      const label=node('label',undefined,'check'),publicCheck=node('input');publicCheck.type='checkbox';label.append(publicCheck,node('span','I verified the post is public and processing is complete.'));controls.append(label);
+      action(buttons,'Record publication',()=>{if(!url.reportValidity() || !date.reportValidity()) return;return api(`${base}/publication`,{post_url:url.value,public_confirmed:publicCheck.checked,published_at:iso(date)});});
+    } else if(job.status==='awaiting_submission') {
+      controls.append(node('p','Open the campaign, submit your public post URL, then record the confirmation shown by Content Rewards.'));link(controls,'Open your published post',output.publication.url);
+      controls.append(node('p',output.submission_deadline ? `Submission deadline: ${new Date(output.submission_deadline).toLocaleString()}` : 'Follow the submission deadline in this legacy campaign’s terms.'));
+      const reference=labeled(controls,'Submission ID or confirmation reference'),date=labeled(controls,'Actual submission time','datetime-local',localTime());
+      action(buttons,'Record Content Rewards submission',()=>reference.reportValidity() && date.reportValidity() ? api(`${base}/submission`,{reference:reference.value,submitted_at:iso(date)}) : undefined);
+    } else if(job.status==='retry_scheduled') {
+      controls.append(node('p',`The workflow will try again at ${new Date(output.automation_retry.next_attempt_at).toLocaleTimeString()}. ${output.automation_retry.failed_attempts} connection attempts failed. Saved work is kept; temporary failures continue retrying until you pause or cancel.`));
+    } else if(job.status==='completed') {
+      controls.append(node('p',preview ? 'Automatic preview complete. Your clip and timed subtitles are ready to download.' : output.dry_run ? 'Practice complete. No content was published or submitted.' : 'Submission recorded from your confirmation. Brand approval and payment are tracked separately.'));
+      if(output.submission?.within_deadline===false) controls.append(node('p','The recorded submission was after the deadline. Check its eligibility with the campaign.','error'));
+      if(output.submission) {
+        for(const entry of output.reward_history || []) controls.append(node('p',`${entry.status}: ${entry.reference}${entry.amount!==null ? ` · ${entry.amount} received` : ''}`));
+        const label=node('label','Latest platform decision'),select=node('select');for(const [value,title] of [['approved','Approved'],['rejected','Rejected'],['flagged','Flagged'],['paid','Payment received']]) {const option=node('option',title);option.value=value;select.append(option);}label.append(select);controls.append(label);
+        const reference=labeled(controls,'Decision or payment receipt reference'),amount=labeled(controls,'Amount actually received (USD)','number');amount.min='0';amount.step='.01';amount.required=false;amount.parentElement.hidden=true;
+        select.onchange=()=>{amount.parentElement.hidden=select.value!=='paid';amount.required=select.value==='paid';};
+        action(buttons,'Record reward update',()=>reference.reportValidity() && amount.reportValidity() ? api(`${base}/reward`,{status:select.value,reference:reference.value,amount:select.value==='paid' ? Number(amount.value) : null}) : undefined);
+      }
+    } else if(['failed','blocked'].includes(job.status)) action(buttons,'Retry saved job',()=>api(`${base}/retry`,{}));
+    else if(['running','queued'].includes(job.status)) controls.append(node('p',job.status==='running' ? `Working on ${job.current_step.replaceAll('_',' ')}…` : 'Your approved job will be processed in the background.'));
+    if(!['completed','cancelled'].includes(job.status)) action(buttons,'Cancel job',()=>api(`${base}/cancel`,{}),true);controls.append(buttons);
+  }
+  async function refresh() {
+    if(refreshing) return;refreshing=true;
+    try {
+      const [health,result]=await Promise.all([api('/health'),api('/api/v1/jobs')]);paused=health.kill_switch;
+      document.querySelector('#health').textContent=paused ? 'Processing paused' : 'Workspace connected';document.querySelector('#kill').textContent=paused ? 'Resume processing' : 'Pause processing';
+      document.querySelector('#health').className=paused ? 'paused' : 'connected';
+      document.querySelector('#transcription-status').textContent=!health.transcription_installed ? 'Automatic subtitles need the transcription setup. You can import an SRT file now.' : health.multilingual_model_ready ? 'Automatic subtitles are ready for language detection, English, French, and Arabic.' : health.english_model_ready ? 'English automatic subtitles are ready. Select English as the spoken language. Other languages need the multilingual model or an SRT file.' : 'Transcription is installed. A model will be needed for your selected language; SRT import is available.';
+      if(!selected && result.jobs.length) selected=(result.jobs.find(job=>job.payload.preview_only) || result.jobs[0]).id;
+      const jobs=document.querySelector('#jobs'),fingerprint=JSON.stringify([selected,result.jobs.map(job=>[job.id,job.updated_at,job.status,job.payload.campaign.title])]);
+      const changed=fingerprint!==shownJobs;
+      if(changed) {jobs.replaceChildren();if(!result.jobs.length) jobs.append(node('p','No jobs yet. Create a review task or try a practice clip.','muted'));shownJobs=fingerprint;}
+      for(const job of result.jobs) {
+        if(changed) {
+          const button=node('button',undefined,`job${job.id===selected ? ' selected' : ''}`);button.type='button';button.setAttribute('aria-pressed',String(job.id===selected));button.append(node('span',job.payload.campaign.title),node('small',`${statusLabel(job)} · ${new Date(job.created_at).toLocaleString()}`));button.onclick=()=>{selected=job.id;shownRevision='';refresh();};jobs.append(button);
+        }
+        if(job.id===selected && shownRevision!==`${job.id}:${job.updated_at}`) {renderJob(job);shownRevision=`${job.id}:${job.updated_at}`;}
+      }
+    } catch(error) {report(error);} finally {refreshing=false;}
+  }
+  form.onsubmit=async event=>{
+    event.preventDefault();report(null);const button=form.querySelector('[type=submit]');button.disabled=true;
+    try {
+      if(window.clipForm ? !window.clipForm.validate() : form.reportValidity?.()===false)return;
+      const dry=field('dry_run').checked,file=field('video').files[0],source=field('source_url').value.trim(),savedSource=field('saved_source_path').value;if(!dry && Number(!!file)+Number(!!source)+Number(!!savedSource)!==1) throw new Error('Upload one authorized video or provide its source URL.');
+      const campaign={title:field('title').value,url:field('campaign_url').value,platform:field('platform').value,experience:field('experience').value,rules:field('rules').value,rights_notes:field('rights_notes').value,pre_post_review:field('pre_post_review').checked};
+      for(const key of ['duration_min','duration_max']) if(field(key).value) campaign[key]=Number(field(key).value);if(field('rate').value) campaign.rate_per_1000=Number(field('rate').value);
+      const payload={campaign,dry_run:dry,caption:field('caption').value,language:field('language').value,auto_clip:field('auto_clip').checked,research_keywords:field('research_keywords').value,clip_plan:{start_seconds:Number(field('start').value),duration_seconds:Number(field('duration').value),aspect_ratio:field('aspect').value}};
+      if(!dry && file) {const upload=new FormData();upload.append('file',file);const response=await fetch('/api/v1/clipping/uploads',{method:'POST',body:upload});const result=await response.json();if(!response.ok) throw new Error(result.detail);payload.source_path=result.source_path;}else if(!dry && savedSource) payload.source_path=savedSource;else if(!dry) payload.source_url=source;
+      if(field('transcript_srt').value.trim()) payload.transcript_srt=field('transcript_srt').value;
+      const job=await api('/api/v1/clipping/jobs',{workflow_id:'content_rewards',payload});selected=job.id;shownRevision='';await refresh();document.querySelector('#workspace').scrollIntoView({behavior:scrollBehavior(),block:'start'});
+    } catch(error) {report(error);} finally {button.disabled=false;}
+  };
+  document.querySelector('#practice').onclick=()=>{form.reset();field('title').value='Practice software clip';field('campaign_url').value='https://contentrewards.com/discover';field('rules').value='A vertical practice clip with accurate sample subtitles.';field('rights_notes').value='Synthetic practice footage generated locally.';field('duration').value='5';field('start').value='0';field('dry_run').checked=true;window.clipStudio?.refresh();form.requestSubmit();};
+  document.querySelector('#automatic-start').onclick=async()=>{
+    const button=document.querySelector('#automatic-start'),message=document.querySelector('#automatic-message');button.disabled=true;report(null);message.textContent='Starting your automatic preview…';
+    try {await window.trendResearch.startPreview();message.textContent='Searching long videos. The chosen source and its captioned clip will appear alongside.';}
+    catch(error) {message.textContent=error.message;report(error);} finally {button.disabled=false;}
+  };
+  window.selectClippingJob=async id=>{selected=id;shownRevision='';await refresh();document.querySelector('#workspace').scrollIntoView({behavior:scrollBehavior(),block:'start'});};
+  document.querySelector('#kill').onclick=async()=>{try {await api('/api/v1/system/kill-switch',{enabled:!paused});await refresh();} catch(error) {report(error);}};
+  refresh();setInterval(refresh,4000);
+</script>
+<script src="/studio.js"></script>
+<script src="/research.js"></script>
+<script src="/trends.js"></script>
+<script src="/instagram.js"></script>
+</body>
+</html>

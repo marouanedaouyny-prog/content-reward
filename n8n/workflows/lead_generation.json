@@ -1,0 +1,64 @@
+{
+  "name": "Lead Generation - Weekly",
+  "nodes": [
+    {
+      "parameters": {
+        "cronExpression": "0 8 * * 1",
+        "timezone": "UTC"
+      },
+      "id": "1",
+      "name": "Weekly Schedule (Mon 8AM)",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [250, 100]
+    },
+    {
+      "parameters": {
+        "functionCode": "const criteria = {\n  industry: 'technology',\n  location: 'united states',\n  company_size: '10-50',\n  contact_type: 'owner'\n};\n\nreturn [{ json: {\n  workflowId: 'lead_generation',\n  payload: {\n    source_type: 'web',\n    search_criteria: criteria,\n    max_results: 100,\n    enrichment_allowed: false\n  },\n  idempotencyKey: `lead_gen_weekly_${Date.now()}`\n}}];"
+      },
+      "id": "2",
+      "name": "Prepare Lead Gen Job",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 100]
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:8000/api/v1/workflows/lead_generation/run",
+        "method": "POST",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "={{$json}}"
+      },
+      "id": "3",
+      "name": "Call Orchestrator API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [650, 100]
+    },
+    {
+      "parameters": {
+        "functionCode": "const result = items[0].json;\nif (result.success) {\n  console.log(`Lead gen completed: ${result.output.leads?.length || 0} leads found`);\n} else {\n  console.error(`Lead gen failed: ${result.error_message}`);\n}\nreturn items;"
+      },
+      "id": "4",
+      "name": "Log Results",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [850, 100]
+    }
+  ],
+  "connections": {
+    "Weekly Schedule (Mon 8AM)": {
+      "main": [[{ "node": "Prepare Lead Gen Job", "type": "main", "index": 0 }]]
+    },
+    "Prepare Lead Gen Job": {
+      "main": [[{ "node": "Call Orchestrator API", "type": "main", "index": 0 }]]
+    },
+    "Call Orchestrator API": {
+      "main": [[{ "node": "Log Results", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "id": "2"
+}

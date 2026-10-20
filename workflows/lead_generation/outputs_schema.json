@@ -1,0 +1,51 @@
+{
+  "type": "object",
+  "title": "LeadGenerationOutput",
+  "description": "Output schema for lead generation workflow execution",
+  "properties": {
+    "leads": {
+      "type": "array",
+      "description": "List of generated leads",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string"},
+          "company_name": {"type": "string"},
+          "contact_name": {"type": "string"},
+          "contact_email": {"type": "string", "format": "email"},
+          "contact_phone": {"type": "string"},
+          "company_website": {"type": "string", "format": "uri"},
+          "industry": {"type": "string"},
+          "location": {"type": "string"},
+          "contact_type": {"type": "string"},
+          "score": {"type": "number", "description": "Priority score 0-100"},
+          "source": {"type": "string"},
+          "extracted_at": {"type": "string", "format": "date-time"},
+          "enriched": {"type": "boolean"},
+          "enrichment_fields": {
+            "type": "array",
+            "description": "Fields enriched from external sources",
+            "items": {"type": "string"}
+          }
+        },
+        "required": ["id", "company_name", "contact_name", "score"]
+      }
+    },
+    "total_found": {"type": "integer", "description": "Total leads found across all sources"},
+    "total_filtered": {"type": "integer", "description": "Leads after criteria filtering"},
+    "export_format": {"type": "string", "description": "Format used for export"},
+    "export_path": {"type": "string", "description": "Path to exported file"},
+    "error_summary": {"type": "string", "description": "Summary of any errors encountered"},
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata about the workflow execution",
+      "properties": {
+        "runtime_seconds": {"type": "number"},
+        "steps_completed": {"type": "integer"},
+        "human_approvals_needed": {"type": "integer"},
+        "human_approvals_granted": {"type": "integer"}
+      }
+    }
+  },
+  "required": ["leads", "total_found"]
+}

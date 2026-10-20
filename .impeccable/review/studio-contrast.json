@@ -1,0 +1,32 @@
+[
+  {
+    "role": "studio_copy",
+    "foreground": "#74331f",
+    "background": "#fce9df",
+    "ratio": 7.99
+  },
+  {
+    "role": "model_label",
+    "foreground": "#74331f",
+    "background": "#f6ba8c",
+    "ratio": 5.51
+  },
+  {
+    "role": "source_settings",
+    "foreground": "#254ba0",
+    "background": "#e7efff",
+    "ratio": 7.02
+  },
+  {
+    "role": "caption_settings",
+    "foreground": "#765417",
+    "background": "#fff2ce",
+    "ratio": 6.18
+  },
+  {
+    "role": "selected_format",
+    "foreground": "#ffffff",
+    "background": "#74331f",
+    "ratio": 9.39
+  }
+]

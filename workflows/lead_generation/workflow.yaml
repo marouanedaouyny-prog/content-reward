@@ -1,0 +1,45 @@
+id: lead_generation
+version: 1.0.0
+name: Lead Generation Pipeline
+risk_level: medium
+permissions:
+  - browser
+  - filesystem
+  - social_publish
+retries:
+  max_attempts: 3
+  backoff_seconds: [30, 120, 600]
+approval:
+  submit: required
+  export: required
+timeouts:
+  step_timeout_seconds: 300
+  overall_timeout_seconds: 86400
+  browser_timeout_seconds: 120
+idempotency_strategy:
+  key_prefix: lead_generation_{{workflow_id}}
+  cache_store: redis_or_sqlite
+  deduplicate_on: input_hash
+manual_approval_rules:
+  - action: submit
+    condition: always_required
+    gate: submission_approval
+  - action: export
+    condition: leads_verified
+    gate: export_approval
+cost_tracking:
+  estimated_cost: 0
+  billing_status: free_tier_or_local
+  provider: local_or_ollama
+  model: local_model
+  requests_today: 0
+  tokens_today: 0
+steps:
+  - worker: lead_source_discovery
+    payload:
+      source_type: "web"
+      search_criteria: {}
+      max_results: 100
+  - worker: lead_export
+    payload:
+      export_format: "csv"

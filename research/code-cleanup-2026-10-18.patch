@@ -1,0 +1,275 @@
+--- before/clipping/caption_styles.py
++++ after/clipping/caption_styles.py
+@@ -3,6 +3,7 @@
+ import re
+ 
+ from clipping.captions import caption_words, cues_for_window
++from clipping.template import STYLED_CAPTION_STYLES
+ 
+ 
+ def ass_time(seconds):
+@@ -30,7 +31,7 @@
+ 
+ 
+ def ass_for_window(segments, start, duration, width, height, style):
+-    if style not in ('colorized', 'pro', 'studio'):
++    if style not in STYLED_CAPTION_STYLES:
+         raise ValueError('Choose colorized, pro, or studio caption style')
+     colorful = style == 'colorized'
+     base, accent = ('FFFFFF', '6BFF7C') if colorful else ('F3F3EE', '5FC8F6')
+@@ -84,15 +85,17 @@
+             important = [(match.start(), match.end()) for match in re.finditer(r"\b[\w']{5,}\b|\b\d+\b", text)
+                          if match.group().lower() not in excluded]
+             important = sorted(important, key=lambda span: span[1] - span[0], reverse=True)[:1]
+-            aligned = [(first, last, span) for first, last, span in aligned
+-                       if any(span[0] < end and span[1] > start for start, end in important)]
++            aligned = [(word_start, word_end, word_span) for word_start, word_end, word_span in aligned
++                       if any(word_span[0] < span_end and word_span[1] > span_start
++                              for span_start, span_end in important)]
+             if not words:
+                 event(begin, finish, painted(text, important, accent, base))
+                 continue
+-        boundaries = sorted({begin, finish, *(time for first, last, _ in aligned for time in (first, last))})
+-        for first, last in zip(boundaries, boundaries[1:]):
+-            middle = (first + last) / 2
++        boundaries = sorted({begin, finish,
++                             *(boundary for word_start, word_end, _ in aligned for boundary in (word_start, word_end))})
++        for event_start, event_end in zip(boundaries, boundaries[1:]):
++            middle = (event_start + event_end) / 2
+             active = next((span for word_start, word_end, span in aligned
+                            if word_start <= middle < word_end), None)
+-            event(first, last, painted(text, [active] if active else [], accent, base, uppercase=colorful))
++            event(event_start, event_end, painted(text, [active] if active else [], accent, base, uppercase=colorful))
+     return header + '\n'.join(lines) + '\n'
+--- before/clipping/orchestrator.py
++++ after/clipping/orchestrator.py
+@@ -18,7 +18,7 @@
+ from urllib.request import Request, urlopen
+ 
+ from clipping import media, trends
+-from clipping.template import DEFAULT_CAPTION_STYLE, DEFAULT_FRAMING_MODE
++from clipping.template import CAPTION_STYLES, DEFAULT_CAPTION_STYLE, DEFAULT_FRAMING_MODE
+ from clipping.workflow import ClippingWorkflow
+ 
+ 
+@@ -53,7 +53,7 @@
+     def validate(self):
+         if self.provider not in ('selenium', 'public'):
+             raise ValueError('Choose selenium or public discovery')
+-        if self.caption_style not in ('colorized', 'pro', 'classic', 'studio'):
++        if self.caption_style not in CAPTION_STYLES:
+             raise ValueError('Choose a supported caption style')
+         if self.framing_mode not in ('fit', 'crop'):
+             raise ValueError('Choose fit or crop framing')
+@@ -73,7 +73,7 @@
+             raise ValueError('Delivery folder must be a path')
+         if self.caption_styles is not None:
+             if (not isinstance(self.caption_styles, list) or not 1 <= len(self.caption_styles) <= 4
+-                    or any(style not in ('studio', 'pro', 'colorized', 'classic') for style in self.caption_styles)):
++                    or any(style not in CAPTION_STYLES for style in self.caption_styles)):
+                 raise ValueError('Choose one to four supported caption styles')
+             if not self.partial_downloads:
+                 raise ValueError('Multiple caption styles require a partial-download batch')
+@@ -292,6 +292,7 @@
+ 
+     def finish(self, job):
+         self.update(status='running', stage='export_review', result=None, review=None)
++        (self.folder / 'result.json').unlink(missing_ok=True)
+         review = verify_export(self.engine, job, self.folder)
+         output = job['output']
+         result = {'order_id': self.state['id'], 'job_id': job['id'],
+@@ -397,8 +398,8 @@
+     parser.add_argument('--browser-python', help='Python executable containing Selenium')
+     parser.add_argument('--niche', choices=[item['name'] for item in trends.NICHES])
+     styles = parser.add_mutually_exclusive_group()
+-    styles.add_argument('--caption-style', choices=('studio', 'colorized', 'pro', 'classic'))
+-    styles.add_argument('--caption-styles', nargs='+', choices=('studio', 'colorized', 'pro', 'classic'),
++    styles.add_argument('--caption-style', choices=CAPTION_STYLES)
++    styles.add_argument('--caption-styles', nargs='+', choices=CAPTION_STYLES,
+                         help='Rotate these styles across the clips in this order')
+     parser.add_argument('--clips', type=int, choices=(3, 4), help='Highlights from one source (default: 4)')
+     parser.add_argument('--output', type=Path, help='One flat delivery folder (default: project clips folder)')
+--- before/clipping/sections.py
++++ after/clipping/sections.py
+@@ -100,14 +100,17 @@
+         raise media.SourceAccessRequired('This source has no usable public English captions; no full download was attempted.') from exc
+ 
+ 
++def _content_words(text, excluded):
++    return [word for word in re.findall(r"[a-zA-Z][a-zA-Z']{2,}", text.lower()) if word not in excluded]
++
++
+ def select_moments(source, count, target):
+     if count not in (3, 4):
+         raise ValueError('Choose three or four clips')
+     # Source-title terms are useful for all niches; exclude common context words.
+     stop = {'the', 'and', 'for', 'with', 'this', 'that', 'you', 'your', 'how', 'why',
+             'what', 'can', 'are', 'from', 'full', 'podcast', 'interview', 'episode'}
+-    keywords = ', '.join(word for word in re.findall(r"[a-zA-Z][a-zA-Z']{2,}", source.get('title', '').lower())
+-                         if word not in stop)[:200]
++    keywords = ', '.join(_content_words(source.get('title', ''), stop))[:200]
+     pool = suggest_cuts(source['segments'], source['duration'], target, 15, 60,
+                         keywords, source.get('heatmap'), limit=20, min_gap=3)
+     choices, signatures = [], []
+@@ -116,8 +119,7 @@
+     for choice in pool:
+         if choice['quality']['promotional']:
+             continue
+-        signature = {word for word in re.findall(r"[a-zA-Z][a-zA-Z']{2,}", choice['source_excerpt'].lower())
+-                     if word not in common}
++        signature = set(_content_words(choice['source_excerpt'], common))
+         repeated = False
+         for previous in signatures:
+             shared = len(signature & previous)
+@@ -141,6 +143,17 @@
+     return choices
+ 
+ 
++def _validate_section(path, expected_duration, minimum_duration):
++    info = media.probe(path)
++    duration = float(info['format']['duration'])
++    kinds = {stream.get('codec_type') for stream in info.get('streams', [])}
++    if (not math.isfinite(duration) or abs(duration - expected_duration) > 1.2 or
++            duration + .15 < minimum_duration or not {'video', 'audio'} <= kinds
++            or path.stat().st_size > 120 * 1024 * 1024):
++        raise ValueError('Downloaded section is not the requested bounded audio/video window')
++    return duration
++
++
+ def download_section(source, plan, source_duration, folder):
+     start, length = plan['start_seconds'], plan['duration_seconds']
+     if (any(isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v)
+@@ -151,6 +164,13 @@
+     folder.mkdir(parents=True, exist_ok=True)
+     files = [folder / f'section{suffix}' for suffix in ('.mp4', '.mkv', '.webm')]
+     path = next((candidate for candidate in files if candidate.is_file()), None)
++    if path is not None:
++        try:
++            duration = _validate_section(path, end - begin, start - begin + length)
++        except (ValueError, KeyError, TypeError):
++            # An interrupted download is not a checkpoint; reacquire only this range.
++            path.unlink()
++            path = None
+     if path is None:
+         remote_command([*media.ytdlp_command(), '--ignore-config', '--no-playlist',
+             '--no-write-subs', '--no-write-auto-subs', '--socket-timeout', '20',
+@@ -160,14 +180,8 @@
+             '-f', 'bv[height<=1080][protocol=https]+ba[protocol=https]/b[height<=1080][protocol=https]',
+             '--merge-output-format', 'mp4', '-o', str(folder / 'section.%(ext)s'), source['url']], 300)
+         path = next((candidate for candidate in files if candidate.is_file()), None)
+-    if path is None:
+-        raise ValueError('Partial download produced no section')
+-    info = media.probe(path)
+-    duration = float(info['format']['duration'])
+-    kinds = {stream.get('codec_type') for stream in info.get('streams', [])}
+-    if (not math.isfinite(duration) or abs(duration - (end - begin)) > 1.2 or
+-            duration + .15 < start - begin + length or not {'video', 'audio'} <= kinds
+-            or path.stat().st_size > 120 * 1024 * 1024):
+-        raise ValueError('Downloaded section is not the requested bounded audio/video window')
++        if path is None:
++            raise ValueError('Partial download produced no section')
++        duration = _validate_section(path, end - begin, start - begin + length)
+     return {'path': path, 'source_offset': begin, 'local_start': start - begin,
+             'requested_end': end, 'duration': duration, 'sha256': media.file_hash(path)}
+--- before/clipping/template.py
++++ after/clipping/template.py
+@@ -7,3 +7,5 @@
+ TEMPLATE_ID = 'studio-v1'
+ DEFAULT_CAPTION_STYLE = 'studio'
+ DEFAULT_FRAMING_MODE = 'fit'
++CAPTION_STYLES = ('studio', 'colorized', 'pro', 'classic')
++STYLED_CAPTION_STYLES = tuple(style for style in CAPTION_STYLES if style != 'classic')
+--- before/clipping/workflow.py
++++ after/clipping/workflow.py
+@@ -11,7 +11,7 @@
+ from pathlib import Path
+ from urllib.parse import urlparse
+ 
+-from clipping.template import DEFAULT_CAPTION_STYLE, DEFAULT_FRAMING_MODE
++from clipping.template import CAPTION_STYLES, DEFAULT_CAPTION_STYLE, DEFAULT_FRAMING_MODE
+ 
+ 
+ def utcnow():
+@@ -114,7 +114,7 @@
+         raise ValueError('Reward rate must be a nonnegative finite number')
+     if not isinstance(data.get('caption', ''), str):
+         raise ValueError('Caption must be text')
+-    if data.get('caption_style', DEFAULT_CAPTION_STYLE) not in ('classic', 'colorized', 'pro', 'studio'):
++    if data.get('caption_style', DEFAULT_CAPTION_STYLE) not in CAPTION_STYLES:
+         raise ValueError('Choose classic, colorized, pro, or studio caption style')
+     if data.get('framing_mode', DEFAULT_FRAMING_MODE) not in ('crop', 'fit'):
+         raise ValueError('Choose crop or fit framing')
+--- before/tests/clipping/test_orchestrator.py
++++ after/tests/clipping/test_orchestrator.py
+@@ -194,11 +194,14 @@
+     connected_pipeline(monkeypatch)
+     controller = mod.Controller(tmp_path, config(), emit=lambda _: None)
+     controller.run(connection_attempts=1)
++    result_file = controller.folder / 'result.json'
++    assert result_file.is_file()
+     monkeypatch.setattr(mod, 'verify_export', lambda *args: (_ for _ in ()).throw(ValueError('Changed clip')))
+     restored = mod.Controller(tmp_path, resume='latest', emit=lambda _: None)
+     result = restored.run(connection_attempts=1)
+     assert result['status'] == 'quality_failed'
+     assert result.get('result') is None
++    assert not result_file.exists()
+ 
+ 
+ def test_exclusive_resume_recovers_a_running_job_after_a_process_crash(tmp_path, monkeypatch):
+--- before/tests/clipping/test_sections.py
++++ after/tests/clipping/test_sections.py
+@@ -1,5 +1,6 @@
+ import json
+ import re
++import shutil
+ 
+ import pytest
+ 
+@@ -146,6 +147,47 @@
+         mod.download_section(source, plan, 1800, tmp_path)
+ 
+ 
++@pytest.mark.parametrize('cached_content', ['unreadable', 'short_window'])
++def test_resume_replaces_an_invalid_cached_section_with_only_the_requested_window(tmp_path, monkeypatch, cached_content):
++    from clipping import media
++    mod = sections_module()
++    complete = tmp_path / 'complete.mp4'
++    folder = tmp_path / 'section'
++    folder.mkdir()
++    cached = folder / 'section.mp4'
++
++    def make_video(path, duration):
++        media.command(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-y',
++            '-f', 'lavfi', '-i', 'color=c=black:s=64x64:r=1',
++            '-f', 'lavfi', '-i', 'anullsrc=r=8000:cl=mono', '-t', str(duration),
++            '-c:v', 'libx264', '-preset', 'ultrafast', '-c:a', 'aac', str(path)], timeout=30)
++
++    make_video(complete, 21)
++    if cached_content == 'unreadable':
++        cached.write_bytes(b'INTERRUPTED DOWNLOAD')
++    else:
++        make_video(cached, 2)
++    requests = []
++
++    def download(args, timeout):
++        requests.append(args)
++        shutil.copyfile(complete, cached)
++        return ''
++
++    monkeypatch.setattr(mod, 'remote_command', download)
++    source = {'url': 'https://www.youtube.com/watch?v=abcdefghijk'}
++    plan = {'start_seconds': 600, 'duration_seconds': 15}
++    result = mod.download_section(source, plan, 1800, folder)
++    assert result['path'].read_bytes() == complete.read_bytes()
++    assert result['source_offset'] == 597 and result['local_start'] == 3
++    assert result['duration'] == 21
++    assert len(requests) == 1
++    args = requests[0]
++    assert args[args.index('--download-sections') + 1] == '*597-618'
++    mod.download_section(source, plan, 1800, folder)
++    assert len(requests) == 1  # A valid recovered section remains a reusable checkpoint.
++
++
+ def test_section_failures_redact_signed_urls_and_never_fall_back_to_full_download(tmp_path, monkeypatch):
+     from clipping import media
+     mod = sections_module()

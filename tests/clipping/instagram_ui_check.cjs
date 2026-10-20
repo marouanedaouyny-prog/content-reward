@@ -1,0 +1,31 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+class Element {constructor(){this.children=[];this.textContent='';this.disabled=false;}append(...items){this.children.push(...items);}replaceChildren(...items){this.children=items;}setAttribute(key,value){this[key]=value;}}
+const ids={};for(const id of ['instagram-status','instagram-identity','instagram-permissions','instagram-checked','instagram-message','instagram-verify','instagram-connect','instagram-oauth-note','instagram-expiry'])ids[id]=new Element();
+let state={configured:true,oauth_configured:true,status:'unverified',account_id:'17841400000000001',username:null,permissions_checked:false,content_publish_permission:null,publishing_enabled:false,last_checked_at:null,token_expires_at:null,token_expired:null,message:'Credentials saved.'};let calls=[],connectOk=true,connectPending=null,navigated=null;
+const window={location:{search:'',assign(url){navigated=url;}}},document={getElementById:id=>ids[id],createElement:()=>new Element()};
+const context={window,document,console,Date,URLSearchParams,setInterval(){},fetch:async(url,options={})=>{calls.push({url,options});if(url.endsWith('/connect')){if(connectPending)await connectPending;return {ok:connectOk,json:async()=>connectOk ? {authorization_url:'https://www.instagram.com/oauth/authorize?state=fixture'} : {message:'Instagram app setup is incomplete.'}};}return {ok:true,json:async()=>state};}};
+assert.ok(fs.existsSync('clipping/instagram.js'),'Instagram account status script is missing');
+vm.runInNewContext(fs.readFileSync('clipping/instagram.js','utf8'),context);
+const tick=()=>new Promise(resolve=>setImmediate(resolve));
+(async()=>{
+ await tick();assert.match(ids['instagram-status'].textContent,/verify|unverified/i);assert.equal(ids['instagram-verify'].disabled,false);
+ state={...state,status:'network_unavailable',message:'Check network access.'};await ids['instagram-verify'].onclick();
+ assert.equal(calls.at(-1).options.body,'{}');assert.match(ids['instagram-status'].textContent,/unavailable|reach/i);assert.equal(ids['instagram-verify'].disabled,false);
+ state={...state,status:'verified',username:'test.creator',permissions_checked:true,content_publish_permission:true,last_checked_at:'2026-10-10T00:00:00Z'};
+ await window.instagramAccount.refresh();assert.match(ids['instagram-identity'].textContent,/@test.creator/);assert.match(ids['instagram-permissions'].textContent,/disabled/i);assert.match(ids['instagram-permissions'].textContent,/granted/i);
+ state={...state,status:'profile_verified',content_publish_permission:null,permissions_checked:false};await window.instagramAccount.refresh();assert.match(ids['instagram-permissions'].textContent,/unverified|unknown|not confirmed/i);
+ state={...state,configured:false,status:'not_configured',account_id:null};await window.instagramAccount.refresh();assert.equal(ids['instagram-verify'].disabled,true);
+ assert.equal(ids['instagram-connect'].disabled,false);assert.match(ids['instagram-connect'].textContent,/connect/i);
+ let release;connectPending=new Promise(resolve=>{release=resolve;});const opening=ids['instagram-connect'].onclick();
+ assert.equal(ids['instagram-connect'].disabled,true);assert.match(ids['instagram-connect'].textContent,/opening/i);
+ const before=calls.length;await ids['instagram-connect'].onclick();assert.equal(calls.length,before,'Double clicks must not create a second login');
+ release();await opening;connectPending=null;assert.equal(navigated,'https://www.instagram.com/oauth/authorize?state=fixture');assert.equal(calls.at(-1).options.body,'{}');
+ connectOk=false;await ids['instagram-connect'].onclick();assert.match(ids['instagram-message'].textContent,/setup/i);assert.equal(ids['instagram-connect'].disabled,false);
+ state={...state,oauth_configured:false};await window.instagramAccount.refresh();assert.equal(ids['instagram-connect'].disabled,true);assert.match(ids['instagram-oauth-note'].textContent,/setup/i);
+ state={...state,configured:true,oauth_configured:true,status:'token_expired',token_expires_at:'2026-12-11T12:00:00Z',token_expired:true,message:'Reconnect Instagram to restore access.'};await window.instagramAccount.refresh();
+ assert.equal(ids['instagram-verify'].disabled,true);assert.equal(ids['instagram-connect'].disabled,false);assert.match(ids['instagram-connect'].textContent,/reconnect/i);assert.match(ids['instagram-expiry'].textContent,/expired/i);
+ state={...state,status:'unverified',token_expires_at:null,token_expired:null};await window.instagramAccount.refresh();assert.equal(ids['instagram-verify'].disabled,false);assert.match(ids['instagram-expiry'].textContent,/unknown/i);
+ window.location.search='?instagram=oauth_state_invalid';vm.runInNewContext(fs.readFileSync('clipping/instagram.js','utf8'),context);await tick();assert.match(ids['instagram-message'].textContent,/expired|validated|start again/i);
+ state={...state,configured:false,status:'not_configured',message:'Connect Instagram to authorize.'};window.location.search='?instagram=connected';vm.runInNewContext(fs.readFileSync('clipping/instagram.js','utf8'),context);await tick();assert.doesNotMatch(ids['instagram-message'].textContent,/completed/i);
+ console.log('Instagram status, readonly verification, retry and permission states passed.');
+})().catch(error=>{console.error(error);process.exitCode=1;});

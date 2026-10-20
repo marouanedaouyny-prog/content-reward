@@ -1,0 +1,21 @@
+{
+  "target": "clipping/workspace.html",
+  "required_viewports": {
+    "desktop": 1440,
+    "mobile": 390,
+    "narrow": 320
+  },
+  "captured_viewports": [],
+  "result": "unavailable",
+  "attempt": "Fresh isolated agent-browser design-upgrade session with socket directory inside the workspace",
+  "reason": "Chrome exited before DevToolsActivePort; Windows denied Crashpad CreateFile and Mojo IPC with error 5. No sandbox settings were disabled.",
+  "substitute_evidence": [
+    "Node execution of shipped scripts",
+    "Native FastAPI HTTP checks",
+    "HTML structure and JavaScript syntax checks",
+    "Calculated contrast checks",
+    "Focused clipping test suite"
+  ],
+  "limitation": "No screenshot or real-browser visual approval is claimed.",
+  "checked_on": "2026-10-10"
+}

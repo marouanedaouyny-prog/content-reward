@@ -1,0 +1,15 @@
+# Keep local credentials out of the COPY . . layer.
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# Runtime data and development artifacts are not application code.
+data/
+logs/
+.git/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/

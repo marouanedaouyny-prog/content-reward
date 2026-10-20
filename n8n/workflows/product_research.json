@@ -1,0 +1,64 @@
+{
+  "name": "Product Research - Weekly",
+  "nodes": [
+    {
+      "parameters": {
+        "cronExpression": "0 9 * * 0",
+        "timezone": "UTC"
+      },
+      "id": "1",
+      "name": "Weekly Schedule (Sun 9AM)",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [250, 100]
+    },
+    {
+      "parameters": {
+        "functionCode": "return [{ json: {\n  workflowId: 'product_research',\n  payload: {\n    scan_type: 'marketplace',\n    target_sites: ['amazon', 'aliexpress', 'shopify'],\n    categories: ['electronics', 'home', 'fitness'],\n    max_products: 200,\n    include_trends: true\n  },\n  idempotencyKey: `product_research_weekly_${Date.now()}`\n}}];"
+      },
+      "id": "2",
+      "name": "Prepare Product Research Job",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 100]
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:8000/api/v1/workflows/product_research/run",
+        "method": "POST",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "={{$json}}"
+      },
+      "id": "3",
+      "name": "Call Orchestrator API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [650, 100]
+    },
+    {
+      "parameters": {
+        "functionCode": "const result = items[0].json;\nif (result.success) {\n  console.log(`Product research completed: ${result.output.products?.length || 0} products analyzed`);\n} else {\n  console.error(`Product research failed: ${result.error_message}`);\n}\nreturn items;"
+      },
+      "id": "4",
+      "name": "Log Results",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [850, 100]
+    }
+  ],
+  "connections": {
+    "Weekly Schedule (Sun 9AM)": {
+      "main": [[{ "node": "Prepare Product Research Job", "type": "main", "index": 0 }]]
+    },
+    "Prepare Product Research Job": {
+      "main": [[{ "node": "Call Orchestrator API", "type": "main", "index": 0 }]]
+    },
+    "Call Orchestrator API": {
+      "main": [[{ "node": "Log Results", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "id": "3"
+}

@@ -1,0 +1,59 @@
+{
+  "date": "2026-10-18",
+  "local_real_media_test": {
+    "audit": ".workflow-tests\\twenty-local-ba999acddf9a4aebafd4c48688aebffe\\audit.json",
+    "terminal_exit_code": 0,
+    "clip_count": 20,
+    "unique_jobs": 20,
+    "unique_mp4_hashes": 20,
+    "bounded_acquisitions": 20,
+    "full_source_downloads": 0,
+    "duration_seconds_range": [
+      15.166667,
+      46.957683
+    ],
+    "expected_speech_coverage_range": [
+      0.781395,
+      1.0
+    ],
+    "source_token_recall_range": [
+      0.794521,
+      1.0
+    ],
+    "interrupted_resume_verified": true,
+    "completed_resume_without_regeneration": true,
+    "selection_editorially_approved": false,
+    "fresh_youtube_acquisition": false
+  },
+  "tests": {
+    "full_non_instagram_suite": {
+      "passed": 311,
+      "seconds": 176.72
+    },
+    "final_focused_suite_after_selection_changes": {
+      "passed": 130,
+      "seconds": 76.15
+    },
+    "ruff_E4_E7_E9_F": "passed",
+    "actual_cmd_launcher_help_exit": 0,
+    "actual_cmd_invalid_zero_count_exit": 2
+  },
+  "fresh_production_order": {
+    "id": "b1ab89fa-c4ad-4585-99d0-5b1fcd971ddd",
+    "status": "connection_unavailable",
+    "reason": "youtube_connection_unavailable",
+    "completed_clip_count": 0,
+    "resume_command": ".\\make-20-clips.cmd --resume b1ab89fa-c4ad-4585-99d0-5b1fcd971ddd"
+  },
+  "approved_user_clip": {
+    "path": "C:\\Users\\hp\\Desktop\\New folder\\content rewerad\\clips\\50-Cent-Colorized.mp4",
+    "sha256": "615f000724dace84851f8f5dd30c11f2bb7e9f3ebee0fa33c5f81ab20233571d",
+    "unchanged": true
+  },
+  "limits": [
+    "Live YouTube sourcing remains unavailable from this tool process; use the normal terminal.",
+    "The cached media test proves processing and recovery; its preallocated earlier selections are not approved new user clips.",
+    "Caption coverage and transcript agreement are gross-error checks, not perfect ASR or semantic evaluation.",
+    "No guaranteed virality, follower growth or publishing."
+  ]
+}

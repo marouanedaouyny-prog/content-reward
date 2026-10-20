@@ -1,0 +1,79 @@
+{
+  "type": "object",
+  "title": "ContentRewardsOutput",
+  "description": "Output schema for content rewards workflow execution",
+  "properties": {
+    "campaign_id": {
+      "type": "string",
+      "description": "Unique campaign identifier"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["discovered", "qualified", "approved", "in_progress", "published", "completed", "failed"],
+      "description": "Current campaign status"
+    },
+    "clip_results": {
+      "type": "array",
+      "description": "Results from clip generation pipeline",
+      "items": {
+        "type": "object",
+        "properties": {
+          "clip_id": {"type": "string"},
+          "status": {"type": "string", "enum": ["generated", "qc_passed", "qc_failed", "published", "failed"]},
+          "title": {"type": "string"},
+          "duration": {"type": "number"},
+          "views": {"type": "integer"},
+          "earnings": {"type": "number"}
+        },
+        "required": ["clip_id", "status"]
+      }
+    },
+    "published_posts": {
+      "type": "array",
+      "description": "Posts that were published",
+      "items": {
+        "type": "object",
+        "properties": {
+          "post_id": {"type": "string"},
+          "platform": {"type": "string"},
+          "url": {"type": "string", "format": "uri"},
+          "published_at": {"type": "string", "format": "date-time"},
+          "metrics": {
+            "type": "object",
+            "properties": {
+              "views": {"type": "integer"},
+              "likes": {"type": "integer"},
+              "comments": {"type": "integer"},
+              "shares": {"type": "integer"}
+            },
+            "required": ["views"]
+          }
+        },
+        "required": ["post_id", "platform", "url", "published_at"]
+      }
+    },
+    "earnings_tracked": {
+      "type": "number",
+      "description": "Total earnings tracked for this campaign"
+    },
+    "payout_recorded": {
+      "type": "number",
+      "description": "Total payout recorded"
+    },
+    "error_summary": {
+      "type": "string",
+      "description": "Summary of any errors encountered"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata about the workflow execution",
+      "properties": {
+        "runtime_seconds": {"type": "number"},
+        "steps_completed": {"type": "integer"},
+        "human_approvals_needed": {"type": "integer"},
+        "human_approvals_granted": {"type": "integer"}
+      }
+    }
+  },
+  "required": ["campaign_id", "status"]
+}
