@@ -50,8 +50,12 @@ class Config:
     delivery_dir: str | None = None
     caption_styles: list[str] | None = None
     clips_per_source: int = 4
+    campaign_id: str | None = None
 
     def validate(self):
+        if self.campaign_id is not None and (not isinstance(self.campaign_id, str)
+                                            or not 1 <= len(self.campaign_id) <= 200):
+            raise ValueError('Campaign ID must be a nonempty stable identifier')
         if self.provider not in ('selenium', 'public'):
             raise ValueError('Choose selenium or public discovery')
         if self.caption_style not in CAPTION_STYLES:

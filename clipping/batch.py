@@ -86,6 +86,17 @@ def create_clip_job(controller, entry, moment, metadata, attempts, delay):
     if not assessment.passed:
         raise SetupIssue('candidate_quality_failed')
     source = entry.get('source') or controller.state['source_selection']
+    campaign = controller.store.get_campaign(controller.config.campaign_id) if controller.config.campaign_id else None
+    if campaign:
+        from campaigns.validation import validate_campaign
+        evaluation = validate_campaign(campaign,
+            dict(duration_seconds=moment['clip_plan']['duration_seconds'], source_id=source['id'],
+                 transcript=moment.get('source_excerpt', '')),
+            {'caption': moment['caption'] + ' ' + source.get('title', '') + ' '
+                        + ' '.join(campaign.rules.required_hashtags)}, campaign.platform, source=source)
+        if not evaluation.eligible:
+            raise SetupIssue('campaign_validation_failed')
+        entry['campaign_validation'] = evaluation.model_dump()
     number = entry['number']
     folder = controller.folder / 'sections' / f'{number:02d}'
     original_plan = moment['clip_plan']
@@ -105,6 +116,8 @@ def create_clip_job(controller, entry, moment, metadata, attempts, delay):
     caption = moment['caption'].strip() + '\n\nFrom: ' + source['title'][:180]
     if creator:
         caption += '\nSource: ' + creator
+    if campaign:
+        caption += '\n\n' + ' '.join(campaign.rules.required_hashtags)
     data = {'campaign': {'title': 'Highlight: ' + source['title'][:160], 'url': source['url'],
         'platform': 'youtube', 'rules': 'Private local highlight. No publishing or submission.',
         'rights_notes': 'Research source; private local preview.', 'duration_min': 15, 'duration_max': 60},
@@ -112,6 +125,10 @@ def create_clip_job(controller, entry, moment, metadata, attempts, delay):
         'language': 'en', 'clip_plan': local_plan, 'caption': caption,
         'caption_style': caption_style, 'framing_mode': controller.config.framing_mode,
         'source_selection': source}
+    if campaign:
+        data['campaign'].update(title=campaign.title, platform=campaign.platform,
+                                duration_min=campaign.rules.min_duration, duration_max=campaign.rules.max_duration,
+                                campaign_id=campaign.id)
     key = f'batch:{controller.state["id"]}:{number}'
     if entry.get('source'):
         key += f':{source["id"]}:{original_plan["start_seconds"]}'
