@@ -74,8 +74,10 @@ def allocate_source(controller, history, attempts, delay):
                 raise media.SourceAccessRequired('Source metadata is outside the long-video eligibility rules')
             previous = [record for record in history if record['source_id'] == source['id']]
             try:
+                from analytics.feedback import feedback_for_order
                 candidates = sections.select_moments(metadata, 20, controller.config.duration,
-                                                    strict=True, excluded=previous)
+                                                    strict=True, excluded=previous,
+                                                    feedback=feedback_for_order(controller))
             except ValueError:
                 candidates = []
         except media.SourceAccessRequired:

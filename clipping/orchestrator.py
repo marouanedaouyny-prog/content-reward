@@ -326,6 +326,7 @@ class Controller:
         return self.state
 
     def run(self, connection_attempts=3, retry_delay=5):
+        started = time.monotonic()
         if not 1 <= connection_attempts <= 10 or not 0 <= retry_delay <= 300:
             raise ValueError('Invalid connection retry policy')
         try:
@@ -353,6 +354,7 @@ class Controller:
                                 reason='stage_failed', action='Inspect the saved stage and correct it before resuming.')
         except OrderBusy:
             return {**self.state, 'status': 'already_running', 'reason': 'saved_order_in_use'}
+        self.update(duration_ms=round((time.monotonic() - started) * 1000))
         return self.state
 
     def execute(self, attempts, delay):

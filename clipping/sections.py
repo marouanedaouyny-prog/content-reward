@@ -115,7 +115,7 @@ def _repeated_signature(signature, previous, threshold):
     return bool(union and shared / union >= threshold or shorter >= 5 and shared / shorter >= threshold)
 
 
-def select_moments(source, count, target, *, strict=False, excluded=(), settings=None):
+def select_moments(source, count, target, *, strict=False, excluded=(), settings=None, feedback=None):
     settings = settings or load_settings()
     if isinstance(count, bool) or not isinstance(count, int) or not 1 <= count <= 20:
         raise ValueError('Choose a clip count from one through 20')
@@ -138,6 +138,10 @@ def select_moments(source, count, target, *, strict=False, excluded=(), settings
             if 'No complete transcript window' not in str(exc):
                 raise
             break
+        if feedback is not None:
+            from analytics.feedback import adjust_candidate
+            pool = [adjust_candidate(choice, feedback(choice)) for choice in pool]
+            pool.sort(key=lambda choice: (-choice['feedback']['adjusted_score'], choice['clip_plan']['start_seconds']))
         # Refill after text exclusions, rather than letting twenty repeated peaks
         # hide a later useful moment. Every considered interval is retired.
         reserved.extend(choice['clip_plan'] for choice in pool)

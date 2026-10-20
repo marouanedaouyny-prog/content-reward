@@ -13,6 +13,11 @@ def encode(value):
     return json.dumps(value, ensure_ascii=True, allow_nan=False, sort_keys=True)
 
 
+def moment_identifier(order_id, source_id, plan):
+    key = f"{order_id}:{source_id}:{plan['start_seconds']}:{plan['duration_seconds']}"
+    return str(uuid.uuid5(uuid.NAMESPACE_URL, key))
+
+
 class Store(Database):
     def save_order(self, state, *, expected_revision=None, connection=None, sync_candidates=True):
         identifier = str(uuid.UUID(state['id']))
@@ -73,8 +78,7 @@ class Store(Database):
                 title=excluded.title,metadata=excluded.metadata''',
                 (source['id'], source.get('url'), source.get('title', ''), source.get('duration'),
                  source.get('views', source.get('view_count')), source.get('published_at'), encode(source)))
-            key = f"{state['id']}:{source['id']}:{plan['start_seconds']}:{plan['duration_seconds']}"
-            identifier = str(uuid.uuid5(uuid.NAMESPACE_URL, key))
+            identifier = moment_identifier(state['id'], source['id'], plan)
             db.execute('''INSERT INTO candidate_moments VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(id)
                 DO UPDATE SET excerpt=excluded.excerpt,score=excluded.score,features=excluded.features''',
                 (identifier, state['id'], source['id'], plan['start_seconds'], plan['duration_seconds'],

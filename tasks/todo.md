@@ -7,6 +7,6 @@
 - [x] 5 SQLite migrations/repositories: 62 order/batch/production tests and 32 focused persistence/resume checks passed; smoke and Ruff passed.
 - [x] 6 Campaigns: structured/prose parsing, persisted rules, source/content/destination/deadline gates; 23 focused tests, Ruff and smoke passed.
 - [x] 7 Manual/mock publishing: campaign/hash/idempotency gates passed; official uploads unavailable. Full smoke, 19 focused tests and Ruff passed.
-- [ ] 8 Performance, experiments, feedback.
+- [x] 8 Imported performance, experiments, bounded feedback wired to selection: 48 batch/production/sections and 102 scoring/analytics checks passed; Ruff passed.
 - [ ] 9 Business tests, CLI/API and smoke.
 - [ ] 10 Documentation and final verification.

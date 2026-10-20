@@ -67,7 +67,9 @@ def choose_source(controller, research, attempts, delay):
             metadata = connected(controller, lambda source=source, folder=folder: sections.inspect_source(source, folder),
                                  'source_captions', attempts, delay)
             try:
-                moments = sections.select_moments(metadata, controller.config.clip_count, controller.config.duration)
+                from analytics.feedback import feedback_for_order
+                moments = sections.select_moments(metadata, controller.config.clip_count, controller.config.duration,
+                                                  feedback=feedback_for_order(controller))
             except ValueError as exc:
                 raise media.SourceAccessRequired('This source has too few usable moments for this order.') from exc
         except media.SourceAccessRequired:
@@ -189,12 +191,15 @@ def deliver_clip(controller, job, entry, moment, delivery):
               'diversity_note': moment.get('diversity_note'),
               'caption_style': caption_style, 'framing_mode': controller.config.framing_mode,
               'render_template': output.get('render_template'), 'review': review}
+    from app.repositories.store import moment_identifier
     controller.store.save_clip(dict(id=job['id'], order_id=controller.state['id'], source_id=source['id'],
+        moment_id=moment_identifier(controller.state['id'], source['id'], entry['source_clip_plan']),
         path=str(clip), subtitles=str(subtitles), sha256=media.file_hash(clip), caption=entry['post_caption'],
         caption_style=caption_style, framing=controller.config.framing_mode,
         settings=dict(source_clip_plan=entry['source_clip_plan'], review=review,
                       selection_quality=moment.get('quality'), selection_score=moment.get('selection'),
-                      niche=controller.config.niche)))
+                      transcript_features=moment.get('transcript_features'), transcript=moment.get('source_excerpt'),
+                      source=source, feedback=moment.get('feedback'), niche=controller.config.niche)))
     controller.update(batch_results=[*controller.state.get('batch_results', []), result],
                       completed_clip_count=len(controller.state.get('batch_results', [])) + 1)
 
