@@ -199,11 +199,10 @@ class Controller:
                 raise ValueError('Invalid saved order identifier') from exc
             self.folder = self.orders / identifier
             self.manifest = self.folder / 'order.json'
-            self.state = self.store.get_order(identifier)
+            self.state, self._revision = self.store.read_order(identifier)
             if self.state.get('id') != identifier:
                 raise ValueError('Saved order identifier does not match its folder')
             self.config = Config(**self.state['config'])
-            self._revision = self.store.revision(identifier)
         else:
             self.config = config or Config()
             self.config.validate()

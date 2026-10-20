@@ -35,11 +35,14 @@ class Store(Database):
         return revision
 
     def get_order(self, identifier):
+        return self.read_order(identifier)[0]
+
+    def read_order(self, identifier):
         with self.connection() as db:
-            row = db.execute('SELECT state FROM orders WHERE id=?', (identifier,)).fetchone()
+            row = db.execute('SELECT state,revision FROM orders WHERE id=?', (identifier,)).fetchone()
         if row is None:
             raise KeyError('Order not found')
-        return json.loads(row['state'])
+        return json.loads(row['state']), row['revision']
 
     def revision(self, identifier):
         with self.connection() as db:

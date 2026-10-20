@@ -31,3 +31,13 @@ def test_events_redact_credentials_in_nested_fields():
     rendered = json.dumps(record)
     assert all(value not in rendered for value in ['private-value', 'user:pass', 'hidden', 'never-print'])
     assert record['context']['count'] == 2
+
+
+@pytest.mark.parametrize('message', [
+    '{"access_token": "dummy-private-marker"}',
+    "{'client_secret': 'dummy-private-marker'}",
+    'Authorization: Basic dummy-private-marker',
+])
+def test_redaction_handles_quoted_and_basic_auth_forms(message):
+    from app.core.logging import redact
+    assert 'dummy-private-marker' not in redact(message)

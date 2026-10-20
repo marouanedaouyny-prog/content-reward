@@ -51,7 +51,7 @@ def interval_lengths(analysis, name, duration):
 
 
 def analyze(clip):
-    return media.command(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-i', str(clip),
+    return media.command(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-xerror', '-err_detect', 'explode', '-i', str(clip),
         '-af', 'silencedetect=noise=-50dB:d=0.5,ametadata=print:file=-,'
                'astats=metadata=1:reset=0,ametadata=print:key=lavfi.astats.Overall.RMS_level:file=-',
         '-vf', 'blackdetect=d=0.5:pix_th=0.10,metadata=print:file=-',

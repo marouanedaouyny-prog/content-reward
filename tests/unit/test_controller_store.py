@@ -26,3 +26,14 @@ def test_clip_repository_preserves_links_and_enforces_foreign_keys(tmp_path):
                      'path': 'clip.mp4', 'sha256': 'f' * 64})
     assert store.get_clip('clip-one')['order_id'] == controller.state['id']
     assert len(store.list_clips()) == 1
+
+
+def test_two_controllers_cannot_overwrite_a_concurrent_update(tmp_path):
+    from clipping.orchestrator import Config, Controller
+    first = Controller(tmp_path, Config(), emit=lambda _: None)
+    second = Controller(tmp_path, resume=first.state['id'], emit=lambda _: None)
+    first.update(status='running', stage='transcription')
+    with pytest.raises(ValueError, match='changed'):
+        second.update(status='running', stage='stale_reader')
+    state, revision = first.store.read_order(first.state['id'])
+    assert state['stage'] == 'transcription' and revision == first._revision

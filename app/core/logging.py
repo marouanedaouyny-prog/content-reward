@@ -15,10 +15,12 @@ def redact(value):
     if isinstance(value, (list, tuple)):
         return [redact(item) for item in value]
     if isinstance(value, str):
+        value = re.sub(r'''(?i)(["']?[\w-]*(?:token|secret|password|cookie|api[_-]?key|authorization)[\w-]*["']?\s*[:=]\s*)(["'])(.*?)\2''',
+                       r'\1\2[REDACTED]\2', value)
         value = re.sub(r'(?i)(https?://)[^/\s@]+@', r'\1[REDACTED]@', value)
         value = re.sub(r'(?i)((?:[\w-]*(?:token|secret|password|cookie|api[_-]?key)[\w-]*)[=:]\s*)[^&\s,;]+',
                        r'\1[REDACTED]', value)
-        value = re.sub(r'(?i)Bearer\s+\S+', 'Bearer [REDACTED]', value)
+        value = re.sub(r'(?i)\b(Bearer|Basic)\s+\S+', r'\1 [REDACTED]', value)
     return value
 
 
@@ -33,4 +35,5 @@ class JsonFormatter(logging.Formatter):
     def format(self, record):
         return json.dumps(event_record(getattr(record, 'event', 'log'), level=record.levelname,
                                        message=record.getMessage(),
-                                       stage=getattr(record, 'stage', None)), ensure_ascii=True)
+                                       stage=getattr(record, 'stage', None),
+                                       error_code=getattr(record, 'error_code', None)), ensure_ascii=True)

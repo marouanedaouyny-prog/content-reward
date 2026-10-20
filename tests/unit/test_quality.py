@@ -50,3 +50,13 @@ def test_export_review_rejects_detected_black_frames(tmp_path, monkeypatch):
                         'lavfi.astats.Overall.RMS_level=-20\nlavfi.black_start=1\nlavfi.black_end=3\n')
     with pytest.raises(ValueError, match='black'):
         verify_export(engine, job, tmp_path / 'review')
+
+
+def test_decode_uses_strict_error_detection(monkeypatch):
+    from clipping.quality.validation import analyze
+    from clipping import media
+    captured = []
+    monkeypatch.setattr(media, 'command', lambda args, **kwargs: captured.append(args) or '')
+    analyze(Path('clip.mp4'))
+    assert '-xerror' in captured[0]
+    assert captured[0][captured[0].index('-err_detect') + 1] == 'explode'

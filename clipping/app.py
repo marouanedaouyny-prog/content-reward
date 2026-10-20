@@ -24,6 +24,12 @@ from clipping.instagram import InstagramConnection
 from clipping.instagram_api import router as instagram_router, instagram_script
 
 logger = logging.getLogger(__name__)
+from app.core.logging import JsonFormatter
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    handler.setFormatter(JsonFormatter())
+    logger.addHandler(handler)
+    logger.propagate = False
 ORIGINS = ['http://localhost:8000', 'http://127.0.0.1:8000',
            'http://localhost:3000', 'http://127.0.0.1:3000', 'http://testserver']
 
@@ -49,7 +55,8 @@ async def lifespan(app):
                 if workflow.consume_once():
                     continue
             except Exception:
-                logger.exception('Clipping queue consumer failed')
+                logger.error('Clipping queue consumer failed', extra={'event': 'worker_failed', 'stage': 'worker',
+                                                                     'error_code': 'RENDER_ERROR'})
             stop.wait(1)
 
     def research():
@@ -57,7 +64,8 @@ async def lifespan(app):
             try:
                 app.state.trend_agent.consume_once()
             except Exception:
-                logger.exception('Trend research consumer failed')
+                logger.error('Trend research consumer failed', extra={'event': 'worker_failed', 'stage': 'discovery',
+                                                                      'error_code': 'NETWORK_ERROR'})
             stop.wait(5)
 
     async def maintain_leases():
