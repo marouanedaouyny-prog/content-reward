@@ -6,7 +6,7 @@ from clipping import media
 def test_default_render_matches_explicit_approved_studio_fit_output(tmp_path):
     source = tmp_path / 'source.mp4'
     media.command(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-y',
-        '-f', 'lavfi', '-i', 'testsrc2=size=640x360:rate=10',
+        '-f', 'lavfi', '-i', 'testsrc2=size=640x360:rate=25',
         '-f', 'lavfi', '-i', 'sine=frequency=330:sample_rate=44100', '-t', '2',
         '-c:v', 'libx264', '-threads', '2', '-preset', 'ultrafast', '-c:a', 'aac', str(source)])
     segments = [{'start': 0, 'end': 1, 'text': 'Build a business.', 'words': [

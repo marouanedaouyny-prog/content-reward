@@ -11,6 +11,7 @@ import signal
 import subprocess
 import sys
 import time
+import textwrap
 from contextlib import contextmanager
 from contextvars import ContextVar
 from pathlib import Path
@@ -117,6 +118,11 @@ def ytdlp_command():
 
 def ingest(data, output, folder, storage):
     source = folder / 'source.mp4'
+    downloaded = False
+    reused_window = False
+    begin = max(0, data['clip_plan']['start_seconds'] - 3)
+    end = data['clip_plan']['start_seconds'] + data['clip_plan']['duration_seconds'] + 3
+    window_file = folder / 'source-window.json'
     if data['dry_run']:
         duration = data['clip_plan']['start_seconds'] + data['clip_plan']['duration_seconds'] + 1
         if data.get('auto_clip'):
@@ -144,7 +150,12 @@ def ingest(data, output, folder, storage):
                 details = probe(candidate)
                 reusable = float(details['format']['duration']) > 0 and any(
                     stream.get('codec_type') == 'video' for stream in details.get('streams', []))
-            except (ValueError, KeyError):
+                if window_file.is_file():
+                    window = json.loads(window_file.read_text(encoding='utf-8'))
+                    reused_window = (window['begin'] == begin and window['end'] == end
+                                     and window['sha256'] == file_hash(candidate))
+                    reusable = reusable and reused_window
+            except (ValueError, KeyError, OSError):
                 reusable = False
             if reusable:
                 source = candidate
@@ -157,10 +168,13 @@ def ingest(data, output, folder, storage):
                        '--continue', '--part', '--abort-on-unavailable-fragments']
             try:
                 command([*ytdlp_command(), '--ignore-config', '--no-playlist', '--max-filesize', '500M',
+                         '--download-sections', f'*{begin:g}-{end:g}', '--force-keyframes-at-cuts',
+                         '--downloader', 'ffmpeg',
                          *options, '-f', 'bv*[height<=1080][ext=mp4]+ba[ext=m4a]/b[height<=1080]',
                          '--print-to-file', 'after_move:%(heatmap)j', str(folder / 'source-heatmap.json'),
                          '--merge-output-format', 'mp4', '-o', str(folder / 'source.%(ext)s'),
                          data['source_url']], timeout=1800, kill_tree=True)
+                downloaded = True
             except (ValueError, subprocess.TimeoutExpired) as exc:
                 transient = isinstance(exc, subprocess.TimeoutExpired) or any(term in str(exc).lower() for term in (
                     'unable to connect to proxy', 'connection refused', '10061', 'timed out',
@@ -183,10 +197,19 @@ def ingest(data, output, folder, storage):
     info = probe(source)
     duration = float(info['format']['duration'])
     plan = data['clip_plan']
-    if not data.get('auto_clip') and plan['start_seconds'] + plan['duration_seconds'] > duration + 0.15:
+    local_start = plan['start_seconds'] - begin if downloaded or reused_window else plan['start_seconds']
+    if downloaded and duration > end - begin + 1.2:
+        raise SourceAccessRequired('Provider did not return the requested bounded source window.')
+    if not data.get('auto_clip') and local_start + plan['duration_seconds'] > duration + 0.15:
         raise ValueError(f'Clip window exceeds source duration ({duration:.2f} seconds)')
     result = {'source_path': source.relative_to(storage).as_posix(), 'source_sha256': file_hash(source),
               'source_duration': duration, 'synthetic_source': data['dry_run']}
+    if downloaded or reused_window:
+        result['source_offset'] = begin
+        result['source_clip_plan'] = dict(plan)
+        if not data.get('auto_clip'):
+            result['selected_clip_plan'] = {**plan, 'start_seconds': local_start}
+        window_file.write_text(json.dumps(dict(begin=begin, end=end, sha256=result['source_sha256'])), encoding='utf-8')
     heatmap_file = folder / 'source-heatmap.json'
     if not data['dry_run'] and not data.get('source_path') and heatmap_file.is_file():
         from clipping.planning import usable_heatmap
@@ -353,7 +376,9 @@ def render(data, output, folder, storage):
     segments = validate_segments(transcript['segments'], output['source_duration'])
     plan = output.get('selected_clip_plan') or data['clip_plan']
     start, duration = plan['start_seconds'], plan['duration_seconds']
-    cues = [f"{index}\n{srt_time(cue['start'])} --> {srt_time(cue['end'])}\n{cue['text']}\n"
+    cues = [f"{index}\n{srt_time(cue['start'])} --> {srt_time(cue['end'])}\n"
+            + '\n'.join(textwrap.wrap(cue['text'], width=48, break_long_words=False,
+                                      break_on_hyphens=False)) + '\n'
             for index, cue in enumerate(cues_for_window(segments, start, duration), 1)]
     if not cues:
         raise ValueError('Transcript has no speech in the selected clip window; choose another start time')
@@ -382,9 +407,12 @@ def render(data, output, folder, storage):
         filters = ['-filter_complex_threads', '1', '-filter_complex', graph,
                    '-map', '[composed]', '-map', '0:a:0']
     clip = folder / 'clip.mp4'
-    command(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-y', '-ss', str(start),
+    from app.core.config import load_settings
+    resources = load_settings().worker
+    command(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-y',
+             '-max_alloc', str(resources.memory_limit_mb * 1024 * 1024), '-ss', str(start),
              '-i', str(storage / output['source_path']), '-t', str(duration), *filters,
-             '-c:v', 'libx264', '-threads', '2', '-preset', 'fast', '-crf', '23',
+             '-c:v', 'libx264', '-threads', str(resources.cpu_threads), '-preset', 'fast', '-crf', '23',
              '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', str(clip)], cwd=folder)
     info = probe(clip)
     video = next((s for s in info['streams'] if s['codec_type'] == 'video'), {})
@@ -395,9 +423,14 @@ def render(data, output, folder, storage):
               'duration': abs(actual_duration - duration) < 0.3, 'nonempty': clip.stat().st_size > 1024}
     if not all(checks.values()):
         raise ValueError(f'Clip quality checks failed: {checks}')
+    from clipping.quality.validation import validate_media
+    assessment = validate_media(clip, subtitles, duration=duration, aspect=plan['aspect_ratio'], info=info)
+    if not assessment.passed:
+        raise ValueError('Clip quality checks failed: ' + ', '.join(assessment.violations))
     result = {'clip_path': clip.relative_to(storage).as_posix(), 'clip_sha256': file_hash(clip),
               'subtitle_path': subtitles.relative_to(storage).as_posix(),
               'quality': {'checks': checks, 'width': width, 'height': height, 'duration': actual_duration}}
+    result['quality_report'] = assessment.model_dump()
     if caption_style != 'classic':
         result.update(caption_style=caption_style,
                       styled_subtitle_path=styled.relative_to(storage).as_posix())

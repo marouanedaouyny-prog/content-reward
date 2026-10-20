@@ -27,6 +27,8 @@ def test_config_overlay_and_environment_precedence(tmp_path):
     'clips: {min_duration: 80}',
     'unknown: secret-value',
     'publishing: {enabled: true}',
+    'selection: {editorial: {unknown_coefficient: 4}}',
+    'selection: {editorial: {filler_penalty: -10}}',
 ])
 def test_invalid_configuration_fails_without_echoing_values(tmp_path, text):
     from app.core.config import load_settings

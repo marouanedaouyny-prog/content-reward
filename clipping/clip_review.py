@@ -6,6 +6,7 @@ import re
 
 from clipping import media
 from clipping.captions import cues_for_window
+from clipping.quality.validation import analyze, validate_media
 
 
 def verify_export(engine, job, folder):
@@ -47,10 +48,12 @@ def verify_export(engine, job, folder):
         checks['spoken_caption_coverage'] = caption_assessment['passed']
     if not all(checks.values()):
         raise ValueError('Export review failed: ' + ', '.join(key for key, okay in checks.items() if not okay))
-    analysis = media.command(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-i', str(clip),
-        '-af', 'astats=metadata=1:reset=0,ametadata=print:key=lavfi.astats.Overall.RMS_level:file=-',
-        '-vf', 'blackdetect=d=0.5:pix_th=0.10,metadata=print:file=-',
-        '-f', 'null', '-'], timeout=180, kill_tree=True)
+    analysis = analyze(clip)
+    report = validate_media(clip, subtitles, duration=plan['duration_seconds'],
+                            aspect=plan['aspect_ratio'], info=info, analysis=analysis)
+    checks.update(report.checks)
+    if not report.passed:
+        raise ValueError('Export review failed: ' + ', '.join(report.violations))
     levels = re.findall(r'lavfi\.astats\.Overall\.RMS_level=([^\s]+)', analysis)
     level = float(levels[-1]) if levels else float('-inf')
     checks.update(full_decode=True, audible_audio=math.isfinite(level) and level > -60)
@@ -66,8 +69,10 @@ def verify_export(engine, job, folder):
         if not frame.is_file() or not frame.stat().st_size:
             raise ValueError('Export review failed: no visual review frame')
         frames.append({'second': round(second, 3), 'path': str(frame.resolve())})
-    return {'checks': checks, 'duration': duration, 'audio_rms_db': round(level, 2),
+    return {'passed': True, 'score': report.score, 'checks': checks,
+            'warnings': report.warnings, 'duration': duration, 'audio_rms_db': round(level, 2),
             'black_frame_markers': len(re.findall(r'lavfi\.black_start=', analysis)),
             'frames': frames, 'human_review_required': True, 'speech_accuracy': 'not_verified',
             'caption_assessment': caption_assessment,
+            'independent_source_cues': bool(job['payload'].get('source_reference')),
             'review_note': 'Review the actual clip for framing, meaning, caption taste and ASR accuracy.'}

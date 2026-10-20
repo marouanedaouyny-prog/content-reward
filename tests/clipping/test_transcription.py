@@ -152,7 +152,10 @@ def test_empty_speech_keeps_source_checkpoint_and_resumes_from_supplied_srt(auto
 
     def ingest(*args):
         ingestions.append(True)
-        return {'source_path': 'prepared-source.mp4', 'source_duration': 5}
+        source = storage / 'prepared-source.mp4'
+        source.write_bytes(b'CHECKPOINTED SOURCE FIXTURE')
+        return {'source_path': source.name, 'source_duration': 5,
+                'source_sha256': media.file_hash(source)}
 
     monkeypatch.setattr(media, 'ingest', ingest)
     monkeypatch.setattr(media, 'command', lambda *args, **kwargs:

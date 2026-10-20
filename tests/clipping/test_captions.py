@@ -22,6 +22,10 @@ def render_subtitles(tmp_path, monkeypatch):
 
     monkeypatch.setattr(media, 'command', encode)
     monkeypatch.setattr(media, 'probe', probe)
+    # These tests isolate subtitle grouping; mechanical media QC is tested separately.
+    from clipping.quality.validation import QualityResult
+    monkeypatch.setattr('clipping.quality.validation.validate_media', lambda *args, **kwargs:
+                        QualityResult(passed=True, score=100, checks={'fixture_only': True}))
 
     def render(segments, start, duration, source_duration=10):
         selected['duration'] = duration

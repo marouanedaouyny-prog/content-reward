@@ -25,7 +25,7 @@ def fixture(tmp_path, monkeypatch):
         'transcript_origin': 'faster_whisper:en',
         'selected_clip_plan': {'start_seconds': 0, 'duration_seconds': 5, 'aspect_ratio': '9:16'}}}
     monkeypatch.setattr(media, 'probe', lambda _: {'format': {'duration': '5'}, 'streams': [
-        {'codec_type': 'video', 'codec_name': 'h264', 'width': 1080, 'height': 1920},
+        {'codec_type': 'video', 'codec_name': 'h264', 'width': 1080, 'height': 1920, 'avg_frame_rate': '25/1'},
         {'codec_type': 'audio', 'codec_name': 'aac'}]})
 
     def analyze(args, **kwargs):

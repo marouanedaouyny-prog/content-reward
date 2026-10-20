@@ -31,6 +31,8 @@ def test_download_uses_parallel_fragments_resume_and_a_realistic_deadline(tmp_pa
     assert 'height<=1080' in args[args.index('-f') + 1]
     assert options['timeout'] >= 900
     assert options['kill_tree']
+    assert '--download-sections' in args
+    assert args[args.index('--download-sections') + 1] == '*0-8'
 
 
 def test_interrupted_checkpoint_reuses_complete_source_not_format_fragments(tmp_path, monkeypatch):
@@ -67,12 +69,14 @@ def test_download_captures_only_replay_bins_and_keeps_them_after_resume(tmp_path
     monkeypatch.setattr(media, 'command', download)
     monkeypatch.setattr(media, 'probe', lambda path: {'format': {'duration': '30'},
         'streams': [{'codec_type': 'video'}, {'codec_type': 'audio'}]})
-    result = media.ingest(payload(), {}, tmp_path, tmp_path)
+    data = payload()
+    data['clip_plan']['duration_seconds'] = 30
+    result = media.ingest(data, {}, tmp_path, tmp_path)
     assert result['source_heatmap'] == heatmap
     assert 'after_move:%(heatmap)j' in calls[0]
     assert '--write-info-json' not in calls[0], 'Persist bins without signed media URLs'
     monkeypatch.setattr(media, 'command', lambda *args, **kwargs: pytest.fail('Downloaded again'))
-    assert media.ingest(payload(), {}, tmp_path, tmp_path)['source_heatmap'] == heatmap
+    assert media.ingest(data, {}, tmp_path, tmp_path)['source_heatmap'] == heatmap
 
 
 @pytest.mark.parametrize('preview', [False, True])

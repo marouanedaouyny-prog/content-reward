@@ -56,6 +56,13 @@ class Selection(StrictModel):
         if (set(self.weights) != names or any(value < 0 for value in self.weights.values())
                 or not math.isclose(sum(self.weights.values()), 1, abs_tol=1e-8)):
             raise ValueError('Selection weights must be normalized and use documented signals')
+        coefficients = {'baseline', 'filler_penalty', 'question_bonus', 'referential_penalty',
+            'mid_sentence_penalty', 'concrete_bonus', 'topic_bonus', 'topic_extra',
+            'topic_extra_cap', 'opening_topic_bonus', 'opening_topic_cap', 'promotion_penalty',
+            'completed_bonus', 'question_ending_penalty', 'silence_penalty', 'silence_cap',
+            'linked_penalty', 'duration_penalty', 'duration_cap'}
+        if set(self.editorial) != coefficients or any(not 0 <= value <= 100 for value in self.editorial.values()):
+            raise ValueError('Editorial coefficients must use documented keys and finite nonnegative values')
         return self
 
 

@@ -81,6 +81,10 @@ def choose_source(controller, research, attempts, delay):
 
 
 def create_clip_job(controller, entry, moment, metadata, attempts, delay):
+    from clipping.quality.validation import validate_candidate
+    assessment = validate_candidate(moment)
+    if not assessment.passed:
+        raise SetupIssue('candidate_quality_failed')
     source = entry.get('source') or controller.state['source_selection']
     number = entry['number']
     folder = controller.folder / 'sections' / f'{number:02d}'
@@ -121,7 +125,7 @@ def create_clip_job(controller, entry, moment, metadata, attempts, delay):
             raise ValueError('Selected moment has no source speech reference')
         data['source_reference_origin'] = metadata.get('transcript_origin', 'public_source_captions')
     job = controller.engine.create(data, key)
-    entry.update(job_id=job['id'], section_sha256=section['sha256'], source_offset=section['source_offset'],
+    entry.update(pre_render_quality=assessment.model_dump(), job_id=job['id'], section_sha256=section['sha256'], source_offset=section['source_offset'],
                  source_clip_plan=original_plan, local_clip_plan=local_plan, post_caption=caption,
                  caption_style=caption_style)
     controller.update(clip_entries=controller.state['clip_entries'], job_id=job['id'], active_clip=number)
