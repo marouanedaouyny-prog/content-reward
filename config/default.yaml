@@ -12,6 +12,7 @@ video:
   framing: fit
   width: 1080
   height: 1920
+  encoder_profile: balanced
 selection:
   minimum_score: 0.50
   weights:
@@ -48,7 +49,67 @@ dedup:
   transcript_similarity_threshold: 0.85
   semantic_similarity_threshold: 0.88
   quote_words: 8
+source_filter:
+  enabled: true
+  minimum_score: 0.55
+  minimum_coverage: 0.35
+  min_duration_minutes: 15
+  max_duration_hours: 8
+  freshness_window_days: 14
+  weights:
+    velocity: 0.20
+    relevance: 0.18
+    freshness: 0.13
+    engagement: 0.12
+    channel_quality: 0.07
+    transcript_available: 0.10
+    replay_available: 0.05
+    total_views: 0.10
+    duration: 0.05
+growth_scoring:
+  hook_strength: 0.22
+  retention_potential: 0.18
+  shareability: 0.14
+  standalone_clarity: 0.12
+  emotional_intensity: 0.10
+  novelty: 0.08
+  niche_relevance: 0.06
+  follow_potential: 0.10
+
+hashtags:
+  min: 3
+  preferred: 5
+  max: 8
+
+posting:
+  enabled: false
+  timezone: Africa/Casablanca
+  max_per_day: 3
+  minimum_gap_minutes: 180
+  same_source_hours: 8
+  same_topic_hours: 6
+  minimum_history_samples: 5
+  default_windows:
+    - "12:00-14:00"
+    - "18:00-22:00"
+
+cta:
+  categories:
+    - follow
+    - comment
+    - save
+    - share
+    - profile
+    - none
+  default_category: none
+  exploration_ratio: 0.20
+
+silence:
+  threshold_db: -35
+  min_duration_ms: 450
+  aggressive_cut: false
 quality:
+  minimum_score: 0.75
   minimum_speech_ratio: 0.50
   maximum_speech_gap: 4.0
   maximum_black_seconds: 0.50
@@ -78,3 +139,62 @@ publishing:
 feedback:
   minimum_samples: 5
   maximum_adjustment: 0.10
+
+discovery:
+  mode: balanced
+  providers:
+    youtube_api: true
+    yt_dlp: true
+    selenium: true
+    public_search: true
+  queries_per_niche: 8
+  results_per_query: 20
+  target_sources: 5
+  minimum_sources: 2
+  max_parallel_queries: 3
+  provider_timeout_seconds: 20
+  total_timeout_seconds: 90
+  cache_ttl_hours: 3
+  language: en
+  region: US
+  whitelist_boost: 0.10
+  freshness_window_days: 14
+  secondary_lookup_limit: 5
+  families:
+    - podcast
+    - interview
+    - livestream
+    - debate
+    - reaction
+    - discussion
+    - story
+    - full episode
+  eligibility:
+    strict:
+      min_duration_minutes: 45
+      min_views: 100000
+      max_age_days: 7
+      min_score: 0.70
+      require_views: true
+      require_age: true
+    medium:
+      min_duration_minutes: 30
+      min_views: 25000
+      max_age_days: 30
+      min_score: 0.55
+      require_views: true
+      require_age: false
+    relaxed:
+      min_duration_minutes: 20
+      min_views: 5000
+      max_age_days: 90
+      min_score: 0.45
+      require_views: false
+      require_age: false
+  scoring_weights:
+    velocity: 0.30
+    relevance: 0.25
+    engagement: 0.15
+    freshness: 0.15
+    channel_quality: 0.10
+    transcript_signal: 0.05

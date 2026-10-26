@@ -2,7 +2,6 @@ import importlib
 import json
 import shutil
 import subprocess
-import uuid
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -10,11 +9,8 @@ import pytest
 
 
 @pytest.fixture
-def tmp_path():
-    # Keep isolated artifacts inside the writable workspace on Windows.
-    path = Path('.workflow-tests') / uuid.uuid4().hex
-    path.mkdir(parents=True)
-    return path.resolve()
+def tmp_path(tmp_path_factory):
+    return tmp_path_factory.mktemp('workflow')
 
 
 def engine(tmp_path):
@@ -223,7 +219,8 @@ def test_failed_stage_preserves_failure_and_can_resume(tmp_path, monkeypatch):
     workflow.consume_once()
     job = workflow.get(job['id'])
     assert job['status'] == 'failed'
-    assert job['error'] == 'Source service unavailable'
+    assert job['output']['failure']['code'] == 'VALIDATION_ERROR'
+    assert job['error'] == 'Content or artifact validation failed.'
     assert 'publication' not in job['output']
     assert workflow.retry(job['id'])['status'] == 'queued'
 

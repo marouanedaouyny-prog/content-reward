@@ -45,7 +45,10 @@ def test_three_words_with_inflated_timing_cannot_cover_twenty_seconds_of_speech(
     assert 'insufficient_reference_text' in result['failures']
 
 
-def test_unprompted_source_speech_tolerates_some_asr_word_differences():
+def test_coarse_unprompted_segments_require_review_when_local_timing_is_unestablished():
+    # The first ASR segment spans the public cue boundary at 7.52 seconds.
+    # Without word timings its midpoint cannot establish the latter half of
+    # that segment as evidence for the following independent source cue.
     segments = [
         {'start': 3, 'end': 9.84, 'text': "Yes sir, I agree. We should do a fight at the White House. And then now Craig Borsari came to me with his own idea that I think is fucking brilliant."},
         {'start': 9.84, 'end': 15.28, 'text': "And I'm working on that one now. But we don't say no at the UFC. It's just we always, whatever people"},
@@ -53,7 +56,9 @@ def test_unprompted_source_speech_tolerates_some_asr_word_differences():
         {'start': 21.7, 'end': 22.96, 'text': "just blows people's minds."},
     ]
     result = assess(segments, 3, 20, first_reference())
-    assert result['passed'] is True, result
+    assert result['passed'] is False, result
+    assert result['failures'] == ['timed_source_disagreement']
+    assert result['local_source_checks']['checks'][1]['source_token_recall'] == .5
     assert result['source_token_recall'] > .8
     assert .8 < result['speech_caption_intersection_fraction'] <= 1
 
@@ -110,3 +115,88 @@ def test_empty_reference_is_an_explicit_review_failure():
     result = assess([{'start': 0, 'end': 20, 'text': 'A complete sentence.'}], 0, 20, [])
     assert result['passed'] is False
     assert 'missing_reference' in result['failures']
+
+
+def test_half_the_source_words_cannot_pass_with_inflated_full_window_timing():
+    reference = [{'start': 0, 'end': 10,
+                  'text': 'A clear plan helps every player improve their skills with practice.'}]
+    result = assess([{'start': 0, 'end': 10, 'text': 'A clear plan helps every player.'}],
+                    0, 10, reference)
+    assert result['passed'] is False
+    assert 'insufficient_reference_text' in result['failures']
+
+
+def test_hallucinated_insertions_are_rejected_even_when_every_source_word_is_present():
+    source = 'A clear plan helps every player improve their skills with practice.'
+    extra = ' astronaut cereal purple zigzag invention mountain bookshelf tiger moon rocket banana candle unicycle'
+    result = assess([{'start': 0, 'end': 10, 'text': source + extra}], 0, 10,
+                    [{'start': 0, 'end': 10, 'text': source}])
+    assert result['passed'] is False
+    assert 'unsupported_caption_text' in result['failures']
+    assert result['source_token_precision'] < .5
+
+
+def test_same_words_in_reverse_order_do_not_establish_source_speech_agreement():
+    source = 'A clear plan helps every player improve their skills with practice.'
+    result = assess([{'start': 0, 'end': 10, 'text': ' '.join(reversed(source.split()))}],
+                    0, 10, [{'start': 0, 'end': 10, 'text': source}])
+    assert result['passed'] is False
+    assert 'source_word_order' in result['failures']
+
+
+def test_matching_words_in_the_wrong_timed_source_cue_do_not_pass():
+    reference = [
+        {'start': 0, 'end': 5, 'text': 'Never buy a fake product from an unverified shop.'},
+        {'start': 5, 'end': 10, 'text': 'Choose the genuine replacement after checking its official serial number.'},
+    ]
+    result = assess([dict(reference[0], text=reference[1]['text']),
+                     dict(reference[1], text=reference[0]['text'])], 0, 10, reference)
+    assert result['passed'] is False
+    assert 'timed_source_disagreement' in result['failures']
+    assert result['local_source_checks']['failed'] == 2
+
+
+def test_omission_concentrated_in_one_cue_is_not_hidden_by_other_matching_cues():
+    reference = [
+        {'start': 0, 'end': 5, 'text': 'The initial design looked simple and worked well in practice.'},
+        {'start': 5, 'end': 8, 'text': 'However never connect both exposed wires to the power supply.'},
+        {'start': 8, 'end': 13, 'text': 'After the inspection we replaced each damaged component before proceeding.'},
+        {'start': 13, 'end': 18, 'text': 'The resulting machine passed every safety check before delivery.'},
+    ]
+    result = assess([reference[0], reference[2], reference[3]], 0, 18, reference)
+    assert result['passed'] is False
+    assert 'timed_source_disagreement' in result['failures']
+
+
+def test_small_word_timing_jitter_at_a_cut_is_tolerated():
+    segment = {'start': 2.98, 'end': 6.02, 'text': 'A complete thought.', 'words': [
+        {'start': 2.98, 'end': 3.2, 'word': ' A'},
+        {'start': 3.2, 'end': 5, 'word': ' complete'},
+        {'start': 5, 'end': 6.02, 'word': ' thought.'}]}
+    result = assess([segment], 3, 3, [{'start': 3, 'end': 6, 'text': segment['text']}])
+    assert result['passed'] is True, result
+
+
+@pytest.mark.parametrize('edge', ['leading', 'trailing'])
+def test_context_word_fragments_at_the_cut_need_review(edge):
+    words = [{'start': 3.2, 'end': 3.4, 'word': ' A'},
+             {'start': 3.4, 'end': 4.5, 'word': ' complete'},
+             {'start': 4.5, 'end': 5.6, 'word': ' thought.'}]
+    words.insert(0, {'start': 2.7, 'end': 3.04, 'word': ' me.'}) if edge == 'leading' else words.append(
+        {'start': 5.88, 'end': 6.32, 'word': ' What'})
+    segment = {'start': 2.7, 'end': 6.32, 'text': ''.join(w['word'] for w in words), 'words': words}
+    result = assess([segment], 3, 3, [{'start': 3, 'end': 6, 'text': 'A complete thought.'}])
+    assert result['passed'] is False
+    assert 'clipped_boundary_word' in result['failures']
+    assert result['boundary_words'][0]['edge'] == edge
+
+
+def test_caption_agreement_explicitly_preserves_unverified_speech_accuracy():
+    cues = [{'start': 0, 'end': 5, 'text': 'A complete point.'}]
+    result = assess(cues, 0, 5, cues)
+    assert result['passed'] is True
+    assert result['speech_accuracy'] == 'not_verified'
+    assert result['source_token_precision'] == 1
+    assert result['ordered_token_recall'] == 1
+    assert result['local_source_checks']['evaluated'] == 0
+    assert result['limitations']

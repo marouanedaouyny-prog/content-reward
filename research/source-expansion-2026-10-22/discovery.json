@@ -1,0 +1,1769 @@
+{
+  "started_at": "2026-10-22T16:24:21.678746+00:00",
+  "purpose": "Independent public metadata/captions research; no active-order changes or source media downloads.",
+  "bounds": {
+    "mode": "deep",
+    "queries_per_niche": 3,
+    "results_per_query": 12,
+    "secondary_lookup_limit": 3,
+    "total_timeout_seconds": 60,
+    "eligibility_rules_changed": false,
+    "production_max_age_days": 14,
+    "production_duration_seconds": ">1200 and <=7200"
+  },
+  "outcomes": [
+    {
+      "run_id": "68bff398-e199-4b7b-96ce-b93e59fda906",
+      "niche": "Business",
+      "mode": "deep",
+      "tier": null,
+      "queries": [
+        "business entrepreneur founder interview October 2026",
+        "business podcast full episode",
+        "entrepreneur interview"
+      ],
+      "sources": [],
+      "diagnostics": {
+        "run_id": "68bff398-e199-4b7b-96ce-b93e59fda906",
+        "niche": "Business",
+        "mode": "deep",
+        "providers": [
+          {
+            "provider": "yt_dlp",
+            "status": "success",
+            "results": 36,
+            "error_code": null,
+            "message": "",
+            "duration_ms": 0,
+            "queries": [
+              "entrepreneur interview",
+              "business entrepreneur founder interview October 2026",
+              "business podcast full episode"
+            ]
+          },
+          {
+            "provider": "public_search",
+            "status": "success",
+            "results": 36,
+            "error_code": null,
+            "message": "",
+            "duration_ms": 0,
+            "queries": [
+              "business podcast full episode",
+              "entrepreneur interview",
+              "business entrepreneur founder interview October 2026"
+            ]
+          }
+        ],
+        "queries": [
+          {
+            "query": "entrepreneur interview",
+            "provider": "yt_dlp",
+            "status": "success",
+            "results": 12,
+            "error_code": null,
+            "duration_ms": 0,
+            "from_cache": false
+          },
+          {
+            "query": "business podcast full episode",
+            "provider": "public_search",
+            "status": "success",
+            "results": 12,
+            "error_code": null,
+            "duration_ms": 0,
+            "from_cache": false
+          },
+          {
+            "query": "entrepreneur interview",
+            "provider": "public_search",
+            "status": "success",
+            "results": 12,
+            "error_code": null,
+            "duration_ms": 0,
+            "from_cache": false
+          },
+          {
+            "query": "business entrepreneur founder interview October 2026",
+            "provider": "public_search",
+            "status": "success",
+            "results": 12,
+            "error_code": null,
+            "duration_ms": 0,
+            "from_cache": false
+          },
+          {
+            "query": "business entrepreneur founder interview October 2026",
+            "provider": "yt_dlp",
+            "status": "success",
+            "results": 12,
+            "error_code": null,
+            "duration_ms": 0,
+            "from_cache": false
+          },
+          {
+            "query": "business podcast full episode",
+            "provider": "yt_dlp",
+            "status": "success",
+            "results": 12,
+            "error_code": null,
+            "duration_ms": 0,
+            "from_cache": false
+          }
+        ],
+        "candidates_found": 51,
+        "duplicates_removed": 21,
+        "eligible": {},
+        "rejected": {
+          "duration": 40,
+          "age_unknown": 11,
+          "age": 9,
+          "duration_unknown": 54,
+          "views": 8,
+          "score": 31
+        },
+        "tier_used": null,
+        "shortfall": 2,
+        "meets_minimum": false,
+        "provider_failures": 0,
+        "cache_hits": 0,
+        "duration_ms": 17640
+      },
+      "error": {
+        "error": "NO_SUITABLE_SOURCES",
+        "providers_attempted": [
+          "yt_dlp",
+          "public_search"
+        ],
+        "queries_attempted": 3,
+        "candidates_found": 51,
+        "reason_counts": {
+          "duration": 40,
+          "age_unknown": 11,
+          "age": 9,
+          "duration_unknown": 54,
+          "views": 8,
+          "score": 31
+        },
+        "provider_failures": 0
+      },
+      "pipeline_records": []
+    },
+    {
+      "run_id": "8df9b338-4887-43ee-848b-d4088812324f",
+      "niche": "Education",
+      "mode": "deep",
+      "tier": "relaxed",
+      "queries": [
+        "science history education lecture October 2026",
+        "education podcast",
+        "education interview"
+      ],
+      "sources": [
+        {
+          "id": "r9OTaABkevs",
+          "title": "The History of Yale College Admissions - Purposes of College Education, Lecture 11",
+          "url": "https://www.youtube.com/watch?v=r9OTaABkevs",
+          "duration_seconds": 2994,
+          "views": 5254,
+          "upload_date": null,
+          "channel": "YaleCourses",
+          "channel_id": "UC4EY_qnSeAP1xGsh61eOoJA",
+          "provider": "yt_dlp",
+          "providers_seen": [
+            "yt_dlp"
+          ],
+          "description": "College is a crucial institution in which our society works through its expectations for young people. This course explores the\u00a0...",
+          "is_live": false,
+          "transcript_status": "UNKNOWN",
+          "metadata": {}
+        },
+        {
+          "id": "ul9JLyRkVyg",
+          "title": "22 October 2026 | Editorial Discussion |",
+          "url": "https://www.youtube.com/watch?v=ul9JLyRkVyg",
+          "duration_seconds": 1319,
+          "views": 1828,
+          "upload_date": null,
+          "channel": "PW OnlyIAS",
+          "channel_id": "UCh4f3NyOzqGwZfwTSX78QfQ",
+          "provider": "yt_dlp",
+          "providers_seen": [
+            "yt_dlp"
+          ],
+          "description": "To Download Lecture Pdf - Join - https://t.me/sumitrewri To Practice Daily MCQs & Daily Mains Answer Writing - Click Here\u00a0...",
+          "is_live": false,
+          "transcript_status": "UNKNOWN",
+          "metadata": {}
+        }
+      ],
+      "diagnostics": {
+        "run_id": "8df9b338-4887-43ee-848b-d4088812324f",
+        "niche": "Education",
+        "mode": "deep",
+        "providers": [
+          {
+            "provider": "yt_dlp",
+            "status": "success",
+            "results": 36,
+            "error_code": null,
+            "message": "",
+            "duration_ms": 0,
+            "queries": [
+              "education interview",
+              "education podcast",
+              "science history education lecture October 2026"
+            ]
+          },
+          {
+            "provider": "public_search",
+            "status": "success",
+            "results": 36,
+            "error_code": null,
+            "message": "",
+            "duration_ms": 0,
+            "queries": [
+              "science history education lecture October 2026",
+              "education podcast",
+              "education interview"
+            ]
+          }
+        ],
+        "queries": [
+          {
+            "query": "education interview",
+            "provider": "yt_dlp",
+            "status": "success",
+            "results": 12,
+            "error_code": null,
+            "duration_ms": 0,
+            "from_cache": false
+          },
+          {
+            "query": "science history education lecture October 2026",
+            "provider": "public_search",
+            "status": "success",
+            "results": 12,
+            "error_code": null,
+            "duration_ms": 0,
+            "from_cache": false
+          },
+          {
+            "query": "education podcast",
+            "provider": "public_search",
+            "status": "success",
+            "results": 12,
+            "error_code": null,
+            "duration_ms": 0,
+            "from_cache": false
+          },
+          {
+            "query": "education interview",
+            "provider": "public_search",
+            "status": "success",
+            "results": 12,
+            "error_code": null,
+            "duration_ms": 0,
+            "from_cache": false
+          },
+          {
+            "query": "education podcast",
+            "provider": "yt_dlp",
+            "status": "success",
+            "results": 12,
+            "error_code": null,
+            "duration_ms": 0,
+            "from_cache": false
+          },
+          {
+            "query": "science history education lecture October 2026",
+            "provider": "yt_dlp",
+            "status": "success",
+            "results": 12,
+            "error_code": null,
+            "duration_ms": 0,
+            "from_cache": false
+          }
+        ],
+        "candidates_found": 55,
+        "duplicates_removed": 17,
+        "eligible": {
+          "relaxed": 2
+        },
+        "rejected": {
+          "duration": 51,
+          "duration_unknown": 60,
+          "age": 3,
+          "age_unknown": 6,
+          "views": 15,
+          "score": 28
+        },
+        "tier_used": "relaxed",
+        "shortfall": 0,
+        "meets_minimum": true,
+        "provider_failures": 0,
+        "cache_hits": 0,
+        "duration_ms": 17702,
+        "debug": {
+          "scored": [
+            {
+              "id": "y2q8fn0ELNM",
+              "score": 0.6388888888888888,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "HAefY8ZfCgI",
+              "score": 0.6388888888888888,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "MsC6MGyGoQk",
+              "score": 0.6388888888888888,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "uVAFKSgFDG4",
+              "score": 0.6388888888888888,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "VtP9oAypPlg",
+              "score": 0.5,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "D5Muo89UZFc",
+              "score": 0.5,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "anR92aY4njk",
+              "score": 0.5,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "r9OTaABkevs",
+              "score": 0.5,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "ul9JLyRkVyg",
+              "score": 0.5,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "HlCJd9pTcEc",
+              "score": 0.36111111111111116,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "KDsGAlNovvk",
+              "score": 0.36111111111111116,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "oTUVSTjJ1hU",
+              "score": 0.36111111111111116,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "aoBryYIQIXQ",
+              "score": 0.36111111111111116,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "ATKYzfZt_YI",
+              "score": 0.36111111111111116,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "8iP7ATo6dV0",
+              "score": 0.36111111111111116,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "MEGDUipW7r4",
+              "score": 0.36111111111111116,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "0lBBZ_iW45c",
+              "score": 0.36111111111111116,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "5S9JyWg-b5c",
+              "score": 0.36111111111111116,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "4KRD1LqvV3Q",
+              "score": 0.36111111111111116,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "P6FORpg0KVo",
+              "score": 0.298467244712551,
+              "missing_signals": [
+                "engagement",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "SwQhKFMxmDY",
+              "score": 0.28842365900718975,
+              "missing_signals": [
+                "engagement",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "wexzvClUcUk",
+              "score": 0.2808201363838621,
+              "missing_signals": [
+                "engagement",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "liyn5xWvx44",
+              "score": 0.22222222222222224,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "_gf5_xNP4sY",
+              "score": 0.22222222222222224,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "7B1bR-Qt10Q",
+              "score": 0.22222222222222224,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "QCLkJra0PjY",
+              "score": 0.22222222222222224,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "r9ZCYC1nsvc",
+              "score": 0.22222222222222224,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "dXxZwwCoO04",
+              "score": 0.22222222222222224,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "KPh0LOCWT5A",
+              "score": 0.22222222222222224,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "OEjUq-Zcd2s",
+              "score": 0.22222222222222224,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "nvUvJAm_CFI",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "DHDrj0_bMQ0",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "c3jly1QDRbc",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "CJaMEfU-Jwg",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "6Y8qOFs4HUA",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "-JNjsOX0N0c",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "k0OIyQqf-gU",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "KN2jyw6D1ak",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "2sZMre3uyGI",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "lr0ZA3pKRQg",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "9jylmbw3RuQ",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "ueU8UcV791E",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "VsICU311_Ug",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "Hgq3hfVAed8",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "NcaQUH2K-wo",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "W4efXMKy_4Y",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "yhZuHEOLqwg",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "5jnEizYzQl0",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "P8I7SIpXMFY",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "0TDilEdms44",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "7LwW1pbG1_o",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "hthEjQHjjFM",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "uTlKBk9wi1Y",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "aKi6FgXtTuw",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "IUa2HQYUPJc",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            }
+          ],
+          "cache": {
+            "enabled": false,
+            "ttl_hours": 3,
+            "hits": 0,
+            "misses": 0
+          },
+          "provider_health": [
+            {
+              "provider": "public_search",
+              "attempts": 1,
+              "success_rate": 1.0,
+              "recent_failures": 0,
+              "average_latency_ms": 0.0,
+              "results": 36,
+              "deprioritized": false,
+              "last_error": null
+            },
+            {
+              "provider": "yt_dlp",
+              "attempts": 1,
+              "success_rate": 1.0,
+              "recent_failures": 0,
+              "average_latency_ms": 0.0,
+              "results": 36,
+              "deprioritized": false,
+              "last_error": null
+            }
+          ]
+        }
+      },
+      "error": null,
+      "pipeline_records": [
+        {
+          "id": "r9OTaABkevs",
+          "url": "https://www.youtube.com/watch?v=r9OTaABkevs",
+          "title": "The History of Yale College Admissions - Purposes of College Education, Lecture 11",
+          "creator": "YaleCourses",
+          "niches": [
+            "Education"
+          ],
+          "views": 5254,
+          "published_at": null,
+          "observed_at": "2026-10-22T16:24:57.026614+00:00",
+          "duration": 2994,
+          "views_per_hour_since_upload": null,
+          "measured_growth_per_hour": null,
+          "eligible_preview": false,
+          "transcript_status": "UNKNOWN",
+          "providers_seen": [
+            "yt_dlp"
+          ],
+          "discovery_provider": "yt_dlp",
+          "source_score": null,
+          "eligibility_tier": "relaxed",
+          "production_freshness_verified": false,
+          "production_metadata_eligible": false
+        },
+        {
+          "id": "ul9JLyRkVyg",
+          "url": "https://www.youtube.com/watch?v=ul9JLyRkVyg",
+          "title": "22 October 2026 | Editorial Discussion |",
+          "creator": "PW OnlyIAS",
+          "niches": [
+            "Education"
+          ],
+          "views": 1828,
+          "published_at": null,
+          "observed_at": "2026-10-22T16:24:57.026614+00:00",
+          "duration": 1319,
+          "views_per_hour_since_upload": null,
+          "measured_growth_per_hour": null,
+          "eligible_preview": false,
+          "transcript_status": "UNKNOWN",
+          "providers_seen": [
+            "yt_dlp"
+          ],
+          "discovery_provider": "yt_dlp",
+          "source_score": null,
+          "eligibility_tier": "relaxed",
+          "production_freshness_verified": false,
+          "production_metadata_eligible": false
+        }
+      ]
+    },
+    {
+      "run_id": "f54fc4ca-f7bd-416f-84cb-59f3da9ca0fb",
+      "niche": "Streams",
+      "mode": "deep",
+      "tier": "medium",
+      "queries": [
+        "streamer livestream interview October 2026",
+        "streams podcast",
+        "streams interview"
+      ],
+      "sources": [
+        {
+          "id": "fp_7X3VWIuA",
+          "title": "FULL REPLAY (English) : NorthEast United FC vs Kerala Blasters FC (4-1) | MG ISL 2026-27 | GW 2",
+          "url": "https://www.youtube.com/watch?v=fp_7X3VWIuA",
+          "duration_seconds": 8722,
+          "views": 13091918,
+          "upload_date": "2026-10-18T16:21:46+00:00",
+          "channel": "MG Indian Super League",
+          "channel_id": "UCJk-aQ7NZtqYtpcqKDt_vZg",
+          "provider": "public_search",
+          "providers_seen": [
+            "public_search",
+            "yt_dlp"
+          ],
+          "description": "MGISLonYT || NorthEast United FC vs Kerala Blasters FC || Full Match Replay || Match 11 || 18-Oct-2026 || English || #YTIndia\u00a0...",
+          "is_live": false,
+          "transcript_status": "UNKNOWN",
+          "metadata": {}
+        },
+        {
+          "id": "CWyKWikDj6c",
+          "title": "Brand Risk #16",
+          "url": "https://www.youtube.com/watch?v=CWyKWikDj6c",
+          "duration_seconds": 17165,
+          "views": 5382273,
+          "upload_date": "2026-10-17T04:51:05+00:00",
+          "channel": "Adin Live",
+          "channel_id": "UCey-eDTR5J6xU6pZ2f4guoA",
+          "provider": "yt_dlp",
+          "providers_seen": [
+            "yt_dlp"
+          ],
+          "description": "0:00 - Intro 17:38 - Jeremy Smith x FlySoulja 30:16 - Bob Menery x Big Zo 50:10 - AP The Fighter x Isaac Taylor 1:27:35 - Ximena\u00a0...",
+          "is_live": false,
+          "transcript_status": "UNKNOWN",
+          "metadata": {}
+        }
+      ],
+      "diagnostics": {
+        "run_id": "f54fc4ca-f7bd-416f-84cb-59f3da9ca0fb",
+        "niche": "Streams",
+        "mode": "deep",
+        "providers": [
+          {
+            "provider": "yt_dlp",
+            "status": "success",
+            "results": 36,
+            "error_code": null,
+            "message": "",
+            "duration_ms": 0,
+            "queries": [
+              "streams interview",
+              "streams podcast",
+              "streamer livestream interview October 2026"
+            ]
+          },
+          {
+            "provider": "public_search",
+            "status": "success",
+            "results": 36,
+            "error_code": null,
+            "message": "",
+            "duration_ms": 0,
+            "queries": [
+              "streams podcast",
+              "streams interview",
+              "streamer livestream interview October 2026"
+            ]
+          }
+        ],
+        "queries": [
+          {
+            "query": "streams podcast",
+            "provider": "public_search",
+            "status": "success",
+            "results": 12,
+            "error_code": null,
+            "duration_ms": 0,
+            "from_cache": false
+          },
+          {
+            "query": "streams interview",
+            "provider": "public_search",
+            "status": "success",
+            "results": 12,
+            "error_code": null,
+            "duration_ms": 0,
+            "from_cache": false
+          },
+          {
+            "query": "streams interview",
+            "provider": "yt_dlp",
+            "status": "success",
+            "results": 12,
+            "error_code": null,
+            "duration_ms": 0,
+            "from_cache": false
+          },
+          {
+            "query": "streams podcast",
+            "provider": "yt_dlp",
+            "status": "success",
+            "results": 12,
+            "error_code": null,
+            "duration_ms": 0,
+            "from_cache": false
+          },
+          {
+            "query": "streamer livestream interview October 2026",
+            "provider": "public_search",
+            "status": "success",
+            "results": 12,
+            "error_code": null,
+            "duration_ms": 0,
+            "from_cache": false
+          },
+          {
+            "query": "streamer livestream interview October 2026",
+            "provider": "yt_dlp",
+            "status": "success",
+            "results": 12,
+            "error_code": null,
+            "duration_ms": 0,
+            "from_cache": false
+          }
+        ],
+        "candidates_found": 59,
+        "duplicates_removed": 13,
+        "eligible": {
+          "medium": 2,
+          "relaxed": 4
+        },
+        "rejected": {
+          "duration_unknown": 72,
+          "age": 3,
+          "age_unknown": 13,
+          "duration": 40,
+          "score": 40,
+          "views": 3
+        },
+        "tier_used": "medium",
+        "shortfall": 0,
+        "meets_minimum": true,
+        "provider_failures": 0,
+        "cache_hits": 0,
+        "duration_ms": 17938,
+        "debug": {
+          "scored": [
+            {
+              "id": "fp_7X3VWIuA",
+              "score": 0.6317114803179562,
+              "missing_signals": [
+                "engagement",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "CWyKWikDj6c",
+              "score": 0.5550181936982473,
+              "missing_signals": [
+                "engagement",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "wIDTYVNViQw",
+              "score": 0.5,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "hZ5YxV2TInU",
+              "score": 0.5,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "ixxhPMC3hSQ",
+              "score": 0.5,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "SmE4vAAOvcI",
+              "score": 0.36111111111111116,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "aG1EzC7TSwc",
+              "score": 0.36111111111111116,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "4Ib9amXl4gI",
+              "score": 0.36111111111111116,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "9kbP_6pr3Cs",
+              "score": 0.36111111111111116,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "U1YId6rPySg",
+              "score": 0.36111111111111116,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "Bl4bZ6TpqXM",
+              "score": 0.36111111111111116,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "ZjIRYn7x8sk",
+              "score": 0.26741447738944985,
+              "missing_signals": [
+                "engagement",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "yv9Q2E39kJM",
+              "score": 0.22222222222222224,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "syfPzQWwbTk",
+              "score": 0.22222222222222224,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "CXKCoFz3WRs",
+              "score": 0.22222222222222224,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "V4UUIXfRmfU",
+              "score": 0.22222222222222224,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "jPKTo1iGQiE",
+              "score": 0.22222222222222224,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "vkRlInnpPEY",
+              "score": 0.22222222222222224,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "MyLrw0RwCi4",
+              "score": 0.22222222222222224,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "agBZnbbPCq0",
+              "score": 0.22222222222222224,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "peQvoOIChLw",
+              "score": 0.22222222222222224,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "C3SB38PJjtM",
+              "score": 0.22222222222222224,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "8w65vTwKqac",
+              "score": 0.22222222222222224,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "EM4Bq_uqLQ0",
+              "score": 0.22222222222222224,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "a_-7d4KF8gM",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "7ApnLYPavgo",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "AbJs7bEfyAw",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "IuDmo99A8V0",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "1d-RBLsK7YQ",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "tMudUl7Zj58",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "lE0umA2Q6ww",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "Ue-0xZLJYJw",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "OpANpfEjNw8",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "RJtYrJfpASY",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "82I58kc-pBc",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "_VIHuuXsMoM",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "LMgfMxOWnHU",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "KW-NOs2V2zA",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "ksgXO6lZ8bw",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "_ggtcs6LxQg",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "gmsEDydA_-I",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "K8OpU7Rfk68",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "5qzx4Y39FJ0",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "36aADhfEtz4",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "xifdVmHOAWc",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "6iyDi7q11Lk",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "5hePe01Lva0",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "4syK10NtBSU",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "kWREtvigf4g",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "EYgl7yAUHtQ",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "0oWkWjaI2s0",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "JeJ-JDU5bqw",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "BPmPO4MDR0c",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "AM4L2Pa8nTk",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "HOnsgepcgQ0",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "a0jiNTo8QzA",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "0lL4ihPeWo4",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "Sb35Wr48ZCU",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            },
+            {
+              "id": "JSFNxtWfSbE",
+              "score": 0.08333333333333334,
+              "missing_signals": [
+                "velocity",
+                "engagement",
+                "freshness",
+                "channel_quality"
+              ]
+            }
+          ],
+          "cache": {
+            "enabled": false,
+            "ttl_hours": 3,
+            "hits": 0,
+            "misses": 0
+          },
+          "provider_health": [
+            {
+              "provider": "public_search",
+              "attempts": 1,
+              "success_rate": 1.0,
+              "recent_failures": 0,
+              "average_latency_ms": 0.0,
+              "results": 36,
+              "deprioritized": false,
+              "last_error": null
+            },
+            {
+              "provider": "yt_dlp",
+              "attempts": 1,
+              "success_rate": 1.0,
+              "recent_failures": 0,
+              "average_latency_ms": 0.0,
+              "results": 36,
+              "deprioritized": false,
+              "last_error": null
+            }
+          ]
+        }
+      },
+      "error": null,
+      "pipeline_records": [
+        {
+          "id": "fp_7X3VWIuA",
+          "url": "https://www.youtube.com/watch?v=fp_7X3VWIuA",
+          "title": "FULL REPLAY (English) : NorthEast United FC vs Kerala Blasters FC (4-1) | MG ISL 2026-27 | GW 2",
+          "creator": "MG Indian Super League",
+          "niches": [
+            "Streams"
+          ],
+          "views": 13091918,
+          "published_at": "2026-10-18T16:21:46+00:00",
+          "observed_at": "2026-10-22T16:25:14.971051+00:00",
+          "duration": 8722,
+          "views_per_hour_since_upload": 136291.74,
+          "measured_growth_per_hour": null,
+          "eligible_preview": false,
+          "transcript_status": "UNKNOWN",
+          "providers_seen": [
+            "public_search",
+            "yt_dlp"
+          ],
+          "discovery_provider": "public_search",
+          "source_score": null,
+          "eligibility_tier": "medium",
+          "production_freshness_verified": true,
+          "production_metadata_eligible": false
+        },
+        {
+          "id": "CWyKWikDj6c",
+          "url": "https://www.youtube.com/watch?v=CWyKWikDj6c",
+          "title": "Brand Risk #16",
+          "creator": "Adin Live",
+          "niches": [
+            "Streams"
+          ],
+          "views": 5382273,
+          "published_at": "2026-10-17T04:51:05+00:00",
+          "observed_at": "2026-10-22T16:25:14.971051+00:00",
+          "duration": 17165,
+          "views_per_hour_since_upload": 40908.23,
+          "measured_growth_per_hour": null,
+          "eligible_preview": false,
+          "transcript_status": "UNKNOWN",
+          "providers_seen": [
+            "yt_dlp"
+          ],
+          "discovery_provider": "yt_dlp",
+          "source_score": null,
+          "eligibility_tier": "medium",
+          "production_freshness_verified": true,
+          "production_metadata_eligible": false
+        }
+      ]
+    }
+  ],
+  "completed_at": "2026-10-22T16:25:14.981843+00:00"
+}

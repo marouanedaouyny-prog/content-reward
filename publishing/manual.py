@@ -35,7 +35,7 @@ class ManualExportPublisher(Publisher):
         (folder / 'caption.txt').write_text(metadata['caption'], encoding='utf-8')
         path = folder / 'manifest.json'
         content = dict(clip_id=clip['id'], sha256=clip['sha256'], platform=metadata['platform'],
-                       caption=metadata['caption'], status='READY', publishing_enabled=False,
+                       caption=metadata['caption'], title=metadata.get('title', ''), status='READY', publishing_enabled=False,
                        instructions='Review this package locally. No public post has been created.')
         temporary = folder / f'{uuid.uuid4().hex}.json.tmp'
         try:

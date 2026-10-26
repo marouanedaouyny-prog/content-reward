@@ -1,0 +1,20 @@
+{
+    "name": "content-reward/social-bridge",
+    "description": "Local PHP SDK bridge for the Content Reward Python workflow",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.4",
+        "ext-curl": "*",
+        "ext-json": "*",
+        "ext-openssl": "*",
+        "jstolpe/tiktok-api-php-sdk": "1.0.5"
+    },
+    "autoload": {
+        "psr-4": {"ContentReward\\Social\\": "src/"}
+    },
+    "config": {
+        "allow-plugins": false,
+        "sort-packages": true
+    }
+}

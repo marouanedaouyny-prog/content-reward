@@ -1,18 +1,16 @@
 import json
-import uuid
-from pathlib import Path
 
 import pytest
 
 from clipping.workflow import ClippingWorkflow
 
 
-def workflow():
-    folder = Path('.workflow-tests') / uuid.uuid4().hex
-    return ClippingWorkflow(folder / 'jobs.db', folder / 'storage')
+@pytest.fixture
+def workflow(tmp_path):
+    return lambda: ClippingWorkflow(tmp_path / 'jobs.db', tmp_path / 'storage')
 
 
-def test_ishowspeed_preview_queues_with_no_choices_and_reuses_saved_run():
+def test_ishowspeed_preview_queues_with_no_choices_and_reuses_saved_run(workflow):
     engine = workflow()
     assert hasattr(engine, 'create_automatic_preview'), 'Automatic preview intake is missing'
     job = engine.create_automatic_preview()
@@ -27,7 +25,7 @@ def test_ishowspeed_preview_queues_with_no_choices_and_reuses_saved_run():
     assert engine.create_automatic_preview()['id'] == job['id']
 
 
-def test_preview_finishes_without_approvals_or_publication(monkeypatch):
+def test_preview_finishes_without_approvals_or_publication(workflow, monkeypatch):
     engine = workflow()
     assert hasattr(engine, 'create_automatic_preview'), 'Automatic preview intake is missing'
     job = engine.create_automatic_preview()
@@ -57,7 +55,7 @@ def test_preview_finishes_without_approvals_or_publication(monkeypatch):
         engine.record_publication(job['id'], 'https://youtu.be/Uv1PyE8J38w', True, '2026-10-08T00:00:00Z')
 
 
-def test_automatic_preview_does_not_turn_into_a_fake_video_under_dry_run(monkeypatch):
+def test_automatic_preview_does_not_turn_into_a_fake_video_under_dry_run(workflow, monkeypatch):
     engine = workflow()
     assert hasattr(engine, 'create_automatic_preview'), 'Automatic preview intake is missing'
     monkeypatch.setenv('DRY_RUN', 'true')
@@ -65,7 +63,7 @@ def test_automatic_preview_does_not_turn_into_a_fake_video_under_dry_run(monkeyp
         engine.create_automatic_preview()
 
 
-def test_temporary_download_failure_retries_at_saved_times_then_requires_manual_resume(monkeypatch):
+def test_temporary_download_failure_retries_at_saved_times_then_requires_manual_resume(workflow, monkeypatch):
     from clipping import media
     from clipping import workflow as module
     assert hasattr(media, 'SourceUnavailable'), 'Transient source failure classification is missing'
@@ -97,7 +95,7 @@ def test_temporary_download_failure_retries_at_saved_times_then_requires_manual_
     assert not engine.consume_once()
 
 
-def test_kill_switch_and_cancellation_stop_automatic_previews(monkeypatch):
+def test_kill_switch_and_cancellation_stop_automatic_previews(workflow, monkeypatch):
     engine = workflow()
     job = engine.create_automatic_preview()
     monkeypatch.setenv('KILL_SWITCH', 'true')
@@ -108,7 +106,7 @@ def test_kill_switch_and_cancellation_stop_automatic_previews(monkeypatch):
     assert not engine.consume_once()
 
 
-def test_automatic_downloads_are_bounded_and_transient_errors_are_classified(monkeypatch):
+def test_automatic_downloads_are_bounded_and_transient_errors_are_classified(workflow, monkeypatch):
     from clipping import media
     assert hasattr(media, 'SourceUnavailable'), 'Transient source failure classification is missing'
     engine = workflow()
@@ -132,9 +130,8 @@ def test_automatic_downloads_are_bounded_and_transient_errors_are_classified(mon
     assert '--abort-on-unavailable-fragments' in args
 
 
-def test_operator_retry_after_permanent_failure_resumes_the_same_job(monkeypatch):
+def test_operator_retry_after_permanent_failure_resumes_the_same_job(workflow, monkeypatch):
     from clipping import media
-    from clipping import workflow as module
     engine = workflow()
     job = engine.create_automatic_preview()
 
@@ -151,7 +148,7 @@ def test_operator_retry_after_permanent_failure_resumes_the_same_job(monkeypatch
     assert not restarted['output'].get('automation_retry')
 
 
-def test_automatic_preview_renders_real_mp4_without_a_review_click(monkeypatch):
+def test_automatic_preview_renders_real_mp4_without_a_review_click(workflow, monkeypatch):
     import shutil
     from clipping import media
     if not shutil.which('ffmpeg') or not shutil.which('ffprobe'):
@@ -184,27 +181,27 @@ def test_automatic_preview_renders_real_mp4_without_a_review_click(monkeypatch):
     assert not completed['output'].get('approvals')
 
 
-def test_source_deadline_stops_downloader_children():
+def test_source_deadline_stops_downloader_children(tmp_path):
     import subprocess
     import sys
     import time
     from clipping import media
-    folder = Path('.workflow-tests') / uuid.uuid4().hex
-    folder.mkdir()
+    folder = tmp_path
     started, orphan = (folder / 'started').resolve(), (folder / 'orphan').resolve()
-    child = f'from pathlib import Path; import time; time.sleep(2); Path({str(orphan)!r}).write_text("orphan")'
+    child = f'from pathlib import Path; import time; time.sleep(5); Path({str(orphan)!r}).write_text("orphan")'
     parent = (f'import subprocess,sys,time; from pathlib import Path; '
               f'subprocess.Popen([sys.executable,"-c",{child!r}], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL); '
-              f'Path({str(started)!r}).write_text("started"); time.sleep(8)')
+              f'Path({str(started)!r}).write_text("started"); time.sleep(12)')
     with pytest.raises(subprocess.TimeoutExpired):
-        media.command([sys.executable, '-c', parent], timeout=.5, kill_tree=True)
+        # Leave room for both Python launchers to start on a loaded Windows host.
+        media.command([sys.executable, '-c', parent], timeout=3, kill_tree=True)
     assert started.is_file(), 'The child-process test did not start'
-    time.sleep(2.2)
+    time.sleep(5.2)
     assert not orphan.exists(), 'A downloader child survived its deadline'
 
 
 @pytest.mark.asyncio
-async def test_empty_input_automation_api_queues_real_preview(monkeypatch):
+async def test_empty_input_automation_api_queues_real_preview(workflow, monkeypatch):
     import httpx
     from clipping.app import app
     engine = workflow()
@@ -225,7 +222,7 @@ async def test_empty_input_automation_api_queues_real_preview(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_startup_automation_enqueues_a_preview_without_an_api_call(monkeypatch):
+async def test_startup_automation_enqueues_a_preview_without_an_api_call(workflow, monkeypatch):
     from clipping.app import app
     engine = workflow()
     monkeypatch.setenv('CLIPPING_DATABASE', str(engine.database))

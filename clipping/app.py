@@ -15,6 +15,9 @@ from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
+from fastapi.exceptions import RequestValidationError
+from app.api.routes import router as domain_router
+from app.repositories.store import Store
 
 from clipping.workflow import ClippingWorkflow
 from clipping.research_api import router as research_router, research_script
@@ -39,7 +42,10 @@ async def lifespan(app):
     workflow = ClippingWorkflow(os.environ.get('CLIPPING_DATABASE', 'data/clipping.db'),
                                 os.environ.get('CLIPPING_STORAGE', 'storage/clipping'))
     app.state.workflow = workflow
-    app.state.trend_agent = TrendResearchAgent(workflow)
+    app.state.domain_store = Store(workflow.storage / 'content-reward.db')
+    workers = [workflow] + [ClippingWorkflow(workflow.database, workflow.storage)
+                           for _ in range(workflow.settings.worker.concurrency - 1)]
+    app.state.trend_agent = TrendResearchAgent(workflow, cache_database=app.state.domain_store.path)
     app.state.instagram = InstagramConnection(workflow)
     stop = threading.Event()
     workflow.recover_interrupted()
@@ -49,10 +55,10 @@ async def lifespan(app):
         app.state.trend_agent.set_enabled(True)
         app.state.trend_agent.request_scan(auto_preview=True)
 
-    def consume():
+    def consume(engine):
         while not stop.is_set():
             try:
-                if workflow.consume_once():
+                if engine.consume_once():
                     continue
             except Exception:
                 logger.error('Clipping queue consumer failed', extra={'event': 'worker_failed', 'stage': 'worker',
@@ -71,11 +77,14 @@ async def lifespan(app):
     async def maintain_leases():
         while True:
             await asyncio.sleep(10)
-            await asyncio.to_thread(workflow.heartbeat)
+            for engine in workers:
+                await asyncio.to_thread(engine.heartbeat)
             await asyncio.to_thread(workflow.recover_interrupted)
 
-    worker = threading.Thread(target=consume, name='clipping-worker', daemon=True)
-    worker.start()
+    threads = [threading.Thread(target=consume, args=(engine,), name=f'clipping-worker-{index}', daemon=True)
+               for index, engine in enumerate(workers)]
+    for worker in threads:
+        worker.start()
     researcher = None
     if os.environ.get('CLIPPING_TREND_AGENT', 'true').lower() not in ('false', '0', 'no'):
         researcher = threading.Thread(target=research, name='trend-research-agent', daemon=True)
@@ -85,8 +94,10 @@ async def lifespan(app):
         yield
     finally:
         stop.set()
-        workflow.shutdown_requested = True
-        await asyncio.to_thread(worker.join, 5)
+        for engine in workers:
+            engine.shutdown_requested = True
+        for worker in threads:
+            await asyncio.to_thread(worker.join, 5)
         if researcher:
             await asyncio.to_thread(researcher.join, 5)
         heartbeat.cancel()
@@ -98,6 +109,7 @@ app = FastAPI(title='Clipping Workflow', version='1.0.0', lifespan=lifespan)
 app.include_router(research_router)
 app.include_router(trends_router)
 app.include_router(instagram_router)
+app.include_router(domain_router)
 app.add_api_route('/research.js', research_script, methods=['GET'], include_in_schema=False)
 app.add_api_route('/trends.js', trends_script, methods=['GET'], include_in_schema=False)
 app.add_api_route('/instagram.js', instagram_script, methods=['GET'], include_in_schema=False)
@@ -118,6 +130,13 @@ async def restrict_browser_origins(request: Request, call_next):
 @app.exception_handler(ValueError)
 async def invalid_transition(request, exc):
     return JSONResponse({'detail': str(exc)}, status_code=409)
+
+
+@app.exception_handler(RequestValidationError)
+async def invalid_input(request, exc):
+    return JSONResponse({'detail': [{'loc': error['loc'], 'type': error['type'],
+                                    'msg': 'Invalid input; check the documented fields and constraints'}
+                                   for error in exc.errors()]}, status_code=422)
 
 
 @app.exception_handler(KeyError)

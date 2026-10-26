@@ -1,8 +1,6 @@
 import importlib
 import json
 import shutil
-import uuid
-from pathlib import Path
 
 import httpx
 import pytest
@@ -11,8 +9,8 @@ SRT = '1\n00:00:00,000 --> 00:00:02,000\nWhy choose this moment?\n\n2\n00:00:02,
 
 
 @pytest.mark.asyncio
-async def test_research_routes_support_demo_samples_and_editable_plans(monkeypatch):
-    folder = Path('.workflow-tests') / uuid.uuid4().hex
+async def test_research_routes_support_demo_samples_and_editable_plans(tmp_path, monkeypatch):
+    folder = tmp_path
     monkeypatch.setenv('CLIPPING_DATABASE', str(folder / 'api.db'))
     monkeypatch.setenv('CLIPPING_STORAGE', str(folder / 'storage'))
     app = importlib.import_module('clipping.app').app
@@ -83,10 +81,10 @@ async def test_source_timeout_returns_an_actionable_service_error(monkeypatch):
 
 @pytest.mark.asyncio
 @pytest.mark.skipif(not shutil.which('ffmpeg') or not shutil.which('ffprobe'), reason='FFmpeg required')
-async def test_automatic_cut_renders_and_downloads_suggestions_after_approval(monkeypatch):
+async def test_automatic_cut_renders_and_downloads_suggestions_after_approval(tmp_path, monkeypatch):
     import asyncio
     import time
-    folder = Path('.workflow-tests') / uuid.uuid4().hex
+    folder = tmp_path
     monkeypatch.setenv('CLIPPING_DATABASE', str(folder / 'api.db'))
     monkeypatch.setenv('CLIPPING_STORAGE', str(folder / 'storage'))
     app = importlib.import_module('clipping.app').app
@@ -113,14 +111,16 @@ async def test_automatic_cut_renders_and_downloads_suggestions_after_approval(mo
         assert job['status'] == 'awaiting_campaign_approval'
         await client.post(base + '/approve', json={'step_name': job['waiting_step'],
                          'fingerprint': job['approval_fingerprint'], 'approved': True})
-        deadline = time.monotonic() + 30
+        # This verifies completion, not a hardware-dependent render-time target.
+        # Leave bounded room for a full-resolution synthetic render on shared hosts.
+        deadline = time.monotonic() + 120
         while time.monotonic() < deadline:
             job = (await client.get(base)).json()
             assert job['status'] != 'failed', job
             if job['status'] == 'awaiting_clip_approval':
                 break
             await asyncio.sleep(.1)
-        assert job['status'] == 'awaiting_clip_approval'
+        assert job['status'] == 'awaiting_clip_approval', job
         assert job['output']['selected_clip_plan']['duration_seconds'] == 5
         assert all(job['output']['quality']['checks'].values())
         assert len((await client.get(base + '/artifacts/clip')).content) > 1024

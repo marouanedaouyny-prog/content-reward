@@ -1,0 +1,4465 @@
+{
+  "id": "3Vaj0Oka_t4",
+  "title": "Stanford CME295 Transformers & LLMs | Autumn 2026 | Lecture 4 - Reinforcement Learning with LLMs",
+  "duration": 6206.0,
+  "segments": [
+    {
+      "start": 6.0,
+      "end": 12.72,
+      "text": "Hello everyone and welcome to lecture four of CMI295."
+    },
+    {
+      "start": 12.72,
+      "end": 20.24,
+      "text": "So today is a very special day because we'll be talking about reinforcement learning based training methods."
+    },
+    {
+      "start": 20.24,
+      "end": 26.64,
+      "text": "They're actually getting quite popular, especially when it comes to post training LLMs."
+    },
+    {
+      "start": 26.64,
+      "end": 37.6,
+      "text": "And the reason why today's session is a little bit special is because contrary to the previous ones, there's going to be a little bit of math involved."
+    },
+    {
+      "start": 37.6,
+      "end": 46.24,
+      "text": "Which is why last time we said all the RL based methods, we will just reserve them for today. So today is the day."
+    },
+    {
+      "start": 46.24,
+      "end": 49.96,
+      "text": "And yeah, so I wanted to start with this disclaimer."
+    },
+    {
+      "start": 49.96,
+      "end": 60.48,
+      "text": "And the second thing I wanted to say is we will try to start from intuition first and then stay rigorous on the math. But please"
+    },
+    {
+      "start": 60.48,
+      "end": 66.72,
+      "text": "don't be intimidated by the big formulas. Yeah, I hope it's going to be a good one."
+    },
+    {
+      "start": 66.72,
+      "end": 72.96,
+      "text": "With that, we're going to start as usual by recapping what we saw last time."
+    },
+    {
+      "start": 72.96,
+      "end": 84.68,
+      "text": "So if you remember, last time we were talking about training LLMs and the first step of training LLMs is called pre-training."
+    },
+    {
+      "start": 84.68,
+      "end": 92.12,
+      "text": "It is a step that is meant to teach the model how to understand text, how to understand code."
+    },
+    {
+      "start": 92.12,
+      "end": 102.32,
+      "text": "And this step typically involves training your model on a lot of data. By a lot of data, I mean trillions of tokens."
+    },
+    {
+      "start": 102.32,
+      "end": 112.48,
+      "text": "So there's a lot of work around finding the right mixtures, how much web should it be in there, how much books should be in there, and so on."
+    },
+    {
+      "start": 112.48,
+      "end": 124.2,
+      "text": "And the loss function for this one is the cross entropy loss, which tries to penalize any deviation from the token that the model needs to predict. So,"
+    },
+    {
+      "start": 124.2,
+      "end": 126.96,
+      "text": "it's next token prediction."
+    },
+    {
+      "start": 126.96,
+      "end": 137.24,
+      "text": "And we saw some emerging stages such as mid training, which involves higher quality data, and also long context training, which"
+    },
+    {
+      "start": 137.24,
+      "end": 142.76,
+      "text": "involves training your model on longer context data as well."
+    },
+    {
+      "start": 142.76,
+      "end": 144.56,
+      "text": "So, that's the first step."
+    },
+    {
+      "start": 144.56,
+      "end": 151.12,
+      "text": "The second step that we saw was called supervised fine-tuning, aka SFT."
+    },
+    {
+      "start": 151.12,
+      "end": 161.6,
+      "text": "And in this step, we're trying to take our model that understands text, that understands code, and tune it to be useful."
+    },
+    {
+      "start": 161.6,
+      "end": 170.72,
+      "text": "So, what do I mean by useful? For instance, if you want to have an assistant, you would want your model to give answers to questions."
+    },
+    {
+      "start": 170.72,
+      "end": 176.2,
+      "text": "And that is one of the examples where people would use SFT for."
+    },
+    {
+      "start": 176.2,
+      "end": 186.92,
+      "text": "So, in in terms of the loss function, we still have the cross entropy, except here, we're only trying to penalize deviations for token"
+    },
+    {
+      "start": 186.92,
+      "end": 189.8,
+      "text": "predictions that are on the output side."
+    },
+    {
+      "start": 189.8,
+      "end": 193.6,
+      "text": "So, it's next token prediction, but for output."
+    },
+    {
+      "start": 193.6,
+      "end": 205.4,
+      "text": "At the end of this stage, our model understand text, our model is useful, but here we may want to inject human preferences, and we saw this third"
+    },
+    {
+      "start": 205.4,
+      "end": 208.959,
+      "text": "step called preference tuning."
+    },
+    {
+      "start": 208.959,
+      "end": 215.2,
+      "text": "And this is the step that involves RL-based methods that we're going to see today."
+    },
+    {
+      "start": 215.2,
+      "end": 221.92,
+      "text": "We did not see any specifics about the exact loss formula."
+    },
+    {
+      "start": 221.92,
+      "end": 224.28,
+      "text": "So, we're going to see today."
+    },
+    {
+      "start": 224.28,
+      "end": 234.56,
+      "text": "And the other piece that we saw was the fact of increasing the the reasoning So, reasoning,"
+    },
+    {
+      "start": 234.56,
+      "end": 239.8,
+      "text": "which also happens to be performed with these RL-based techniques."
+    },
+    {
+      "start": 239.8,
+      "end": 243.08,
+      "text": "And we're also going to see that today."
+    },
+    {
+      "start": 243.08,
+      "end": 246.92,
+      "text": "And this is where we left off last time."
+    },
+    {
+      "start": 246.92,
+      "end": 258.239,
+      "text": "And today, we're going to focus on these last two stages. And in particular, emphasize how we come up with the loss, which right now we don't know what the"
+    },
+    {
+      "start": 258.239,
+      "end": 260.04,
+      "text": "loss is."
+    },
+    {
+      "start": 260.04,
+      "end": 263.48,
+      "text": "And see how we can use that."
+    },
+    {
+      "start": 263.96,
+      "end": 264.96,
+      "text": "Cool."
+    },
+    {
+      "start": 264.96,
+      "end": 273.52,
+      "text": "Um I want to, again, have a big disclaimer here that these methods, they're typically mathematically involved."
+    },
+    {
+      "start": 273.52,
+      "end": 279.48,
+      "text": "Not just for this lecture, but if you were to read papers on the topic."
+    },
+    {
+      "start": 279.48,
+      "end": 288.64,
+      "text": "And so, if you feel like it's too much, here is the proposed steps for remediation. So, first one,"
+    },
+    {
+      "start": 288.64,
+      "end": 293.28,
+      "text": "focus on the intuition on why a certain thing is needed."
+    },
+    {
+      "start": 293.28,
+      "end": 301.32,
+      "text": "Second one is if there are formulas or symbols that you are not familiar with, just make sure to review them."
+    },
+    {
+      "start": 301.32,
+      "end": 307.0,
+      "text": "And then the third one is just to interpret the formulas from first principles."
+    },
+    {
+      "start": 307.0,
+      "end": 318.64,
+      "text": "And I have actually have a second disclaimer, which is that on top of all that, papers, they tend to choose conventions that are different from one paper to"
+    },
+    {
+      "start": 318.64,
+      "end": 322.32,
+      "text": "another. So, that may add to the confusion."
+    },
+    {
+      "start": 322.32,
+      "end": 327.36,
+      "text": "So, we'll see that for instance, we're going to talk about rewards."
+    },
+    {
+      "start": 327.36,
+      "end": 329.72,
+      "text": "Rewards are usually noted R."
+    },
+    {
+      "start": 329.72,
+      "end": 336.88,
+      "text": "But sometimes in papers, R could also mean a ratio, ratio of probabilities."
+    },
+    {
+      "start": 336.88,
+      "end": 343.919,
+      "text": "So, here, to make sure we distinguish them properly, we will note them row in this class."
+    },
+    {
+      "start": 343.919,
+      "end": 348.84,
+      "text": "Second one is the policy, and we will see what a policy is."
+    },
+    {
+      "start": 348.84,
+      "end": 359.48,
+      "text": "Um there are several kinds of policy. Is it the old policies, the reference policy, and sometimes these notations are also mixed?"
+    },
+    {
+      "start": 359.48,
+      "end": 370.24,
+      "text": "And then the third one to call out is that so far we've been focusing on minimizing a loss function, and we noted the loss function"
+    },
+    {
+      "start": 370.24,
+      "end": 372.44,
+      "text": "L."
+    },
+    {
+      "start": 372.44,
+      "end": 377.56,
+      "text": "Well, here most of the time we will want to maximize quantities."
+    },
+    {
+      "start": 377.56,
+      "end": 387.919,
+      "text": "But the problem is sometimes these quantities are also noted L, which usually you think of as being a loss, but just make sure that you know, you know what you want to do."
+    },
+    {
+      "start": 387.919,
+      "end": 393.76,
+      "text": "Do you want to minimize, do you want to maximize? So, that's also another thing to keep in mind."
+    },
+    {
+      "start": 394.76,
+      "end": 395.96,
+      "text": "Cool."
+    },
+    {
+      "start": 395.96,
+      "end": 405.24,
+      "text": "Well, with all of that set let's start, and I wanted to first start with a refresher on what reinforcement learning is."
+    },
+    {
+      "start": 405.24,
+      "end": 416.36,
+      "text": "So, I'm not sure if any of you has ever taken a reinforcement learning-based class, but at a very high level the way it works is you have an agent"
+    },
+    {
+      "start": 416.36,
+      "end": 427.064,
+      "text": "that is interacting with an environment that is in a given state and that wonders what action to take to go to another state."
+    },
+    {
+      "start": 427.064,
+      "end": 438.28,
+      "text": ">> [clears throat] >> So, the way it tries to decide on which action to take is something that's is leveraging a policy."
+    },
+    {
+      "start": 438.28,
+      "end": 443.44,
+      "text": "So, pi theta is typically how it's denoted."
+    },
+    {
+      "start": 443.44,
+      "end": 450.6,
+      "text": "And after the agent performs an action, it receives a reward."
+    },
+    {
+      "start": 450.6,
+      "end": 459.6,
+      "text": "And the goal of RL-based problems is to maximize the sum of rewards that your agent is collecting."
+    },
+    {
+      "start": 459.6,
+      "end": 465.88,
+      "text": "Now, you may be wondering, well how does that have to do with LLMs?"
+    },
+    {
+      "start": 465.88,
+      "end": 470.84,
+      "text": "So here we're going to see a little bit how things map to the LLM world."
+    },
+    {
+      "start": 470.84,
+      "end": 481.96,
+      "text": "So the agent here is the LLM that takes some input as a state and tries to decide what to"
+    },
+    {
+      "start": 481.96,
+      "end": 485.16,
+      "text": "do next. So what token to sample next?"
+    },
+    {
+      "start": 485.16,
+      "end": 488.64,
+      "text": "So the action is a token."
+    },
+    {
+      "start": 488.64,
+      "end": 499.44,
+      "text": "And in order to decide what token to go next to, what it does is it relies on the probability distribution that it outputs"
+    },
+    {
+      "start": 499.44,
+      "end": 507.48,
+      "text": "given an input. And so here that one will be noted pi theta. So back to the notation last last time. So this is where the"
+    },
+    {
+      "start": 507.48,
+      "end": 511.68,
+      "text": "pi is coming from. Pi for as in policy."
+    },
+    {
+      "start": 511.68,
+      "end": 514.96,
+      "text": "And it collects rewards."
+    },
+    {
+      "start": 514.96,
+      "end": 523.24,
+      "text": "So one note here is that it can be challenging to define token level rewards."
+    },
+    {
+      "start": 523.24,
+      "end": 532.28,
+      "text": "So a lot of the time we will also encounter this setup not at the token level but at the response"
+    },
+    {
+      "start": 532.28,
+      "end": 535.48,
+      "text": "level or at the completion level."
+    },
+    {
+      "start": 535.48,
+      "end": 545.04,
+      "text": "And so here you can also consider an input as being your prompt, an action as being your response,"
+    },
+    {
+      "start": 545.04,
+      "end": 552.68,
+      "text": "and pi theta as being just a probability of you outputting a response given your prompt."
+    },
+    {
+      "start": 552.68,
+      "end": 557.88,
+      "text": "And then as a result of that, you will get a reward."
+    },
+    {
+      "start": 557.96,
+      "end": 561.88,
+      "text": "So we're going to spend a few minutes on the rewards part."
+    },
+    {
+      "start": 561.88,
+      "end": 573.44,
+      "text": "And I know we spent uh maybe 10 minutes last time talking about this in different settings. So here I just want to summarize what we saw."
+    },
+    {
+      "start": 573.44,
+      "end": 584.8,
+      "text": "So in order for you to quantify how good a response is, you actually have typically two different categories of situations you"
+    },
+    {
+      "start": 584.8,
+      "end": 587.2,
+      "text": "can be in."
+    },
+    {
+      "start": 587.2,
+      "end": 598.76,
+      "text": "The first one, the first category, is where there is no absolute ground truth to the answer, where actually judging your answer is a little bit more subjective."
+    },
+    {
+      "start": 598.76,
+      "end": 609.84,
+      "text": "And this is where where we saw in the preference tuning case, where we could have human preferences that try to"
+    },
+    {
+      "start": 609.84,
+      "end": 619.24,
+      "text": "uprank, let's say, responses that have, let's say, better tone compared to ones that have a a worse tone."
+    },
+    {
+      "start": 619.24,
+      "end": 623.28,
+      "text": "And this is something that you would typically model."
+    },
+    {
+      "start": 623.28,
+      "end": 633.96,
+      "text": "You would model with a reward model that leverages what we saw last time, the Bradley-Terry formulation,"
+    },
+    {
+      "start": 633.96,
+      "end": 642.32,
+      "text": "which is a way to express your loss in a pairwise fashion, and train a reward model."
+    },
+    {
+      "start": 642.32,
+      "end": 653.2,
+      "text": "So, here, the first category is you don't have a ground truth, and you try to come up with a way to quantify how good responses are, for instance, with human preferences."
+    },
+    {
+      "start": 653.2,
+      "end": 664.0,
+      "text": "And you would use the Bradley-Terry formulation, and these methods would be called RLHF because you would use human"
+    },
+    {
+      "start": 664.0,
+      "end": 670.0,
+      "text": "feedback as a way to quantify how good the responses are."
+    },
+    {
+      "start": 670.52,
+      "end": 680.44,
+      "text": "And then the second big category of situations you can be into is where you can actually"
+    },
+    {
+      "start": 680.44,
+      "end": 684.32,
+      "text": "verifiably tell if your answer is correct or not."
+    },
+    {
+      "start": 684.32,
+      "end": 694.92,
+      "text": "And so, here, some examples of situations could be, you know, if you want to solve a math problem, you know what the solution is, or if you want to write a piece of software,"
+    },
+    {
+      "start": 694.92,
+      "end": 702.28,
+      "text": "you know if your solution is correct or not, if let's say it passes the the test cases."
+    },
+    {
+      "start": 702.28,
+      "end": 709.84,
+      "text": "So, you have a a deterministic way to check whether your answer is correct or not."
+    },
+    {
+      "start": 709.84,
+      "end": 720.52,
+      "text": "And so, these methods you will also find them under the name RLVR, reinforcement learning with verifiable rewards."
+    },
+    {
+      "start": 720.52,
+      "end": 729.12,
+      "text": "And these are typically in the field of reasoning, so math problems and and coding problems."
+    },
+    {
+      "start": 729.32,
+      "end": 739.84,
+      "text": "So, this is how you can have your rewards, and so it would be more at the completion level, not at the token level, at the completion level."
+    },
+    {
+      "start": 740.12,
+      "end": 751.96,
+      "text": "So, given this definition of reward, you may want to tweak the parameters of your model to maximize the rewards that you're"
+    },
+    {
+      "start": 751.96,
+      "end": 753.08,
+      "text": "getting."
+    },
+    {
+      "start": 753.08,
+      "end": 762.4,
+      "text": "So, coming back to the examples that we saw last week, in the preference tuning case, what you want is to align your model with human preferences, so you"
+    },
+    {
+      "start": 762.4,
+      "end": 774.36,
+      "text": "would start with a prompt, and then you would generate a completion with your LLM, and then given the completion that you would generate, you would pass in the"
+    },
+    {
+      "start": 774.36,
+      "end": 785.24,
+      "text": "prompt and the completion into a reward model that is frozen, that tells you whether the answer is good or not with respect to the the prompt."
+    },
+    {
+      "start": 785.24,
+      "end": 796.64,
+      "text": "And depending on how the reward model responds, you would tweak the parameters of your LLM in order to maximize the rewards,"
+    },
+    {
+      "start": 796.64,
+      "end": 800.52,
+      "text": "the expected rewards that it is generating."
+    },
+    {
+      "start": 800.52,
+      "end": 812.08,
+      "text": "So, this is the preference tuning case, and you have similarly for the reasoning case, when you have a prompt that is maybe more of a reasoning prompt or a coding"
+    },
+    {
+      "start": 812.08,
+      "end": 822.8,
+      "text": "prompt and here you have a deterministic way to evaluate the quality of your answer and so here you would only look at"
+    },
+    {
+      "start": 822.8,
+      "end": 833.72,
+      "text": "the final answer and you would use that in order to tweak the parameters of your LLM which is here your policy."
+    },
+    {
+      "start": 835.44,
+      "end": 839.64,
+      "text": "Okay, so now we talked about the setting. Now let's go into the math."
+    },
+    {
+      "start": 839.64,
+      "end": 841.96,
+      "text": "Yep."
+    },
+    {
+      "start": 841.96,
+      "end": 846.64,
+      "text": "So the question is would the probability of full response be very low?"
+    },
+    {
+      "start": 846.64,
+      "end": 854.84,
+      "text": "Uh yes, indeed it would. That is the reason why people use logarithm in order to have some numerical stability, but yeah, great points."
+    },
+    {
+      "start": 854.84,
+      "end": 857.1600000000001,
+      "text": "Yep."
+    },
+    {
+      "start": 857.24,
+      "end": 868.48,
+      "text": "So the question is do you need a human every time you generate a completion? So the answer is no, which is the reason why you're actually training a reward model first hand."
+    },
+    {
+      "start": 868.48,
+      "end": 871.24,
+      "text": "You're training it on human preferences."
+    },
+    {
+      "start": 871.24,
+      "end": 878.0,
+      "text": "And the reason why you're doing that is because you don't want to have a human in the loop every time you generate a completion."
+    },
+    {
+      "start": 878.0,
+      "end": 888.32,
+      "text": "And what you would do is to use that reward model for any responses that you're generating and you're using that reward model in order to assess how good the response"
+    },
+    {
+      "start": 888.32,
+      "end": 894.3599999999999,
+      "text": "is. So yeah, you are actually not leveraging humans in this loop."
+    },
+    {
+      "start": 895.8,
+      "end": 897.16,
+      "text": "Perfect."
+    },
+    {
+      "start": 897.16,
+      "end": 900.36,
+      "text": "So I was saying let's go into the math."
+    },
+    {
+      "start": 900.36,
+      "end": 910.72,
+      "text": "So here our objective function is to maximize the expected rewards that you're getting."
+    },
+    {
+      "start": 910.72,
+      "end": 922.12,
+      "text": "So in mathematical terms what you want to do is to find parameters theta of your model that maximize the objective function"
+    },
+    {
+      "start": 922.12,
+      "end": 933.36,
+      "text": "which is the expectation of rewards as you're sampling trajectories from your policy pi theta,"
+    },
+    {
+      "start": 933.36,
+      "end": 936.0,
+      "text": "which is your model."
+    },
+    {
+      "start": 936.16,
+      "end": 940.8,
+      "text": "And so, I know what you're thinking."
+    },
+    {
+      "start": 941.08,
+      "end": 950.52,
+      "text": "In the machine learning, when you want to optimize an objective function, typically what you want to get is the gradient cuz you want to perform your updates."
+    },
+    {
+      "start": 950.52,
+      "end": 958.8,
+      "text": "So, the first question that we want to tackle here is how do you get the gradients of this objective?"
+    },
+    {
+      "start": 958.8,
+      "end": 965.56,
+      "text": "And so, I know a lot of us are coming from different backgrounds, and I want to make sure we're speaking the same language."
+    },
+    {
+      "start": 965.56,
+      "end": 970.6,
+      "text": "So, a little refresher on gradients."
+    },
+    {
+      "start": 970.6,
+      "end": 979.28,
+      "text": "You can think of gradients as a way for you to get the direction and the magnitudes"
+    },
+    {
+      "start": 979.28,
+      "end": 982.64,
+      "text": "of the steepest increase."
+    },
+    {
+      "start": 982.64,
+      "end": 992.96,
+      "text": "So, in the 1D case where your function has an input X that is just a one number,"
+    },
+    {
+      "start": 992.96,
+      "end": 995.12,
+      "text": "you all know the derivative."
+    },
+    {
+      "start": 995.12,
+      "end": 1005.24,
+      "text": "So, if the derivative is positive, what that means is your function increases as X increases. If it's negative, it increases as X decreases."
+    },
+    {
+      "start": 1005.52,
+      "end": 1012.44,
+      "text": "So, the generalization of that for the N-dimensional case is the gradient."
+    },
+    {
+      "start": 1012.44,
+      "end": 1022.76,
+      "text": "And the gradient of of F in this case is the partial derivative of that function with respect to all the dimensions of"
+    },
+    {
+      "start": 1022.76,
+      "end": 1027.12,
+      "text": "your input X, which is in RN."
+    },
+    {
+      "start": 1028.76,
+      "end": 1030.68,
+      "text": "Are we all good on this?"
+    },
+    {
+      "start": 1030.68,
+      "end": 1040.12,
+      "text": "Okay. So, with that being said, let's go back into our original problem, which is we have an objective function to maximize."
+    },
+    {
+      "start": 1040.12,
+      "end": 1043.92,
+      "text": "And what we want to do is to compute the gradients."
+    },
+    {
+      "start": 1043.92,
+      "end": 1048.64,
+      "text": "And so, I will just do that."
+    },
+    {
+      "start": 1048.64,
+      "end": 1057.88,
+      "text": "So, what we want is for us to maximize the expected rewards."
+    },
+    {
+      "start": 1057.88,
+      "end": 1067.96,
+      "text": "And so, in mathematical terms, what that means is we want to maximize uh the rewards"
+    },
+    {
+      "start": 1071.64,
+      "end": 1075.8,
+      "text": "such that the trajectory is sampled from your policy."
+    },
+    {
+      "start": 1075.8,
+      "end": 1080.24,
+      "text": "So, this is exactly what what is on the slide means."
+    },
+    {
+      "start": 1080.24,
+      "end": 1091.88,
+      "text": "And so, if you want to take the gradient of that, well, you will just compute what is in between"
+    },
+    {
+      "start": 1091.88,
+      "end": 1102.52,
+      "text": "uh the integral. So, what you would do is just wonder for a second what is a function of theta. So, is R a function"
+    },
+    {
+      "start": 1102.52,
+      "end": 1104.56,
+      "text": "of theta? No, it is frozen."
+    },
+    {
+      "start": 1104.56,
+      "end": 1108.0,
+      "text": "Is pi theta a function of theta?"
+    },
+    {
+      "start": 1108.0,
+      "end": 1109.4,
+      "text": "Yes."
+    },
+    {
+      "start": 1109.4,
+      "end": 1115.2,
+      "text": "So, what you would do is actually go and put the gradient in there."
+    },
+    {
+      "start": 1115.2,
+      "end": 1124.32,
+      "text": "And of course, you have like some regularity that you assume is in place."
+    },
+    {
+      "start": 1124.4,
+      "end": 1126.4,
+      "text": "Okay, mathematical trick."
+    },
+    {
+      "start": 1126.4,
+      "end": 1129.76,
+      "text": "What is the gradient of pi of theta?"
+    },
+    {
+      "start": 1129.76,
+      "end": 1141.0,
+      "text": "So, you may know that the gradient of log of a function is the gradient of that function over that function."
+    },
+    {
+      "start": 1141.0,
+      "end": 1143.36,
+      "text": "So, that's a mathematical result."
+    },
+    {
+      "start": 1143.36,
+      "end": 1154.84,
+      "text": "So, what that means is that the gradient of a function is equal to the gradient of the log of that function times that function."
+    },
+    {
+      "start": 1154.84,
+      "end": 1164.4,
+      "text": "So here, this is equal to the gradient of the log of pi theta times"
+    },
+    {
+      "start": 1164.4,
+      "end": 1167.2,
+      "text": "pi theta."
+    },
+    {
+      "start": 1168.8,
+      "end": 1172.08,
+      "text": "And so what does that mean?"
+    },
+    {
+      "start": 1172.28,
+      "end": 1177.36,
+      "text": "I'm going to just rewrite everything so that we're all clear."
+    },
+    {
+      "start": 1178.48,
+      "end": 1189.8000000000002,
+      "text": "So it's integral of our tau gradient of log of pi theta"
+    },
+    {
+      "start": 1189.88,
+      "end": 1196.88,
+      "text": "pi theta of tau and d tau."
+    },
+    {
+      "start": 1196.88,
+      "end": 1201.48,
+      "text": "So this is nothing else"
+    },
+    {
+      "start": 1203.0,
+      "end": 1214.1599999999999,
+      "text": "This is nothing else than the expected value of your rewards"
+    },
+    {
+      "start": 1214.32,
+      "end": 1224.4799999999998,
+      "text": "times the gradient of the logarithm of pi theta"
+    },
+    {
+      "start": 1225.2,
+      "end": 1233.24,
+      "text": "where tau is sampled from your policy of parameters theta."
+    },
+    {
+      "start": 1235.6,
+      "end": 1238.84,
+      "text": "Does everyone agree with the math? Yes."
+    },
+    {
+      "start": 1238.84,
+      "end": 1250.64,
+      "text": "Uh so the question is how did you introduce the log? So I just used the fact that the gradient of the log of a function, let's say of"
+    },
+    {
+      "start": 1250.64,
+      "end": 1261.52,
+      "text": "theta, is equal to the gradient of that function over that function. So it's just a"
+    },
+    {
+      "start": 1261.52,
+      "end": 1265.04,
+      "text": "mathematical identity."
+    },
+    {
+      "start": 1267.0,
+      "end": 1273.2,
+      "text": "Yes, exactly. So what we did is we just put that here."
+    },
+    {
+      "start": 1274.32,
+      "end": 1275.4,
+      "text": "Yes, exactly."
+    },
+    {
+      "start": 1275.4,
+      "end": 1277.72,
+      "text": ">> Got you."
+    },
+    {
+      "start": 1278.08,
+      "end": 1281.72,
+      "text": ">> Great. Does everyone agree with the math?"
+    },
+    {
+      "start": 1283.64,
+      "end": 1285.6,
+      "text": "Okay, cool."
+    },
+    {
+      "start": 1285.6,
+      "end": 1295.44,
+      "text": "So, the reason why I'm doing the math on the blackboard is not because I like writing on the blackboard, but I mean I do, but here you will see this formula quite a lot."
+    },
+    {
+      "start": 1295.44,
+      "end": 1300.16,
+      "text": "And it's just important to know where this comes from."
+    },
+    {
+      "start": 1300.16,
+      "end": 1311.88,
+      "text": "And so, what that means is that the gradient of your objective function is incentivizing your model to increase"
+    },
+    {
+      "start": 1311.88,
+      "end": 1323.4,
+      "text": "probabilities of actions that have a positive reward and decrease the probability of actions that have a negative reward."
+    },
+    {
+      "start": 1323.84,
+      "end": 1325.8,
+      "text": "Yep."
+    },
+    {
+      "start": 1325.8,
+      "end": 1337.56,
+      "text": "So, our question is what does the tilde in the tau tilde pi of theta mean? So, that means that you're sampling your trajectory from"
+    },
+    {
+      "start": 1337.56,
+      "end": 1345.8000000000002,
+      "text": "the probability distribution given by your policy of parameters theta. So, tilde means sampled from."
+    },
+    {
+      "start": 1348.84,
+      "end": 1356.44,
+      "text": "So, again, I will just repeat the intuition. So, what you can take away from this formula is"
+    },
+    {
+      "start": 1356.44,
+      "end": 1368.24,
+      "text": "that if the reward is positive the gradient will incentivize your model to increase the probability of"
+    },
+    {
+      "start": 1368.24,
+      "end": 1379.12,
+      "text": "such actions and it will incentivize your model to decrease the probability of actions that have a negative reward."
+    },
+    {
+      "start": 1380.0,
+      "end": 1390.56,
+      "text": "Okay. So, based on that there's one little thing that I want to tell you about, which is that we talked in terms of trajectories."
+    },
+    {
+      "start": 1390.56,
+      "end": 1401.84,
+      "text": "And in the LLM case, what we typically do is we first have a set of prompts, the X's, and then we sample the responses"
+    },
+    {
+      "start": 1401.84,
+      "end": 1410.12,
+      "text": "from the policy of our model given these prompts."
+    },
+    {
+      "start": 1410.16,
+      "end": 1421.48,
+      "text": "So, the reason why we only did the tau sample from Pythia is just because I didn't want to uh to make it more confusing on the blackboard, but just"
+    },
+    {
+      "start": 1421.48,
+      "end": 1429.36,
+      "text": "think of expectations as being over prompts and then over responses given these prompts."
+    },
+    {
+      "start": 1430.48,
+      "end": 1438.84,
+      "text": "Okay. So, now you may wonder when how can you update the weights of your model given what we saw?"
+    },
+    {
+      "start": 1438.84,
+      "end": 1449.28,
+      "text": "So, here what we would do is we would have a prompt X, and we would generate a completion Y sampled from"
+    },
+    {
+      "start": 1449.28,
+      "end": 1454.76,
+      "text": "our LLM given the input X."
+    },
+    {
+      "start": 1454.76,
+      "end": 1462.76,
+      "text": "What we would do is we would evaluate the reward that is associated with the prompt and the response."
+    },
+    {
+      "start": 1462.76,
+      "end": 1473.04,
+      "text": "And then we would compute the gradient, which we saw is R times the gradient of the log of pi, and so here's exactly what's on the"
+    },
+    {
+      "start": 1473.04,
+      "end": 1475.6399999999999,
+      "text": "slides."
+    },
+    {
+      "start": 1476.0,
+      "end": 1478.6,
+      "text": "And then you would update your parameters."
+    },
+    {
+      "start": 1478.6,
+      "end": 1487.92,
+      "text": "So, you may be familiar with gradient descent, so it's theta minus, but here we want to maximize the objective. We want to maximize"
+    },
+    {
+      "start": 1487.92,
+      "end": 1499.8,
+      "text": "our model generating high rewards. So, here it's actually theta plus alpha times the gradient because it's gradient ascent."
+    },
+    {
+      "start": 1500.48,
+      "end": 1510.28,
+      "text": "So, one thing that I want to say is that contrary to pre-training, contrary to SFT,"
+    },
+    {
+      "start": 1510.28,
+      "end": 1520.2,
+      "text": "here we need to always generate the response because here we're in an on-policy setting. We're generating the response and then performing the update"
+    },
+    {
+      "start": 1520.2,
+      "end": 1522.68,
+      "text": "on the response generated by the model."
+    },
+    {
+      "start": 1522.68,
+      "end": 1526.52,
+      "text": "It is not a fixed response. It is generated by the model."
+    },
+    {
+      "start": 1526.52,
+      "end": 1534.64,
+      "text": "So, the problem with that is you're asking your model to generate responses every time you want to make an update."
+    },
+    {
+      "start": 1534.68,
+      "end": 1538.2,
+      "text": "And that step is very expensive."
+    },
+    {
+      "start": 1538.2,
+      "end": 1546.96,
+      "text": "You cannot parallelize it because you need to ask your model, okay, what is the next token? And then you take that token and you ask what is the next token? And one at a time"
+    },
+    {
+      "start": 1546.96,
+      "end": 1550.64,
+      "text": "you're generating these responses."
+    },
+    {
+      "start": 1550.8,
+      "end": 1559.84,
+      "text": "And so, one thing that I want to tell you is a method that people can use"
+    },
+    {
+      "start": 1559.84,
+      "end": 1567.72,
+      "text": "in order to limit the number of times they need to generate completions."
+    },
+    {
+      "start": 1569.04,
+      "end": 1572.3999999999999,
+      "text": "And I want to write that down."
+    },
+    {
+      "start": 1574.0,
+      "end": 1582.48,
+      "text": "So, here what we're saying is that we want to maximize the expected rewards when the trajectory"
+    },
+    {
+      "start": 1582.48,
+      "end": 1586.64,
+      "text": "is sampled from the current policy."
+    },
+    {
+      "start": 1586.64,
+      "end": 1590.16,
+      "text": "So, we want to maximize this."
+    },
+    {
+      "start": 1592.72,
+      "end": 1602.32,
+      "text": "So, we want to maximize the expectation of R of tau when R Sorry, when tau"
+    },
+    {
+      "start": 1602.32,
+      "end": 1606.52,
+      "text": "is sampled from the current policy."
+    },
+    {
+      "start": 1608.12,
+      "end": 1617.6,
+      "text": "Which is equal to the integral of R of tau pi theta of tau d tau."
+    },
+    {
+      "start": 1617.6,
+      "end": 1629.48,
+      "text": "But, another way of writing this could be to say if we have let's say another policy"
+    },
+    {
+      "start": 1629.48,
+      "end": 1639.64,
+      "text": "tau fixed, we could express this quantity as a function"
+    },
+    {
+      "start": 1639.64,
+      "end": 1650.24,
+      "text": "of tau fixed by letting this be popped up. So, here we do pi pi theta of tau over pi"
+    },
+    {
+      "start": 1650.24,
+      "end": 1659.88,
+      "text": "theta fixed of tau times pi theta fixed"
+    },
+    {
+      "start": 1662.04,
+      "end": 1673.64,
+      "text": "of tau d tau, which is equal to the expectation of r of tau"
+    },
+    {
+      "start": 1674.2,
+      "end": 1685.24,
+      "text": "times pi theta of tau over pi theta fixed"
+    },
+    {
+      "start": 1686.0,
+      "end": 1695.24,
+      "text": "of tau where tau is sampled from pi theta fixed."
+    },
+    {
+      "start": 1695.24,
+      "end": 1698.84,
+      "text": "So, I want to just highlight."
+    },
+    {
+      "start": 1699.56,
+      "end": 1710.52,
+      "text": "So, we went from maximizing the expected value when tau is sampled from pi theta the quantity"
+    },
+    {
+      "start": 1711.28,
+      "end": 1722.92,
+      "text": "over to a quantity which samples the trajectory from a policy of fixed like given parameters."
+    },
+    {
+      "start": 1723.24,
+      "end": 1726.4,
+      "text": "So, why did I do that?"
+    },
+    {
+      "start": 1726.4,
+      "end": 1734.52,
+      "text": "So, let's imagine for a second that we're tired of always generating completions every time we want to perform an update."
+    },
+    {
+      "start": 1734.52,
+      "end": 1741.0,
+      "text": "Let's assume we generate completions, let's say, once."
+    },
+    {
+      "start": 1741.0,
+      "end": 1750.0,
+      "text": "And then we perform updates using the completions of that one time."
+    },
+    {
+      "start": 1750.0,
+      "end": 1760.24,
+      "text": "But by reweighting the rewards for given trajectory with the ratio of the probability"
+    },
+    {
+      "start": 1760.24,
+      "end": 1765.96,
+      "text": "of your current policy over your fixed policy."
+    },
+    {
+      "start": 1766.16,
+      "end": 1777.68,
+      "text": "So, the reason why I wrote that is because sometimes we don't want to always do that. We want to have a fixed policy that does that once and then just reweight the terms in a"
+    },
+    {
+      "start": 1777.68,
+      "end": 1784.52,
+      "text": "way that makes it still mathematically valid, because this is what we care about."
+    },
+    {
+      "start": 1786.4,
+      "end": 1795.88,
+      "text": "So, one thing that I want to add is this term is called importance"
+    },
+    {
+      "start": 1795.88,
+      "end": 1798.68,
+      "text": "sampling ratio."
+    },
+    {
+      "start": 1798.68,
+      "end": 1800.4,
+      "text": "Yes."
+    },
+    {
+      "start": 1800.4,
+      "end": 1809.76,
+      "text": "So, the question is, I don't get the benefit. We're still computing pi theta of tau. Like, what is the benefit? So, the the trick is"
+    },
+    {
+      "start": 1809.76,
+      "end": 1815.72,
+      "text": "evaluating the policy is different with generating a rollout."
+    },
+    {
+      "start": 1815.72,
+      "end": 1827.6,
+      "text": "Cuz evaluating the policy, you're taking everything as input in parallel and computing everything, all the probabilities. But here, when you do the rollout, as in when you generate a response,"
+    },
+    {
+      "start": 1827.6,
+      "end": 1837.84,
+      "text": "you need to take the first token to generate the token and then take that token and generate the next token over and over."
+    },
+    {
+      "start": 1837.84,
+      "end": 1841.8,
+      "text": "So, this is expensive. This is cheap."
+    },
+    {
+      "start": 1842.88,
+      "end": 1844.48,
+      "text": "Yep."
+    },
+    {
+      "start": 1844.48,
+      "end": 1851.24,
+      "text": "So, the question is please explain a bit more what you mean by this is cheap. So, here you know the full response."
+    },
+    {
+      "start": 1851.24,
+      "end": 1852.72,
+      "text": "You know the full response."
+    },
+    {
+      "start": 1852.72,
+      "end": 1856.96,
+      "text": "So, you're putting all the responses input."
+    },
+    {
+      "start": 1857.52,
+      "end": 1862.96,
+      "text": "All in parallel. So, it's all being computed in in a nice parallel fashion."
+    },
+    {
+      "start": 1864.32,
+      "end": 1871.96,
+      "text": "So, maybe I can I can do something else that could be more helpful."
+    },
+    {
+      "start": 1871.96,
+      "end": 1874.48,
+      "text": ">> Do you mean that"
+    },
+    {
+      "start": 1878.32,
+      "end": 1880.04,
+      "text": ">> It Yeah, exactly."
+    },
+    {
+      "start": 1880.04,
+      "end": 1888.48,
+      "text": "So, um So, here So, generation"
+    },
+    {
+      "start": 1892.0,
+      "end": 1897.52,
+      "text": "what you're doing is you're putting So, this is your model."
+    },
+    {
+      "start": 1897.52,
+      "end": 1900.56,
+      "text": "Putting a token in."
+    },
+    {
+      "start": 1900.56,
+      "end": 1903.08,
+      "text": "Token out."
+    },
+    {
+      "start": 1903.08,
+      "end": 1908.3200000000002,
+      "text": "That token in"
+    },
+    {
+      "start": 1911.08,
+      "end": 1913.16,
+      "text": "token out, and so on."
+    },
+    {
+      "start": 1913.16,
+      "end": 1916.52,
+      "text": "But, for evaluation"
+    },
+    {
+      "start": 1920.24,
+      "end": 1924.64,
+      "text": "what you're doing is you already know the full completion. You already know it."
+    },
+    {
+      "start": 1924.64,
+      "end": 1928.0800000000002,
+      "text": "You know all the tokens."
+    },
+    {
+      "start": 1929.0,
+      "end": 1934.72,
+      "text": "So, you're putting everything as inputs all at once."
+    },
+    {
+      "start": 1935.68,
+      "end": 1946.92,
+      "text": "And you know, like your LLM is a decoder-only LLM, so it has the masked self-attention. So, it's able to nicely only attend to itself and the ones before. All this is very parallel."
+    },
+    {
+      "start": 1946.92,
+      "end": 1953.3600000000001,
+      "text": "And you can get the corresponding probabilities as output."
+    },
+    {
+      "start": 1954.36,
+      "end": 1959.32,
+      "text": "This is is This is cheap."
+    },
+    {
+      "start": 1960.68,
+      "end": 1962.08,
+      "text": "Okay, great question."
+    },
+    {
+      "start": 1962.08,
+      "end": 1963.44,
+      "text": "Yep."
+    },
+    {
+      "start": 1963.44,
+      "end": 1974.6,
+      "text": "So, the question is we're still doing the expensive calculation with theta fixed. Yes, but you can do it once and reuse that several times. You don't need to do that every time."
+    },
+    {
+      "start": 1974.6,
+      "end": 1977.64,
+      "text": "Uh uh question is for multiple training steps? Yes."
+    },
+    {
+      "start": 1977.64,
+      "end": 1984.44,
+      "text": "So, we will see that more in detail. I just didn't want this to come out of the blue. This is the reason."
+    },
+    {
+      "start": 1985.08,
+      "end": 1996.96,
+      "text": "So, now what I want to do is to go through some challenges that such a vanilla approach can exhibit. So, this is"
+    },
+    {
+      "start": 1996.96,
+      "end": 2003.8,
+      "text": "This is not one challenge. This is just uh like a small FYI."
+    },
+    {
+      "start": 2003.96,
+      "end": 2012.88,
+      "text": "The first challenge that I want to mention is that if we use a reward function"
+    },
+    {
+      "start": 2012.88,
+      "end": 2023.8,
+      "text": "that does not have a con- concept of relative compared to some baseline we may get gradients that are of high"
+    },
+    {
+      "start": 2023.8,
+      "end": 2025.28,
+      "text": "variance."
+    },
+    {
+      "start": 2025.28,
+      "end": 2027.12,
+      "text": "I'll give you an example."
+    },
+    {
+      "start": 2027.12,
+      "end": 2035.28,
+      "text": "Let's assume we have a prompt and we have two answers. Let's say one is good and the other one is bad."
+    },
+    {
+      "start": 2035.28,
+      "end": 2045.44,
+      "text": "In the first case, the good answer has reward of 101 and the bad answer has reward of 100."
+    },
+    {
+      "start": 2045.44,
+      "end": 2057.44,
+      "text": "So, you know that 101 is greater than 100, but both are very high and you don't exactly get the difference relative to one another."
+    },
+    {
+      "start": 2057.919,
+      "end": 2069.639,
+      "text": "The problem is that this will need This will lead to noisy gradients because you know that your model will update parameters"
+    },
+    {
+      "start": 2069.639,
+      "end": 2076.2,
+      "text": "as a function of R and the gradient of the log of the policy."
+    },
+    {
+      "start": 2076.2,
+      "end": 2082.32,
+      "text": "So, if R is always big, it will make big updates."
+    },
+    {
+      "start": 2082.32,
+      "end": 2092.639,
+      "text": "It will make big updates to get good answers pop up more. It will make big updates to make the bad answer pop up more, but in a"
+    },
+    {
+      "start": 2092.639,
+      "end": 2099.44,
+      "text": "in a lower magnitude because the reward is lower than the one for the than for the good one."
+    },
+    {
+      "start": 2099.44,
+      "end": 2109.4,
+      "text": "So, at the end of the day, if you do that enough times, you will get the parameters that you want to get, but you will have very high variance gradients."
+    },
+    {
+      "start": 2109.4,
+      "end": 2116.56,
+      "text": "As in, you will have big updates for good then big updates for for bad and so on."
+    },
+    {
+      "start": 2117.0,
+      "end": 2129.0,
+      "text": "So, what you want is to actually get a sense of what is the expected reward that you should receive for a given state"
+    },
+    {
+      "start": 2129.0,
+      "end": 2135.68,
+      "text": "and then contrast the reward of each action with respect to that."
+    },
+    {
+      "start": 2136.12,
+      "end": 2147.52,
+      "text": "So, if you say that, okay, on average, 100.5 is, you know, roughly okay, then if you have point plus point five,"
+    },
+    {
+      "start": 2147.52,
+      "end": 2154.08,
+      "text": "then you know, it's good. And if you have minus point five, then you know, it's not good."
+    },
+    {
+      "start": 2154.16,
+      "end": 2163.44,
+      "text": "And you can show on a toy example that the gradients that you get as a result of that are of much lower"
+    },
+    {
+      "start": 2163.44,
+      "end": 2173.44,
+      "text": "variance when you do have that baseline, when you do have that sense of relative to something."
+    },
+    {
+      "start": 2173.56,
+      "end": 2176.24,
+      "text": "So, that's the first challenge."
+    },
+    {
+      "start": 2176.24,
+      "end": 2184.52,
+      "text": "The second challenge is that the two types of reward that we saw are at the completion level."
+    },
+    {
+      "start": 2184.52,
+      "end": 2194.48,
+      "text": "Meaning that you either know that everything is good or either know that everything is bad. You either know that everything is correct or you know that everything is not correct."
+    },
+    {
+      "start": 2194.48,
+      "end": 2205.0,
+      "text": "Well, I'll tell you this example. So, let's assume your prompt is about Teddy who's in a sealed box and you want to You're actually moving the box to the kitchen and now you're asking yourself,"
+    },
+    {
+      "start": 2205.0,
+      "end": 2207.36,
+      "text": "\"Where is Teddy?\""
+    },
+    {
+      "start": 2207.36,
+      "end": 2209.24,
+      "text": "And let's assume your model says, \"Okay."
+    },
+    {
+      "start": 2209.24,
+      "end": 2212.24,
+      "text": "Step one, Teddy climbs out of the box."
+    },
+    {
+      "start": 2212.24,
+      "end": 2214.16,
+      "text": "Step two, Teddy walks to the kitchen."
+    },
+    {
+      "start": 2214.16,
+      "end": 2217.56,
+      "text": "And step three, answer kitchen.\""
+    },
+    {
+      "start": 2217.56,
+      "end": 2224.92,
+      "text": "So, you know that the answer is correct because you moved the box to the kitchen."
+    },
+    {
+      "start": 2224.92,
+      "end": 2232.32,
+      "text": "But, what is not correct is Teddy who's walking because Teddy is in the box the whole time."
+    },
+    {
+      "start": 2232.84,
+      "end": 2242.48,
+      "text": "And in the vanilla case, you would incentivize all tokens of this response to happen more frequently."
+    },
+    {
+      "start": 2242.48,
+      "end": 2244.88,
+      "text": "And this is not what you want to do."
+    },
+    {
+      "start": 2244.88,
+      "end": 2250.8,
+      "text": "So, you're lacking an explicit token level credit assignments."
+    },
+    {
+      "start": 2250.8,
+      "end": 2254.28,
+      "text": "That is something that we need to work on."
+    },
+    {
+      "start": 2254.28,
+      "end": 2256.0,
+      "text": "And then the third one."
+    },
+    {
+      "start": 2256.0,
+      "end": 2259.96,
+      "text": "I think we briefly mentioned it last time."
+    },
+    {
+      "start": 2259.96,
+      "end": 2266.72,
+      "text": "The policy that you already have at the beginning of this training stage is already at a good state."
+    },
+    {
+      "start": 2266.72,
+      "end": 2271.96,
+      "text": "You already did pre-training. You already did your SFT. Your model is useful."
+    },
+    {
+      "start": 2271.96,
+      "end": 2282.2,
+      "text": "And you don't want your trained model to deviate too much from the model that you trained because it's already good."
+    },
+    {
+      "start": 2282.2,
+      "end": 2290.84,
+      "text": "And on top of that, sometimes the rewards that you have, they're not exactly aligned to your end goal."
+    },
+    {
+      "start": 2290.84,
+      "end": 2293.08,
+      "text": "So, I'll give you the following example."
+    },
+    {
+      "start": 2293.08,
+      "end": 2303.28,
+      "text": "So, let's assume me I come here and in order to in order to know if I did a good job,"
+    },
+    {
+      "start": 2303.28,
+      "end": 2310.4,
+      "text": "at giving this lecture, I would rely on the intensity of the collapse that you would make at the end of the lecture."
+    },
+    {
+      "start": 2310.4,
+      "end": 2321.28,
+      "text": "So, if I were to only optimize for that, then that would not be ideal because maybe I would just spend hour, 2 hours making jokes that are not related to the"
+    },
+    {
+      "start": 2321.28,
+      "end": 2328.52,
+      "text": "class. I would still receive class, maybe, but it would not be aligned with my objective."
+    },
+    {
+      "start": 2328.52,
+      "end": 2337.6,
+      "text": "And so, there is this risk of reward hacking where your reward model may actually be imperfect."
+    },
+    {
+      "start": 2337.6,
+      "end": 2344.36,
+      "text": "And you may have your model who's just trying to game the reward model, and you don't want that."
+    },
+    {
+      "start": 2344.36,
+      "end": 2354.48,
+      "text": "So, I hope I convinced you that we don't want the policy, we don't want the model to be too far from the model that you already have."
+    },
+    {
+      "start": 2354.48,
+      "end": 2361.24,
+      "text": "So, we want to have some sense of constraints in there."
+    },
+    {
+      "start": 2361.24,
+      "end": 2366.88,
+      "text": "And we'll see how we can quantify the difference between distribution. Yeah."
+    },
+    {
+      "start": 2366.88,
+      "end": 2370.72,
+      "text": "So, the question is what do we mean by don't want to regress on previous tasks?"
+    },
+    {
+      "start": 2370.72,
+      "end": 2378.0,
+      "text": "So, your model was trained for specific things, and you're now asking it to be better at something else."
+    },
+    {
+      "start": 2378.0,
+      "end": 2389.04,
+      "text": "And so, the capabilities that it has acquired can be something that it loses if you emphasize too much on"
+    },
+    {
+      "start": 2389.04,
+      "end": 2397.08,
+      "text": "the task of interest here. And so, you also want your model to not deviate too much because of that."
+    },
+    {
+      "start": 2399.92,
+      "end": 2402.48,
+      "text": "Okay, cool. Summary."
+    },
+    {
+      "start": 2402.48,
+      "end": 2407.0,
+      "text": "What are the three challenges? The first one is gradients can be noisy."
+    },
+    {
+      "start": 2407.0,
+      "end": 2415.28,
+      "text": "Second one is we don't have out-of-the-box an explicit token-level credit assignment."
+    },
+    {
+      "start": 2415.28,
+      "end": 2423.36,
+      "text": "And the third one is we don't have any explicit constraints on how far the policy can go with respect"
+    },
+    {
+      "start": 2423.36,
+      "end": 2427.32,
+      "text": "to the policy that we're starting from."
+    },
+    {
+      "start": 2427.32,
+      "end": 2438.96,
+      "text": "So, with these three challenges in mind, what we will do is talk about the most common RL algorithms that are out there, which I'm sure you've"
+    },
+    {
+      "start": 2438.96,
+      "end": 2440.76,
+      "text": "heard of."
+    },
+    {
+      "start": 2440.76,
+      "end": 2445.52,
+      "text": "We will start with the first one, PPO."
+    },
+    {
+      "start": 2445.52,
+      "end": 2451.84,
+      "text": "So, PPO stands for proximal policy optim- optimization."
+    },
+    {
+      "start": 2451.84,
+      "end": 2463.16,
+      "text": "And what it tries to do is it tries to maximize your objective function, but with two differences compared to the first one."
+    },
+    {
+      "start": 2463.56,
+      "end": 2470.2,
+      "text": "The first difference is it tries to maximize advantages and not rewards."
+    },
+    {
+      "start": 2470.2,
+      "end": 2478.04,
+      "text": "And the second difference is it tries to not deviate too much from the policy that you had before."
+    },
+    {
+      "start": 2478.04,
+      "end": 2482.2,
+      "text": "And we will see exactly how these two terms are obtained."
+    },
+    {
+      "start": 2482.2,
+      "end": 2488.04,
+      "text": "But just one note, PPO, the P in PPO is for that second term."
+    },
+    {
+      "start": 2488.04,
+      "end": 2495.72,
+      "text": "You don't want You want a bit of proximity to that policy of reference."
+    },
+    {
+      "start": 2495.72,
+      "end": 2503.52,
+      "text": "Okay, so with that being said, let's go into the first term, which is the advantage term."
+    },
+    {
+      "start": 2503.52,
+      "end": 2512.0,
+      "text": "So, the reward function that you have is wondering how good is this answer with respect to the prompt."
+    },
+    {
+      "start": 2512.0,
+      "end": 2521.96,
+      "text": "But what we really want to ask is compared to what we would expect for this prompt, how good is this response?"
+    },
+    {
+      "start": 2521.96,
+      "end": 2527.08,
+      "text": "So, we want to have some form of relative to a baseline."
+    },
+    {
+      "start": 2527.08,
+      "end": 2532.28,
+      "text": "And that is what advantages are aiming for."
+    },
+    {
+      "start": 2532.36,
+      "end": 2537.56,
+      "text": "And in order to illustrate that, let's go through an example."
+    },
+    {
+      "start": 2537.56,
+      "end": 2541.68,
+      "text": "So, let's assume that we have the following prompts, \"Teddy's in a box."
+    },
+    {
+      "start": 2541.68,
+      "end": 2543.28,
+      "text": "Where is Teddy?\""
+    },
+    {
+      "start": 2543.28,
+      "end": 2547.56,
+      "text": "And then you have your response, \"in the box.\""
+    },
+    {
+      "start": 2547.56,
+      "end": 2558.0,
+      "text": "So, the reward for that one, let's assume you know it's a correct response, so the reward for the whole completion relative to that prompt is, let's say, plus one."
+    },
+    {
+      "start": 2558.0,
+      "end": 2565.8,
+      "text": "But you want to know how these different tokens are actually receiving the credits"
+    },
+    {
+      "start": 2565.8,
+      "end": 2570.68,
+      "text": "relative to what they are expecting."
+    },
+    {
+      "start": 2570.68,
+      "end": 2580.6,
+      "text": "So, the question that we want to ask ourselves is, given a partial completion,"
+    },
+    {
+      "start": 2580.6,
+      "end": 2590.4,
+      "text": "what is the expected final reward if you were to continue sampling from the policy for the rest of the tokens?"
+    },
+    {
+      "start": 2590.4,
+      "end": 2592.48,
+      "text": "So, I'll give you an example."
+    },
+    {
+      "start": 2592.48,
+      "end": 2595.32,
+      "text": "So, let's assume you have the whole input."
+    },
+    {
+      "start": 2595.32,
+      "end": 2599.12,
+      "text": "And then you're decoding, let's say, \"in\"."
+    },
+    {
+      "start": 2599.12,
+      "end": 2608.04,
+      "text": "Here you want to ask yourself, \"Okay, if I were to continue like this on average, what would be the expected final rewards?\""
+    },
+    {
+      "start": 2608.04,
+      "end": 2611.0,
+      "text": "And here, let's suppose it's 0.6."
+    },
+    {
+      "start": 2611.0,
+      "end": 2616.2,
+      "text": "Then you decode, you go to \"the\". Okay, 0.7."
+    },
+    {
+      "start": 2616.2,
+      "end": 2622.4,
+      "text": "\"box\". It's the correct answer, so it should have a big bump, so let's say 0.95."
+    },
+    {
+      "start": 2622.4,
+      "end": 2624.4,
+      "text": "And one."
+    },
+    {
+      "start": 2624.4,
+      "end": 2627.12,
+      "text": "So, what did we do here?"
+    },
+    {
+      "start": 2627.12,
+      "end": 2638.08,
+      "text": "What we tried to do is to ask ourselves, given a partial completion, what the expected final reward would be."
+    },
+    {
+      "start": 2638.08,
+      "end": 2647.56,
+      "text": "And the nice thing with this approach is we have a sense of a baseline, and the baseline here is"
+    },
+    {
+      "start": 2647.56,
+      "end": 2655.8,
+      "text": "compared to how we would have completed if you were to sample the policy."
+    },
+    {
+      "start": 2655.8,
+      "end": 2663.72,
+      "text": "And you can exactly pinpoint the contribution of a given token when you do that."
+    },
+    {
+      "start": 2663.72,
+      "end": 2675.56,
+      "text": "So, in this example, if you were to compute the very simple version of the advantage for the token box, you would"
+    },
+    {
+      "start": 2675.56,
+      "end": 2686.44,
+      "text": "take the value with box and subtract the value without box. So, it's 0.95 - 7, so plus"
+    },
+    {
+      "start": 2686.44,
+      "end": 2689.0,
+      "text": "0.25."
+    },
+    {
+      "start": 2689.92,
+      "end": 2699.16,
+      "text": "So, I hope this example motivates the fact that we're introducing a new function,"
+    },
+    {
+      "start": 2699.16,
+      "end": 2703.36,
+      "text": "which here we call the value function."
+    },
+    {
+      "start": 2703.36,
+      "end": 2707.68,
+      "text": "That is a function that is defined at the token level."
+    },
+    {
+      "start": 2707.68,
+      "end": 2716.68,
+      "text": "So, what that function does, so the the math formula on that slide, what it what it says is it tries to determine"
+    },
+    {
+      "start": 2716.68,
+      "end": 2727.12,
+      "text": "what is the expected future rewards if you were to start from the input and the partial completion."
+    },
+    {
+      "start": 2727.12,
+      "end": 2734.8,
+      "text": "And if you were to continue decoding by sampling from your LLM, by sampling from the policy."
+    },
+    {
+      "start": 2734.8,
+      "end": 2738.36,
+      "text": "What would be the expected value of that?"
+    },
+    {
+      "start": 2738.36,
+      "end": 2740.36,
+      "text": "That is your baseline."
+    },
+    {
+      "start": 2740.36,
+      "end": 2751.96,
+      "text": "So, in this case, the model is actually trained along with the policy because you need to ask yourself what would be the expected"
+    },
+    {
+      "start": 2751.96,
+      "end": 2761.96,
+      "text": "reward if you were to sample from the policy. So, you need to leverage the parameters of the policy that you're training."
+    },
+    {
+      "start": 2762.0,
+      "end": 2773.36,
+      "text": "Here, the way you would train such a model is you would try to predict the reward at the end of the completion given a partial completion along with the"
+    },
+    {
+      "start": 2773.36,
+      "end": 2775.88,
+      "text": "prompt."
+    },
+    {
+      "start": 2776.16,
+      "end": 2779.6,
+      "text": "And this quantity would be defined at the token level."
+    },
+    {
+      "start": 2779.6,
+      "end": 2785.56,
+      "text": "So, for each token of the output, you would have a value."
+    },
+    {
+      "start": 2785.6,
+      "end": 2788.96,
+      "text": "So, this is the value function."
+    },
+    {
+      "start": 2788.96,
+      "end": 2799.36,
+      "text": "And the way you would compute the advantage is by taking the value up to that token"
+    },
+    {
+      "start": 2799.36,
+      "end": 2804.36,
+      "text": "and do minus the value up to the token right before."
+    },
+    {
+      "start": 2804.44,
+      "end": 2812.92,
+      "text": "And here you're able to tease out the impact of that token itself."
+    },
+    {
+      "start": 2812.92,
+      "end": 2819.24,
+      "text": "So, one thing that I want to say is it is actually more complicated than that."
+    },
+    {
+      "start": 2819.24,
+      "end": 2824.0,
+      "text": "So, this That's why it's in quotes. So, it's quote unquote."
+    },
+    {
+      "start": 2824.0,
+      "end": 2834.64,
+      "text": "The reason why it's a little bit more complicated than that is if you were to generate a token, you may increase the likelihoods of you"
+    },
+    {
+      "start": 2834.64,
+      "end": 2846.0,
+      "text": "getting a high reward, let's say, but you may also put yourself in a position where future tokens would benefit from the token that you generated."
+    },
+    {
+      "start": 2846.0,
+      "end": 2848.72,
+      "text": "So, let me give you an example."
+    },
+    {
+      "start": 2848.72,
+      "end": 2853.88,
+      "text": "Um let's assume you're teaching a concept to someone."
+    },
+    {
+      "start": 2853.88,
+      "end": 2857.56,
+      "text": "You're teaching it some math concepts."
+    },
+    {
+      "start": 2858.08,
+      "end": 2865.4,
+      "text": "You teaching the concepts may lead to your friend acing the math exam."
+    },
+    {
+      "start": 2865.4,
+      "end": 2868.56,
+      "text": "So, that's a short-term reward."
+    },
+    {
+      "start": 2868.56,
+      "end": 2878.2,
+      "text": "But you can also assume that the fact of them succeeding the exam is also placing them on a"
+    },
+    {
+      "start": 2878.2,
+      "end": 2887.88,
+      "text": "good path for succeeding later exams and maybe being successful at work and then starting a company, being a CEO, being a"
+    },
+    {
+      "start": 2887.88,
+      "end": 2899.52,
+      "text": "billionaire. So, you cannot completely attribute you teaching the concept to your friend as being the sole reason for them being successful in the future, but there is some part of it that should be"
+    },
+    {
+      "start": 2899.52,
+      "end": 2902.28,
+      "text": "attributed to that."
+    },
+    {
+      "start": 2902.28,
+      "end": 2909.2,
+      "text": "And that is the idea behind the generalized advantage estimation paper, which is not part of the exam."
+    },
+    {
+      "start": 2909.2,
+      "end": 2916.92,
+      "text": "It's not part of the scope of this class, but in case you're interested, feel free to look at it."
+    },
+    {
+      "start": 2916.92,
+      "end": 2927.52,
+      "text": "The idea is to also look at how future values also perform and link that back to a given token."
+    },
+    {
+      "start": 2930.08,
+      "end": 2931.24,
+      "text": "Cool."
+    },
+    {
+      "start": 2931.24,
+      "end": 2943.16,
+      "text": "So, so far, does that make sense? So, here what we saw was a way to compute advantages, which are a quantity that tells you how"
+    },
+    {
+      "start": 2943.16,
+      "end": 2953.68,
+      "text": "a given token predicted token is impacting your purpose of getting, let's say, high rewards. So, you're getting token level signal."
+    },
+    {
+      "start": 2953.68,
+      "end": 2962.72,
+      "text": "And you also have a sense of a baseline by comparing your value with the value without that given token."
+    },
+    {
+      "start": 2962.72,
+      "end": 2965.08,
+      "text": "Yes."
+    },
+    {
+      "start": 2965.24,
+      "end": 2973.52,
+      "text": "So, the question is, is there any interaction between the value function and the policy? So, these two are actually two models."
+    },
+    {
+      "start": 2973.52,
+      "end": 2977.0,
+      "text": "In practice, you train them jointly."
+    },
+    {
+      "start": 2977.0,
+      "end": 2987.68,
+      "text": "So, you would have one loss function and have a penalization for the value and the penalization for the actual policy."
+    },
+    {
+      "start": 2987.68,
+      "end": 2995.08,
+      "text": "But, in this case, these two are completely disjoint. The value function is not being fed as input anywhere."
+    },
+    {
+      "start": 2997.52,
+      "end": 2998.72,
+      "text": "Yeah."
+    },
+    {
+      "start": 2998.72,
+      "end": 3010.44,
+      "text": "So, the question is the reward model and value model are both trained. So, the reward model is trained beforehand and the value model is trained at the same time as when you're training your policy."
+    },
+    {
+      "start": 3010.44,
+      "end": 3021.92,
+      "text": "And the main reason why you want to do that this way is because the definition of your value model is to determine the expected rewards if you"
+    },
+    {
+      "start": 3021.92,
+      "end": 3027.3199999999997,
+      "text": "were to continue according to the policies that you're training."
+    },
+    {
+      "start": 3030.36,
+      "end": 3032.2,
+      "text": "Cool."
+    },
+    {
+      "start": 3032.2,
+      "end": 3034.52,
+      "text": "Yeah."
+    },
+    {
+      "start": 3034.56,
+      "end": 3046.56,
+      "text": "So, the question is value function is a function of theta. So, yes, there's a backbone that is shared and the gradients are determined by your loss function, which contains a value"
+    },
+    {
+      "start": 3046.56,
+      "end": 3052.2000000000003,
+      "text": "loss function and then like a policy the actual LM loss function."
+    },
+    {
+      "start": 3052.8,
+      "end": 3060.16,
+      "text": "So, in case you're interested in the details, actually the PPO paper does have some technical details there."
+    },
+    {
+      "start": 3060.16,
+      "end": 3063.2,
+      "text": "Interesting to look at."
+    },
+    {
+      "start": 3064.44,
+      "end": 3075.16,
+      "text": "So, now what we're saying is we're not trying to optimize the expected value of the rewards, we're trying to optimize the expected value of the advantages."
+    },
+    {
+      "start": 3075.16,
+      "end": 3078.8,
+      "text": "Well, not exactly."
+    },
+    {
+      "start": 3078.8,
+      "end": 3088.32,
+      "text": "So, if you remember these, so assuming you can all see the blackboards at the top,"
+    },
+    {
+      "start": 3088.32,
+      "end": 3094.92,
+      "text": "we said that generating completions were expensive."
+    },
+    {
+      "start": 3095.36,
+      "end": 3098.56,
+      "text": "So, do we want to generate completions every time?"
+    },
+    {
+      "start": 3098.56,
+      "end": 3099.64,
+      "text": "No."
+    },
+    {
+      "start": 3099.64,
+      "end": 3107.56,
+      "text": "So, what you want to do is to leverage completions for multiple updates."
+    },
+    {
+      "start": 3107.56,
+      "end": 3118.6400000000003,
+      "text": "And here you can do that by generating a batch using pi theta and then update pi theta"
+    },
+    {
+      "start": 3118.84,
+      "end": 3126.36,
+      "text": "on that same batch. And the pi theta would become pi old because you it's not the current policy anymore."
+    },
+    {
+      "start": 3126.52,
+      "end": 3133.16,
+      "text": "And so that is the reason why you would see in papers that ratio pop up."
+    },
+    {
+      "start": 3133.16,
+      "end": 3141.8,
+      "text": "So you're not optimizing for expectation of the advantage, you're optimizing for the expectation of the ratio times the advantage."
+    },
+    {
+      "start": 3141.8,
+      "end": 3153.32,
+      "text": "And this is because you want to adjust for the fact that you're actually sampling from the old policy, but you want to make sure that this is corresponding to the current policy. So"
+    },
+    {
+      "start": 3153.32,
+      "end": 3161.72,
+      "text": "you have this corrective term, which is the ratio between the current and the old policy."
+    },
+    {
+      "start": 3163.04,
+      "end": 3174.88,
+      "text": "And this is where I want to, you know, give a disclaimer. So some papers denote this ratio R. So this can be confusing with respect to the rewards. So here we will not this rho."
+    },
+    {
+      "start": 3174.88,
+      "end": 3179.84,
+      "text": "And it is called importance sampling ratio."
+    },
+    {
+      "start": 3179.84,
+      "end": 3181.24,
+      "text": "You have a question?"
+    },
+    {
+      "start": 3181.24,
+      "end": 3182.64,
+      "text": "No?"
+    },
+    {
+      "start": 3182.64,
+      "end": 3184.08,
+      "text": "Okay, great."
+    },
+    {
+      "start": 3184.08,
+      "end": 3193.52,
+      "text": "So what can happen if you do things this way? Well, you can run into the issue that we"
+    },
+    {
+      "start": 3193.52,
+      "end": 3203.6,
+      "text": "discussed previously where you may run into a situation where you're updating your theta such that it deviates too much"
+    },
+    {
+      "start": 3203.6,
+      "end": 3205.72,
+      "text": "from previous policies."
+    },
+    {
+      "start": 3205.72,
+      "end": 3213.68,
+      "text": "So what you actually want to do is to have some form of a control over that ratio."
+    },
+    {
+      "start": 3213.68,
+      "end": 3218.44,
+      "text": "And you don't want that ratio to be, let's say, too far from one."
+    },
+    {
+      "start": 3219.0,
+      "end": 3224.16,
+      "text": "So there is a formula for that, and I don't want you to look at the formula right now."
+    },
+    {
+      "start": 3224.16,
+      "end": 3230.64,
+      "text": "I want us to just take a look at it from an intuitive perspective."
+    },
+    {
+      "start": 3230.64,
+      "end": 3234.8,
+      "text": "So, here is what I want us to do."
+    },
+    {
+      "start": 3234.8,
+      "end": 3245.44,
+      "text": "So, let's assume that we're interested in how much your model is updating the policy."
+    },
+    {
+      "start": 3245.44,
+      "end": 3253.92,
+      "text": "So, here we said it's something like, you know, the ratio times the advantage."
+    },
+    {
+      "start": 3253.92,
+      "end": 3258.04,
+      "text": "So, it's linear as a function of the advantage."
+    },
+    {
+      "start": 3258.04,
+      "end": 3264.68,
+      "text": "So, if you were to draw I'm going to just replicate what we have here."
+    },
+    {
+      "start": 3264.68,
+      "end": 3275.7999999999997,
+      "text": "Um the evolution of this objective function which I will not J as a function of the ratio."
+    },
+    {
+      "start": 3276.16,
+      "end": 3286.28,
+      "text": "So, if A is positive, so if your advantage is positive, meaning you want your model to increase the probability of a given action from occurring"
+    },
+    {
+      "start": 3286.28,
+      "end": 3289.68,
+      "text": "then you will have something like this."
+    },
+    {
+      "start": 3289.68,
+      "end": 3293.0,
+      "text": "Like A is positive."
+    },
+    {
+      "start": 3293.28,
+      "end": 3296.2,
+      "text": "Does everyone agree with me?"
+    },
+    {
+      "start": 3296.2,
+      "end": 3300.96,
+      "text": "So, let's assume here we have one."
+    },
+    {
+      "start": 3300.96,
+      "end": 3309.36,
+      "text": "So, one So, I'm just going to recap. So, row is pi theta over pi old."
+    },
+    {
+      "start": 3309.36,
+      "end": 3318.12,
+      "text": "So, one means that your current policy and the old policy are saying the same thing."
+    },
+    {
+      "start": 3318.12,
+      "end": 3327.84,
+      "text": "And so, if you're here then what you want to do in order to perform your update is to maximize J."
+    },
+    {
+      "start": 3327.84,
+      "end": 3338.92,
+      "text": "So, how do you maximize J? You maximize J by increasing the probability of your policy performing that action. So, you would go"
+    },
+    {
+      "start": 3338.92,
+      "end": 3341.56,
+      "text": "more somewhere there."
+    },
+    {
+      "start": 3341.56,
+      "end": 3346.84,
+      "text": "You would have your new policy be updated and correspond here."
+    },
+    {
+      "start": 3346.84,
+      "end": 3357.76,
+      "text": "The problem is if you don't do anything to that expression, the gradient is always non-zero and incentivizing you"
+    },
+    {
+      "start": 3357.76,
+      "end": 3366.16,
+      "text": "to increase row, to increase the probability of your policy generating that action more and more."
+    },
+    {
+      "start": 3366.16,
+      "end": 3377.44,
+      "text": "So, what you want to do is to break that incentive and clip that function in order for you"
+    },
+    {
+      "start": 3377.44,
+      "end": 3387.0,
+      "text": "to have a zero gradient region where if you were to, let's say, perform an update to your policy and it would become here,"
+    },
+    {
+      "start": 3387.0,
+      "end": 3392.24,
+      "text": "you would have no incentive to increase row."
+    },
+    {
+      "start": 3392.68,
+      "end": 3396.96,
+      "text": "And this is exactly what is on the slides."
+    },
+    {
+      "start": 3396.96,
+      "end": 3408.4,
+      "text": "What we want to do is to clip that function to remove the incentive from the update to increase the probability of a"
+    },
+    {
+      "start": 3408.4,
+      "end": 3410.76,
+      "text": "of an action being generated."
+    },
+    {
+      "start": 3410.76,
+      "end": 3417.4,
+      "text": "And you want to avoid your policy from increasing that probability even more."
+    },
+    {
+      "start": 3417.4,
+      "end": 3422.68,
+      "text": "So, in other words, you don't want your policy to deviate too much from the old policy."
+    },
+    {
+      "start": 3422.68,
+      "end": 3432.44,
+      "text": "So, this is when the advantage is positive. Similarly, very similar fashion, when it's negative, here"
+    },
+    {
+      "start": 3432.44,
+      "end": 3442.04,
+      "text": "the objective function will incentivize your model to decrease your ratio, to decrease the probability that your model has from"
+    },
+    {
+      "start": 3442.04,
+      "end": 3448.44,
+      "text": "generating an action that leads to negative advantage. So, you will have something like this."
+    },
+    {
+      "start": 3448.44,
+      "end": 3453.32,
+      "text": "So, if you come back to the formula, this is what the formula is doing."
+    },
+    {
+      "start": 3453.32,
+      "end": 3455.76,
+      "text": "Yes."
+    },
+    {
+      "start": 3456.84,
+      "end": 3463.6,
+      "text": "So, uh the question is uh you had introduced the KL divergence, why don't you use that? Well, it's my next slides."
+    },
+    {
+      "start": 3463.6,
+      "end": 3474.84,
+      "text": "So, I will I will say a little bit about how that works, but this is one way of constraining your model from being updated too much. So, to your point, let's go to"
+    },
+    {
+      "start": 3474.84,
+      "end": 3478.84,
+      "text": "the KL divergence. So, what is the KL divergence doing?"
+    },
+    {
+      "start": 3478.84,
+      "end": 3486.36,
+      "text": "So, it is an operator that is taking in two probability distributions. Let's assume P and Q."
+    },
+    {
+      "start": 3486.36,
+      "end": 3496.68,
+      "text": "So, here this operator is assuming that P is true and it is waiting that by log of PI over"
+    },
+    {
+      "start": 3496.68,
+      "end": 3499.16,
+      "text": "QI."
+    },
+    {
+      "start": 3499.36,
+      "end": 3505.2400000000002,
+      "text": "You have also the continuous version, which is just take the integral."
+    },
+    {
+      "start": 3506.08,
+      "end": 3516.72,
+      "text": "So, you have a second way of quantifying deviations of your model by saying you actually want a penalization term"
+    },
+    {
+      "start": 3516.72,
+      "end": 3525.96,
+      "text": "in your last function that compares the current policy and some other policy."
+    },
+    {
+      "start": 3525.96,
+      "end": 3536.12,
+      "text": "So, here typi- typically what people do is they actually penalize your current policy from being too different from your SFT policy, from"
+    },
+    {
+      "start": 3536.12,
+      "end": 3539.44,
+      "text": "your base policy, your reference policy."
+    },
+    {
+      "start": 3539.44,
+      "end": 3549.24,
+      "text": "Which is why I want you to pay attention to the subscripts of every pi that you see out there. So, here it's pi theta with respect to pi ref. Pi ref is"
+    },
+    {
+      "start": 3549.24,
+      "end": 3558.28,
+      "text": "reference, as in the base policy. And this contrasts with pi old, which is the policy that's"
+    },
+    {
+      "start": 3558.28,
+      "end": 3562.08,
+      "text": "you used to generate the completions."
+    },
+    {
+      "start": 3562.08,
+      "end": 3564.88,
+      "text": "So, I'll give you the full story."
+    },
+    {
+      "start": 3564.88,
+      "end": 3567.92,
+      "text": "You You with your pi ref."
+    },
+    {
+      "start": 3567.92,
+      "end": 3578.24,
+      "text": "You train your model, so you generate a batch. This becomes pi old. You perform several updates, and then you generate another batch. This becomes your pi old."
+    },
+    {
+      "start": 3578.24,
+      "end": 3579.88,
+      "text": "Several updates."
+    },
+    {
+      "start": 3579.88,
+      "end": 3583.12,
+      "text": "Pi ref stays fixed."
+    },
+    {
+      "start": 3583.12,
+      "end": 3588.36,
+      "text": "And this is what you're comparing your current policy to."
+    },
+    {
+      "start": 3588.96,
+      "end": 3600.68,
+      "text": "And so I want to very quickly mention a scary formula we saw last week, which was the one from DPO."
+    },
+    {
+      "start": 3600.68,
+      "end": 3611.04,
+      "text": "And I'm not sure if you remember, but we had said that there was a supervised way to express"
+    },
+    {
+      "start": 3611.04,
+      "end": 3618.72,
+      "text": "the RL objective by using the Bradley-Terry formulation."
+    },
+    {
+      "start": 3618.72,
+      "end": 3629.28,
+      "text": "And what we said was that the objective function was following something that was very much into the line of what Bradley-Terry was saying, which is something like"
+    },
+    {
+      "start": 3629.28,
+      "end": 3640.0,
+      "text": "So, this one is like L minus expectation of log of sigma,"
+    },
+    {
+      "start": 3640.0,
+      "end": 3648.12,
+      "text": "and sigma is your sigmoid, which is sigma of let's say RW minus RL."
+    },
+    {
+      "start": 3648.12,
+      "end": 3657.72,
+      "text": "And we had said that R was defined as beta log of"
+    },
+    {
+      "start": 3658.08,
+      "end": 3663.12,
+      "text": "your policy compared to some other policy."
+    },
+    {
+      "start": 3663.12,
+      "end": 3665.76,
+      "text": "And here, let's say it's a reference."
+    },
+    {
+      "start": 3665.76,
+      "end": 3671.44,
+      "text": "And we had said that beta was a quantity, some quantity."
+    },
+    {
+      "start": 3671.44,
+      "end": 3682.64,
+      "text": "So, I just want to draw a connection here that the beta that you're seeing in the KL divergence, the beta that is actually penalizing for your model being too different from"
+    },
+    {
+      "start": 3682.64,
+      "end": 3687.36,
+      "text": "your reference model, is actually the same beta."
+    },
+    {
+      "start": 3687.36,
+      "end": 3696.72,
+      "text": "So, the higher the beta, the more you will try to not deviate too much from your reference policy."
+    },
+    {
+      "start": 3696.72,
+      "end": 3701.52,
+      "text": "And I just want to show you mathematically why that is the case intuitively."
+    },
+    {
+      "start": 3701.52,
+      "end": 3710.24,
+      "text": "So, sigma, if you were to draw the function, it's something like this."
+    },
+    {
+      "start": 3710.24,
+      "end": 3711.28,
+      "text": "Whoop."
+    },
+    {
+      "start": 3711.28,
+      "end": 3712.84,
+      "text": "Like this."
+    },
+    {
+      "start": 3712.84,
+      "end": 3716.0,
+      "text": "It's like one and and zero."
+    },
+    {
+      "start": 3716.0,
+      "end": 3725.24,
+      "text": "So, sigma of X is 1 over 1 plus exponential of minus X. So, when X"
+    },
+    {
+      "start": 3725.24,
+      "end": 3728.4,
+      "text": "is zero, it's 0.5."
+    },
+    {
+      "start": 3728.4,
+      "end": 3731.52,
+      "text": "If X goes to plus infinity, this goes to one."
+    },
+    {
+      "start": 3731.52,
+      "end": 3736.48,
+      "text": "And when X goes to minus infinity, this goes to zero."
+    },
+    {
+      "start": 3737.12,
+      "end": 3744.68,
+      "text": "So, there is a region where the sigmoid evolves very quickly."
+    },
+    {
+      "start": 3745.2,
+      "end": 3754.32,
+      "text": "And so, we had said that the incentive of your loss is for this difference to be"
+    },
+    {
+      "start": 3754.32,
+      "end": 3757.36,
+      "text": "as big as possible."
+    },
+    {
+      "start": 3757.52,
+      "end": 3759.6,
+      "text": "And how do you do that?"
+    },
+    {
+      "start": 3759.6,
+      "end": 3770.68,
+      "text": "You want to do RW as big as possible, and how do you do that? You do that by increasing the probability of your policy generating the winning answer."
+    },
+    {
+      "start": 3771.36,
+      "end": 3782.52,
+      "text": "But, if the beta that you have is a big beta, then that means that even a slight deviation"
+    },
+    {
+      "start": 3782.52,
+      "end": 3790.2,
+      "text": "from the reference policy will make this whole value big."
+    },
+    {
+      "start": 3790.2,
+      "end": 3796.44,
+      "text": "And you will already be in a region where you're already close to one."
+    },
+    {
+      "start": 3797.84,
+      "end": 3809.48,
+      "text": "So, in other words, you have a big beta, your policy will have a lower incentive to be far from the reference policy."
+    },
+    {
+      "start": 3809.48,
+      "end": 3812.2,
+      "text": "And this contrasts with the lower beta."
+    },
+    {
+      "start": 3812.2,
+      "end": 3822.08,
+      "text": "So you have a If you have a low beta, then you need this quantity to be much higher than this quantity for this to be big."
+    },
+    {
+      "start": 3823.16,
+      "end": 3834.8,
+      "text": "So I'm not sure if that helps, but I'll have that to say that beta is actually linked to your"
+    },
+    {
+      "start": 3834.8,
+      "end": 3842.08,
+      "text": "incentive to want to make this close to the reference policy or not. And this is the same beta that is in the DPO loss."
+    },
+    {
+      "start": 3842.08,
+      "end": 3844.56,
+      "text": "Yes."
+    },
+    {
+      "start": 3845.12,
+      "end": 3849.52,
+      "text": "So the question is rho t, is it using pi old? Typically, yes."
+    },
+    {
+      "start": 3849.52,
+      "end": 3852.68,
+      "text": "And here it is pi ref, yes."
+    },
+    {
+      "start": 3852.68,
+      "end": 3855.48,
+      "text": "So just to confirm, there are three policies? Yes, there are three policies."
+    },
+    {
+      "start": 3855.48,
+      "end": 3865.48,
+      "text": "So so pi theta is the current policy that you're updating. Pi old is the one that you used to generate the batch, and then pi ref is your base model."
+    },
+    {
+      "start": 3865.48,
+      "end": 3868.4,
+      "text": "Yes, was it the same question?"
+    },
+    {
+      "start": 3868.4,
+      "end": 3879.68,
+      "text": "Yeah. So the question is if you only care about how a policy deviates from its old value, how do you make sure that it doesn't deviate too much from the reference one? Typically, what people do"
+    },
+    {
+      "start": 3879.68,
+      "end": 3883.4,
+      "text": "is they have these two constraints simultaneously."
+    },
+    {
+      "start": 3883.4,
+      "end": 3895.32,
+      "text": "They have the clipping of the ratio respect to the old policy, so the iteration constraints, along with the absolute respect to the"
+    },
+    {
+      "start": 3895.32,
+      "end": 3897.8,
+      "text": "reference policy one."
+    },
+    {
+      "start": 3897.8,
+      "end": 3907.6,
+      "text": "So they're both penalizing for deviation with the old policy, but also respect to the absolute base policy."
+    },
+    {
+      "start": 3908.64,
+      "end": 3910.52,
+      "text": "Yeah."
+    },
+    {
+      "start": 3910.52,
+      "end": 3919.28,
+      "text": "The The question is, how do you compute KL? So it's a great question because KL is expensive because it's over the whole vocabulary. Do you have some estimator for that?"
+    },
+    {
+      "start": 3920.4,
+      "end": 3922.24,
+      "text": "You had a question? No?"
+    },
+    {
+      "start": 3922.24,
+      "end": 3923.84,
+      "text": "Okay, great."
+    },
+    {
+      "start": 3923.84,
+      "end": 3925.96,
+      "text": "Let's move on."
+    },
+    {
+      "start": 3925.96,
+      "end": 3937.76,
+      "text": "So, if I were to recap what we saw, we saw a way to maximize a quantity that is actually as a function of, let's say, baseline, which is called advantage, and"
+    },
+    {
+      "start": 3937.76,
+      "end": 3941.44,
+      "text": "here we used the value function to do that."
+    },
+    {
+      "start": 3941.44,
+      "end": 3950.44,
+      "text": "And we also mentioned that we had some things in place in order for us to not deviate too much from what we had before."
+    },
+    {
+      "start": 3950.44,
+      "end": 3960.8,
+      "text": "So, we saw the clipping mechanism with respect to the old policy, but we also saw the KL pen penalty term between the current policy and the"
+    },
+    {
+      "start": 3960.8,
+      "end": 3962.68,
+      "text": "reference policy."
+    },
+    {
+      "start": 3962.68,
+      "end": 3972.36,
+      "text": "So, these are ideas, but some methods they mix both, some methods they use one but not the other, some some methods mix them."
+    },
+    {
+      "start": 3972.36,
+      "end": 3983.36,
+      "text": "There are multiple flavors of it, but I think what is important for you to remember is the different methods that you can use in order to achieve these goals."
+    },
+    {
+      "start": 3983.68,
+      "end": 3991.2,
+      "text": "And I wanted to have a dedicated slide to say if you were to read the PPO paper, please be careful."
+    },
+    {
+      "start": 3991.2,
+      "end": 3998.48,
+      "text": "L is not a loss, it is an objective function. You want to maximize that quantity, you don't want to minimize."
+    },
+    {
+      "start": 3998.48,
+      "end": 4005.76,
+      "text": "And the second one is you will see R for the ratio, be careful, it is not a reward, it is a ratio."
+    },
+    {
+      "start": 4005.76,
+      "end": 4012.24,
+      "text": "And with that, I will just recap what we saw with respect to the challenges that we mentioned."
+    },
+    {
+      "start": 4012.24,
+      "end": 4023.96,
+      "text": "Gradients being noisy, well, we have a way to compute a baseline, which also turns out to give token level credit assignments."
+    },
+    {
+      "start": 4023.96,
+      "end": 4033.8,
+      "text": "And we said we could also use either clipping or the KL divergence methods in order to ensure that the policy is not deviating too much"
+    },
+    {
+      "start": 4033.8,
+      "end": 4036.6,
+      "text": "from what we had."
+    },
+    {
+      "start": 4036.6,
+      "end": 4045.7599999999998,
+      "text": "But the big problem with this approach is that you need to train a value function."
+    },
+    {
+      "start": 4046.0,
+      "end": 4048.68,
+      "text": "That is a lot of hassle."
+    },
+    {
+      "start": 4048.68,
+      "end": 4054.48,
+      "text": "And so this is the reason why this is not the only method we're seeing in this lecture."
+    },
+    {
+      "start": 4054.48,
+      "end": 4062.76,
+      "text": "There's a second method which has gained a lot of importance in the past couple of years, which is called GRPO."
+    },
+    {
+      "start": 4062.76,
+      "end": 4068.64,
+      "text": "So GRPO stands for group relative policy optimization."
+    },
+    {
+      "start": 4068.64,
+      "end": 4078.6,
+      "text": "And what it does is it tries to maximize advantages but without a value function."
+    },
+    {
+      "start": 4078.6,
+      "end": 4082.2,
+      "text": "That is the big added value."
+    },
+    {
+      "start": 4082.2,
+      "end": 4089.8,
+      "text": "But without the value function of GRPO is it doesn't need a value function in order to work."
+    },
+    {
+      "start": 4089.8,
+      "end": 4093.56,
+      "text": "And we're going to see exactly what it does instead."
+    },
+    {
+      "start": 4093.56,
+      "end": 4103.64,
+      "text": "So back to the intuition that we had around having something to compare a reward to."
+    },
+    {
+      "start": 4103.64,
+      "end": 4111.92,
+      "text": "The intuition behind GRPO is given a prompt, you're going to sample multiple responses"
+    },
+    {
+      "start": 4111.92,
+      "end": 4116.16,
+      "text": "in order to get that expected value."
+    },
+    {
+      "start": 4116.16,
+      "end": 4124.319,
+      "text": "So you take some prompts, you take a positive temperature, and when you generate several responses, they hopefully are all different."
+    },
+    {
+      "start": 4124.319,
+      "end": 4127.759,
+      "text": "And you will get some responses that are better than others."
+    },
+    {
+      "start": 4127.759,
+      "end": 4139.68,
+      "text": "And if you do that, and if you compute the reward for each of these outputs with respect to the prompts, then if you compare that to the mean of"
+    },
+    {
+      "start": 4139.68,
+      "end": 4149.88,
+      "text": "reward and you standardize them, can get a sense of which response is better to other one with respect to other ones."
+    },
+    {
+      "start": 4149.88,
+      "end": 4153.64,
+      "text": "And you don't need a value function for that."
+    },
+    {
+      "start": 4153.799,
+      "end": 4163.319,
+      "text": "And of course you also want to not deviate too much from what you had before. So the same tricks apply. So you have the"
+    },
+    {
+      "start": 4163.319,
+      "end": 4172.68,
+      "text": "clipping mechanism, which is making sure that you don't have non-zero gradients if you're too far from the old policy."
+    },
+    {
+      "start": 4172.68,
+      "end": 4181.68,
+      "text": "And you also have that KL divergence term, which allows you to penalize any big deviations from the reference model."
+    },
+    {
+      "start": 4182.0,
+      "end": 4184.92,
+      "text": "So it's a lot of math, a lot of formulas."
+    },
+    {
+      "start": 4184.92,
+      "end": 4191.64,
+      "text": "So let's relax for a second and just walk through that illustration together."
+    },
+    {
+      "start": 4191.64,
+      "end": 4201.92,
+      "text": "So how would we go about updating the weights of our LLM if we were to follow GRPO?"
+    },
+    {
+      "start": 4201.92,
+      "end": 4213.0,
+      "text": "So first we take a prompt and ask our LLM, which is the policy model, to generate responses."
+    },
+    {
+      "start": 4213.0,
+      "end": 4219.400000000001,
+      "text": "So it would generate one output, it would generate two outputs, actually G outputs."
+    },
+    {
+      "start": 4219.48,
+      "end": 4224.8,
+      "text": "And what you want is to know how good these outputs are."
+    },
+    {
+      "start": 4224.8,
+      "end": 4233.72,
+      "text": "So each of these outputs with respect to the input would be evaluated with respect to your reward model, which can be a model or"
+    },
+    {
+      "start": 4233.72,
+      "end": 4237.0,
+      "text": "or something deterministic."
+    },
+    {
+      "start": 4237.44,
+      "end": 4248.8,
+      "text": "And then you would compute advantage values by subtracting the reward with the mean of the rewards of that group and dividing this with the standard"
+    },
+    {
+      "start": 4248.8,
+      "end": 4251.64,
+      "text": "deviation of the rewards."
+    },
+    {
+      "start": 4251.64,
+      "end": 4261.32,
+      "text": "So here you get a relative sense of how each output performs with respect to the group."
+    },
+    {
+      "start": 4261.32,
+      "end": 4271.84,
+      "text": "And what you would do is you would use these advantages in order to compute your gradients,"
+    },
+    {
+      "start": 4271.84,
+      "end": 4277.6,
+      "text": "but you would also make sure to penalize for any deviations with respect to your reference model."
+    },
+    {
+      "start": 4277.6,
+      "end": 4282.92,
+      "text": "So, you would also have a KL divergence term along with the clipping."
+    },
+    {
+      "start": 4283.4,
+      "end": 4286.2,
+      "text": "And you would not have any value function."
+    },
+    {
+      "start": 4286.2,
+      "end": 4293.24,
+      "text": "No value function needed. You only need your policy model, you need a reward model, and a reference model."
+    },
+    {
+      "start": 4293.24,
+      "end": 4304.0,
+      "text": "And by the way, the reward model is optional, too, because if you're doing, let's say, reasoning or math or or coding, you can leverage verifiable rewards."
+    },
+    {
+      "start": 4304.28,
+      "end": 4308.84,
+      "text": "Okay, so how does that compare with PPO?"
+    },
+    {
+      "start": 4308.84,
+      "end": 4319.96,
+      "text": "So, PPO, you took some inputs, you put that into your policy model, you generate one response, and what you do is you"
+    },
+    {
+      "start": 4319.96,
+      "end": 4327.76,
+      "text": "input that prompt and response into a reward model, tells you how good how well you're doing."
+    },
+    {
+      "start": 4327.76,
+      "end": 4336.76,
+      "text": "There are many variations of how to incorporate the KL penalty, but one of the variations is to"
+    },
+    {
+      "start": 4336.76,
+      "end": 4341.4800000000005,
+      "text": "incorporate as part of the rewards."
+    },
+    {
+      "start": 4342.04,
+      "end": 4344.44,
+      "text": "So, you would do that."
+    },
+    {
+      "start": 4344.44,
+      "end": 4356.2,
+      "text": "And in parallel to that, you would use your value model in order to get a token level prediction of what is the expected final reward if"
+    },
+    {
+      "start": 4356.2,
+      "end": 4359.64,
+      "text": "you were to follow that policy."
+    },
+    {
+      "start": 4359.64,
+      "end": 4371.64,
+      "text": "And you would compute an advantage quantity, which we saw is if we want to be extremely vanilla, it can be the difference between the value"
+    },
+    {
+      "start": 4371.64,
+      "end": 4382.24,
+      "text": "functions, but it's actually more complicated than that, and you have a method that does that that is called the generalized advantage estimation that is called GAE."
+    },
+    {
+      "start": 4382.24,
+      "end": 4384.44,
+      "text": "So, you can do that."
+    },
+    {
+      "start": 4384.44,
+      "end": 4394.879999999999,
+      "text": "And then, take your advantage and use that in order to compute the gradient that will update your policy."
+    },
+    {
+      "start": 4394.96,
+      "end": 4401.0,
+      "text": "So, I want us to So, by the way, does that make sense so far?"
+    },
+    {
+      "start": 4402.76,
+      "end": 4403.8,
+      "text": "Yeah?"
+    },
+    {
+      "start": 4403.8,
+      "end": 4405.0,
+      "text": "Okay."
+    },
+    {
+      "start": 4405.0,
+      "end": 4414.76,
+      "text": "Um so, with that being said, I just want to do a recap of what are the models that are involved and which ones are the ones that we're training versus not."
+    },
+    {
+      "start": 4414.76,
+      "end": 4420.08,
+      "text": "So, if you remember, the reference model is fixed, so it's the one that you started from."
+    },
+    {
+      "start": 4420.08,
+      "end": 4430.8,
+      "text": "And you have optionally a reward model, which you train beforehand, and that you're leveraging here. You're not training your reward model."
+    },
+    {
+      "start": 4430.8,
+      "end": 4435.52,
+      "text": "But, what you're training is obviously your policy model."
+    },
+    {
+      "start": 4435.52,
+      "end": 4441.76,
+      "text": "And in the case of PPO, you're also training a value model."
+    },
+    {
+      "start": 4441.76,
+      "end": 4451.24,
+      "text": "And you're training it jointly with the policy model, because as we saw, the value model tries to estimate the expected rewards if you"
+    },
+    {
+      "start": 4451.24,
+      "end": 4459.32,
+      "text": "were to follow the policy, and you're actually training the policy, so you need to make sure that these two are in sync."
+    },
+    {
+      "start": 4459.32,
+      "end": 4467.6,
+      "text": "And that is the core reason why PPO is a hassle, because you need to have all the bandwidth to"
+    },
+    {
+      "start": 4467.6,
+      "end": 4471.92,
+      "text": "to host the value model training."
+    },
+    {
+      "start": 4472.84,
+      "end": 4481.16,
+      "text": "And at the end, you obtain these formulas, and you know, I'm glad we didn't start from these formulas because they can be a little bit intimidating."
+    },
+    {
+      "start": 4481.16,
+      "end": 4486.28,
+      "text": "So, something that is similar between the two formulas, the ratios."
+    },
+    {
+      "start": 4486.28,
+      "end": 4497.6,
+      "text": "So, here we have the ratio between the probability given by the policy that we're training over the probability of the policy that is the one that generated the batch, so the"
+    },
+    {
+      "start": 4497.6,
+      "end": 4499.4,
+      "text": "old policy."
+    },
+    {
+      "start": 4499.4,
+      "end": 4505.4,
+      "text": "That one is a quantity that you see across both formulas."
+    },
+    {
+      "start": 4505.4,
+      "end": 4507.44,
+      "text": "You also see the clipping."
+    },
+    {
+      "start": 4507.44,
+      "end": 4519.360000000001,
+      "text": "And here we saw that the clipping was meant for us to make sure that our policy is not going too far from the old policy."
+    },
+    {
+      "start": 4520.28,
+      "end": 4531.2,
+      "text": "And then we also have a KL divergence term. So, I mentioned that there are many variations. In here, GRPO actually expresses the KL divergence in the last"
+    },
+    {
+      "start": 4531.2,
+      "end": 4532.68,
+      "text": "function."
+    },
+    {
+      "start": 4532.68,
+      "end": 4541.599999999999,
+      "text": "But you can very well express it as part of the advantage that you're computing, which is the case of PPO."
+    },
+    {
+      "start": 4543.36,
+      "end": 4554.2,
+      "text": "In terms of the differences, so the the previous thing that we saw was one difference, by the way. So, where you put the KL penalty is something that can vary from method to"
+    },
+    {
+      "start": 4554.2,
+      "end": 4555.92,
+      "text": "method."
+    },
+    {
+      "start": 4555.92,
+      "end": 4561.76,
+      "text": "The second difference is the way you compute the advantage."
+    },
+    {
+      "start": 4561.76,
+      "end": 4571.84,
+      "text": "So, in the GRPO case, what you do is you compute the advantage at the completion level, and you compare that with"
+    },
+    {
+      "start": 4571.84,
+      "end": 4573.92,
+      "text": "the other outputs."
+    },
+    {
+      "start": 4573.92,
+      "end": 4585.36,
+      "text": "And so, by the way, if you look at the GRPO formula, you will see that T denotes the token, and you see that the advantage is a function of"
+    },
+    {
+      "start": 4585.36,
+      "end": 4591.4,
+      "text": "output I and the token T, and you may wonder, well, why is there a T if it's at the completion level?"
+    },
+    {
+      "start": 4591.4,
+      "end": 4602.72,
+      "text": "You can define the advantage either at the completion level or the token level, which is why there is a small generic formula, but people typically use the completion level one,"
+    },
+    {
+      "start": 4602.72,
+      "end": 4613.88,
+      "text": "just because it's easier. Because the token level one, you need to have some way of distinguishing token level contributions, which you're typically not doing."
+    },
+    {
+      "start": 4613.88,
+      "end": 4624.24,
+      "text": "Anyway, going back, you see A I R and T, but it's actually A a function of I for GRPO, so you compute that by comparing your reward with respect to the mean of the"
+    },
+    {
+      "start": 4624.24,
+      "end": 4626.84,
+      "text": "rewards of your group."
+    },
+    {
+      "start": 4626.84,
+      "end": 4635.2,
+      "text": "And you divide that by the standard deviation, but for PPO, you're computing the advantage at the token level."
+    },
+    {
+      "start": 4635.2,
+      "end": 4638.0,
+      "text": "And you're using the value function for that."
+    },
+    {
+      "start": 4638.0,
+      "end": 4642.88,
+      "text": "And as a reminder, the value function is also at the token level."
+    },
+    {
+      "start": 4642.88,
+      "end": 4646.6,
+      "text": "And it's trained jointly with the policy."
+    },
+    {
+      "start": 4648.24,
+      "end": 4657.4,
+      "text": "And that's a lot. So, I'll just uh pause for maybe 1 minute to see if there is any questions on these two big formulas."
+    },
+    {
+      "start": 4657.4,
+      "end": 4661.320000000001,
+      "text": "Now, if you see this slide, does that make sense?"
+    },
+    {
+      "start": 4663.76,
+      "end": 4665.76,
+      "text": "Yeah?"
+    },
+    {
+      "start": 4665.76,
+      "end": 4668.0,
+      "text": "Yeah."
+    },
+    {
+      "start": 4668.08,
+      "end": 4673.32,
+      "text": "So, the question is you added in your previous slide the KL divergence for PPO. Yes, I did."
+    },
+    {
+      "start": 4673.32,
+      "end": 4684.8,
+      "text": "Um but these were more meant to illustrate two types of strategies to penalize, but in the general PPO implementation, you"
+    },
+    {
+      "start": 4684.8,
+      "end": 4689.16,
+      "text": "would actually incorporate that as part of the advantage."
+    },
+    {
+      "start": 4691.0,
+      "end": 4693.56,
+      "text": "And by the way, it's uh common thing."
+    },
+    {
+      "start": 4693.56,
+      "end": 4701.12,
+      "text": "Every paper has a different way of implementing this. So, yeah, don't be surprised."
+    },
+    {
+      "start": 4701.8,
+      "end": 4703.32,
+      "text": "Okay, cool."
+    },
+    {
+      "start": 4703.32,
+      "end": 4712.92,
+      "text": "Well, everyone is good with these big formulas. Great. So, let's assume you do that for GRPO. It was actually something that the authors performed on"
+    },
+    {
+      "start": 4712.92,
+      "end": 4716.32,
+      "text": "math problems, on reasoning problems."
+    },
+    {
+      "start": 4716.32,
+      "end": 4725.96,
+      "text": "And what they saw was, so if you remember last week, we said that this was used to incentivize the model to produce chains"
+    },
+    {
+      "start": 4725.96,
+      "end": 4731.52,
+      "text": "of reasoning before producing an answer, and it allowed the performance to increase."
+    },
+    {
+      "start": 4731.52,
+      "end": 4742.28,
+      "text": "And one thing that is also something that the authors saw was that the length of the response tended to increase as you were"
+    },
+    {
+      "start": 4742.28,
+      "end": 4745.4,
+      "text": "performing the training."
+    },
+    {
+      "start": 4745.4,
+      "end": 4752.72,
+      "text": "And it even tended to increase even when the performance of the model was reaching a plateau."
+    },
+    {
+      "start": 4752.72,
+      "end": 4764.56,
+      "text": "So, on the left side, the Y axis is the performance of the model for a math problem, and then on the right side, it is the average response length."
+    },
+    {
+      "start": 4765.08,
+      "end": 4776.04,
+      "text": "And so, you may wonder, well, why is that happening? Why would the model incentivize the response from getting longer and longer even when"
+    },
+    {
+      "start": 4776.04,
+      "end": 4779.84,
+      "text": "the performance is reaching a plateau."
+    },
+    {
+      "start": 4780.0,
+      "end": 4788.76,
+      "text": "So, this has to do with, again, this big formula and how you are performing your normalization."
+    },
+    {
+      "start": 4788.76,
+      "end": 4795.28,
+      "text": "So, here I want you to focus on just one piece of the slide."
+    },
+    {
+      "start": 4795.28,
+      "end": 4801.68,
+      "text": "So, do you see the one over the response of the outputs? Do you see this term?"
+    },
+    {
+      "start": 4802.0,
+      "end": 4811.08,
+      "text": "So, when responses are short, this term is it is it big or small?"
+    },
+    {
+      "start": 4812.96,
+      "end": 4819.32,
+      "text": "Big. Yes. So, when O is small, 1 over O is big."
+    },
+    {
+      "start": 4819.32,
+      "end": 4821.56,
+      "text": "How about when O is big?"
+    },
+    {
+      "start": 4821.56,
+      "end": 4822.52,
+      "text": "It's small."
+    },
+    {
+      "start": 4822.52,
+      "end": 4832.76,
+      "text": "So, this coefficient is actually something that is multiplied with the contribution of a token to the objective function."
+    },
+    {
+      "start": 4832.76,
+      "end": 4843.88,
+      "text": "And here we're saying that if you have a token that happens to be in a short response, then the contribution will be bigger"
+    },
+    {
+      "start": 4843.88,
+      "end": 4847.6,
+      "text": "than if it's in a long response."
+    },
+    {
+      "start": 4848.72,
+      "end": 4859.32,
+      "text": "Okay, so far nothing incredible. But now let's assume you are thinking of it in terms of when the advantage is positive versus the advantage is negative."
+    },
+    {
+      "start": 4859.32,
+      "end": 4869.44,
+      "text": "So, if you're in a short output, then if your advantage is positive,"
+    },
+    {
+      "start": 4869.44,
+      "end": 4873.08,
+      "text": "it will be a big contribution upwards."
+    },
+    {
+      "start": 4873.08,
+      "end": 4881.24,
+      "text": "If you're in an in a case where it's negative, it will be a big contribution downwards."
+    },
+    {
+      "start": 4881.24,
+      "end": 4888.28,
+      "text": "And if you're in a long output, if it's uh advantage positive, then it's a slight upward increase."
+    },
+    {
+      "start": 4888.28,
+      "end": 4895.28,
+      "text": "And if you're in a negative advantage output, it's a slight downward contribution. So, what does that mean?"
+    },
+    {
+      "start": 4895.28,
+      "end": 4906.24,
+      "text": "So, if you look at the cases where you're actually outputting bad answers, relatively speaking,"
+    },
+    {
+      "start": 4906.24,
+      "end": 4915.6,
+      "text": "the model will prefer a bad answer that is longer compared to a bad answer that is shorter."
+    },
+    {
+      "start": 4916.12,
+      "end": 4926.52,
+      "text": "So, if we go back here, what that means is when the model comes to a situation where, okay, it cannot do anything about the bad answers, it just"
+    },
+    {
+      "start": 4926.52,
+      "end": 4936.56,
+      "text": "generates bad answers, it will then prefer generating longer bad answer compared to shorter bad answers."
+    },
+    {
+      "start": 4936.56,
+      "end": 4947.64,
+      "text": "And that is the reason why in this graph you are seeing a plateau of performance, but the length that is is because the model prefers"
+    },
+    {
+      "start": 4947.64,
+      "end": 4953.64,
+      "text": "longer bad responses compared to shorter shorter ones."
+    },
+    {
+      "start": 4954.52,
+      "end": 4957.68,
+      "text": "Does everyone agree with this?"
+    },
+    {
+      "start": 4957.68,
+      "end": 4962.08,
+      "text": "And so why is this a problem? Well, it's a problem because you don't want that."
+    },
+    {
+      "start": 4962.08,
+      "end": 4969.36,
+      "text": "And that is one of the motivations where there are some papers that followed GRPO that tried to tweak some little parts."
+    },
+    {
+      "start": 4969.36,
+      "end": 4979.72,
+      "text": "This included the normalization term. So here in the case of Dapo, it wanted to have the same contribution for all tokens. So the normalization is"
+    },
+    {
+      "start": 4979.72,
+      "end": 4982.44,
+      "text": "with respect to the sum of the outputs."
+    },
+    {
+      "start": 4982.44,
+      "end": 4985.4,
+      "text": "And another one, GRPO done right or Dr."
+    },
+    {
+      "start": 4985.4,
+      "end": 4992.8,
+      "text": "GRPO, I don't know how you would pronounce it, but they would just forego of that normalization term."
+    },
+    {
+      "start": 4992.8,
+      "end": 5002.52,
+      "text": "And I want to talk about other problems that can occur. So the one other that I want to mention is the way the advantages are computed."
+    },
+    {
+      "start": 5002.52,
+      "end": 5012.56,
+      "text": "They're divided by the standard deviation of the rewards. You will have varying standard deviations depending on how complex your input is."
+    },
+    {
+      "start": 5012.56,
+      "end": 5014.76,
+      "text": "And that may introduce a bias."
+    },
+    {
+      "start": 5014.76,
+      "end": 5016.08,
+      "text": "And that's not good."
+    },
+    {
+      "start": 5016.08,
+      "end": 5020.08,
+      "text": "So you may want to remove the standard deviation."
+    },
+    {
+      "start": 5020.08,
+      "end": 5030.8,
+      "text": "And the second one which I wanted to come back to the point around epsilon is that if you have an action"
+    },
+    {
+      "start": 5030.8,
+      "end": 5042.6,
+      "text": "that is of a very small probability and if you use the same epsilon for both the lower bound and the upper bound,"
+    },
+    {
+      "start": 5042.6,
+      "end": 5051.08,
+      "text": "you're actually not giving a chance for smaller probability outputs to be generated even like significantly more."
+    },
+    {
+      "start": 5051.08,
+      "end": 5058.76,
+      "text": "So let's assume your probability is like let's say 0.001 and your epsilon is I don't know, 0.2."
+    },
+    {
+      "start": 5058.76,
+      "end": 5069.88,
+      "text": "You only are giving a a amount of margin for this to be actually more discovered. And so, it is not encouraging diversity, so you may want to choose epsilons"
+    },
+    {
+      "start": 5069.88,
+      "end": 5074.48,
+      "text": "that are different for the lower bound and the upper bounds."
+    },
+    {
+      "start": 5075.24,
+      "end": 5077.72,
+      "text": "Cool. Okay, wanted to recap."
+    },
+    {
+      "start": 5077.72,
+      "end": 5087.92,
+      "text": "GRPO, we saw that the gradients are less noisy because they're computing advantages with respect to the group average."
+    },
+    {
+      "start": 5087.92,
+      "end": 5099.88,
+      "text": "And we saw that the magnitude of policy updates are also handled by the regular suspects when it comes to the methods, so clipping and KL penalty."
+    },
+    {
+      "start": 5099.88,
+      "end": 5107.6,
+      "text": "But, we saw that we didn't have explicit token level credits assignments."
+    },
+    {
+      "start": 5107.6,
+      "end": 5116.44,
+      "text": "And that's not good. We don't have a final value function anymore, but we don't have token level credits assignments, and we want to solve that."
+    },
+    {
+      "start": 5116.44,
+      "end": 5120.8,
+      "text": "And with that, I'll give it to Sherwin."
+    },
+    {
+      "start": 5120.8,
+      "end": 5122.48,
+      "text": ">> The question."
+    },
+    {
+      "start": 5122.48,
+      "end": 5133.68,
+      "text": "So, to illustrate these points, we're going to go back to our favorite example that we saw earlier in the lecture regarding a teddy bear that moves within a sealed box."
+    },
+    {
+      "start": 5133.68,
+      "end": 5140.16,
+      "text": "And we're going to recap what GRPO and verifiable rewards incentivize."
+    },
+    {
+      "start": 5140.16,
+      "end": 5147.84,
+      "text": "So, here, regardless of the reasoning steps, what matters was only the answer."
+    },
+    {
+      "start": 5147.84,
+      "end": 5156.8,
+      "text": "So, why is it a problem? As I've seen mentioned, you are going to miss on the intermediary steps. So, here I showed"
+    },
+    {
+      "start": 5156.8,
+      "end": 5167.24,
+      "text": "what G completions could give in terms of intermediary steps. So, you could have a combination of steps that go both well, steps that go both wrong, or just"
+    },
+    {
+      "start": 5167.24,
+      "end": 5169.8,
+      "text": "one of the two."
+    },
+    {
+      "start": 5169.88,
+      "end": 5179.76,
+      "text": "And as you can see, every token, when you look at the formula, is going to be associated to the same ends"
+    },
+    {
+      "start": 5179.76,
+      "end": 5188.08,
+      "text": "reward. So, you're going to attribute the same advantage as the end, even though the step is wrong, which is one downside."
+    },
+    {
+      "start": 5188.08,
+      "end": 5198.16,
+      "text": "And in the longer run, so you might argue, okay, you might have completions for which the intermediary steps don't make sense, but"
+    },
+    {
+      "start": 5198.16,
+      "end": 5206.12,
+      "text": "on average, they will. And on average, the model will learn exactly which ones are good."
+    },
+    {
+      "start": 5206.12,
+      "end": 5209.44,
+      "text": "But the thing is, it's highly inefficient."
+    },
+    {
+      "start": 5209.44,
+      "end": 5219.8,
+      "text": "Because you see, you're not leveraging what you can leverage at each step. So, each of your terms of your loss functions might not be"
+    },
+    {
+      "start": 5219.8,
+      "end": 5222.16,
+      "text": "correctly rewarding the right things."
+    },
+    {
+      "start": 5222.16,
+      "end": 5224.16,
+      "text": "So, it's noisy locally."
+    },
+    {
+      "start": 5224.16,
+      "end": 5230.96,
+      "text": "And then this phenomenon of learning the correct behavior is one that is based on the long-term."
+    },
+    {
+      "start": 5230.96,
+      "end": 5235.28,
+      "text": "So, this is not great."
+    },
+    {
+      "start": 5235.56,
+      "end": 5246.4,
+      "text": "And I've seen just mentioned a few minutes ago that in the GRPO formula, you had an advantage that was actually written out as a function of T."
+    },
+    {
+      "start": 5246.4,
+      "end": 5255.52,
+      "text": "So, let's just suppose that we're not following the common practice of being based on outcome supervision. Let's say you're on the process supervision"
+    },
+    {
+      "start": 5255.52,
+      "end": 5258.6,
+      "text": "methodology and you do follow that path."
+    },
+    {
+      "start": 5258.6,
+      "end": 5269.64,
+      "text": "Then, as we mentioned, you need dedicated labeling for these token level advantage to make sense. And if you look at the paper,"
+    },
+    {
+      "start": 5269.64,
+      "end": 5274.72,
+      "text": "they're they're slicing it at the step level, which is here what truly makes sense."
+    },
+    {
+      "start": 5274.72,
+      "end": 5279.68,
+      "text": "So, you need to label each of them separately."
+    },
+    {
+      "start": 5279.68,
+      "end": 5291.48,
+      "text": "And you might argue, if you go back to each step, that you could similarly have an ambiguity of exactly what goes wrong in that step."
+    },
+    {
+      "start": 5291.48,
+      "end": 5301.24,
+      "text": "So, let's say you talk about Teddy who works in the kitchen. Is the issue that Teddy works or that he works to the kitchen?"
+    },
+    {
+      "start": 5301.24,
+      "end": 5311.6,
+      "text": "So, it could be a recursive problem down to the token level. So, you would be bound to label token at the ends and a"
+    },
+    {
+      "start": 5311.6,
+      "end": 5316.96,
+      "text": "reward on each token might be a hard model to train."
+    },
+    {
+      "start": 5316.96,
+      "end": 5327.36,
+      "text": "And as we mentioned here, one of the reasons why we moved away from PPO in the first place is to avoid maintaining the weights of multiple models to train."
+    },
+    {
+      "start": 5327.36,
+      "end": 5330.5599999999995,
+      "text": "So, this is not what we want to do."
+    },
+    {
+      "start": 5331.12,
+      "end": 5342.24,
+      "text": "So, if I had to recap the benefits that we have in these reinforcement learning stages that we want to keep. So, we want the on-policy part to stay."
+    },
+    {
+      "start": 5342.24,
+      "end": 5348.16,
+      "text": "So, we like to train off of the outputs of the model at stake."
+    },
+    {
+      "start": 5348.16,
+      "end": 5358.36,
+      "text": "Then, GRPO had these downside of not crediting each token individually, but rather the overall outcome and hoping for the best"
+    },
+    {
+      "start": 5358.36,
+      "end": 5360.88,
+      "text": "on the things that we learn out of it."
+    },
+    {
+      "start": 5360.88,
+      "end": 5367.04,
+      "text": "And we mentioned just now that we do not want to train any additional model to remedy that."
+    },
+    {
+      "start": 5367.04,
+      "end": 5373.12,
+      "text": "So, I wrote down a proposal of what we could do to remedy it."
+    },
+    {
+      "start": 5373.12,
+      "end": 5382.0,
+      "text": "So, on-policy training is typically us interested in the model's own generation. So, that is set."
+    },
+    {
+      "start": 5382.0,
+      "end": 5388.6,
+      "text": "One proposal is to train next token prediction uh regarding the loss."
+    },
+    {
+      "start": 5388.6,
+      "end": 5399.08,
+      "text": "And for the lack of additional training as a constraint, maybe we could look around at any strong models around there and"
+    },
+    {
+      "start": 5399.08,
+      "end": 5403.2,
+      "text": "then see what we could learn from it."
+    },
+    {
+      "start": 5403.36,
+      "end": 5406.04,
+      "text": "So, I want to ask you a question."
+    },
+    {
+      "start": 5406.04,
+      "end": 5415.28,
+      "text": "I talked about next token prediction and a model that is stronger than the one at stake. So, is there a concept that comes to mind"
+    },
+    {
+      "start": 5415.28,
+      "end": 5419.0,
+      "text": "as potentially attractive here?"
+    },
+    {
+      "start": 5422.04,
+      "end": 5423.64,
+      "text": "Yep."
+    },
+    {
+      "start": 5423.64,
+      "end": 5434.92,
+      "text": "Yeah, so yeah, the comment is distillation. Yeah, exactly. Cuz distillation is about next token prediction, transfer of information from one model to the other. Yeah, spot on."
+    },
+    {
+      "start": 5434.92,
+      "end": 5439.52,
+      "text": "But not the kind that maybe you know, it's a new one."
+    },
+    {
+      "start": 5439.52,
+      "end": 5451.52,
+      "text": "Um so, before we do that, I'm going to do a quick recap on the loss that we use to compare distributions of next token predictions, which is the one that we're going to be interested in."
+    },
+    {
+      "start": 5451.52,
+      "end": 5457.24,
+      "text": "So, the scale divergence, and I wanted to frame it in a very simple terms."
+    },
+    {
+      "start": 5457.24,
+      "end": 5469.24,
+      "text": "So, as you know, this loss function is not symmetric. So, KL divergence between P and is not the same as the one between Q and P."
+    },
+    {
+      "start": 5469.24,
+      "end": 5478.88,
+      "text": "And if you want a way to know instinctively what it means, so you look at the sum, and you see that"
+    },
+    {
+      "start": 5478.88,
+      "end": 5484.76,
+      "text": "you sum based on weights of the probability distribution of the first argument."
+    },
+    {
+      "start": 5484.76,
+      "end": 5495.28,
+      "text": "So, you're supposing here that the world is governed by that probability distribution, and then you have the sum of logs of ratios"
+    },
+    {
+      "start": 5495.28,
+      "end": 5505.32,
+      "text": "that's will translate in penalization when the probability weights of the two differ."
+    },
+    {
+      "start": 5505.32,
+      "end": 5517.16,
+      "text": "So, the way I propose we interpret this, so KL of P and Q is in a world governed by P, how bad is it to approximate with Q?"
+    },
+    {
+      "start": 5517.16,
+      "end": 5527.88,
+      "text": "So, typically when you do distillation, you would govern the worlds with the teacher model. So, T would be the first argument and the student would be the second"
+    },
+    {
+      "start": 5527.88,
+      "end": 5529.28,
+      "text": "argument."
+    },
+    {
+      "start": 5529.28,
+      "end": 5535.24,
+      "text": "But here I said we want to do it on policy with respect to the students."
+    },
+    {
+      "start": 5535.24,
+      "end": 5544.72,
+      "text": "So, one natural way to formulate this is not to do KL divergence of T and S, but rather the opposite. And this is"
+    },
+    {
+      "start": 5544.72,
+      "end": 5548.76,
+      "text": "called the reverse KL divergence."
+    },
+    {
+      "start": 5549.16,
+      "end": 5554.32,
+      "text": "And it has some interesting properties attached to it."
+    },
+    {
+      "start": 5554.32,
+      "end": 5564.6,
+      "text": "So, when you look at the sum and you look at the distribution of the student and the teacher,"
+    },
+    {
+      "start": 5564.6,
+      "end": 5575.2,
+      "text": "you see that when T is not equal to zero and if S is close to zero, then the contributions of these terms to"
+    },
+    {
+      "start": 5575.2,
+      "end": 5578.48,
+      "text": "the sum are not that big."
+    },
+    {
+      "start": 5578.48,
+      "end": 5586.280000000001,
+      "text": "So, we say they are forgiving to these mismatches between these two distributions."
+    },
+    {
+      "start": 5586.4,
+      "end": 5598.32,
+      "text": "But on the other hand, if TI for a given term is small, but SI is non-zero, then you're going to have"
+    },
+    {
+      "start": 5598.32,
+      "end": 5608.76,
+      "text": "this ratio that is going to be very big and that is associated to a weight that is non-zero. So, you're going to get a huge term."
+    },
+    {
+      "start": 5609.04,
+      "end": 5619.52,
+      "text": "And these latter points combined with a typical student models architecture to not have as many degrees of freedom as"
+    },
+    {
+      "start": 5619.52,
+      "end": 5631.400000000001,
+      "text": "the teacher one to make it be mode seeking, meaning that the peaks in the distribution of the teacher would be those that would be learned by the the students."
+    },
+    {
+      "start": 5631.56,
+      "end": 5636.52,
+      "text": "So, these did this make sense here?"
+    },
+    {
+      "start": 5636.52,
+      "end": 5641.08,
+      "text": "The fact that we use reverse KL divergence."
+    },
+    {
+      "start": 5641.32,
+      "end": 5650.72,
+      "text": "So, I'm asking the question because even though it's what people use today, the original paper did a mix of both. So, I think it's not it's not obvious that"
+    },
+    {
+      "start": 5650.72,
+      "end": 5660.72,
+      "text": "this is obviously the better one, but So, now let's go back to our favorite example and apply this way of measuring"
+    },
+    {
+      "start": 5660.72,
+      "end": 5664.48,
+      "text": "the loss based on the distributions of student and teacher."
+    },
+    {
+      "start": 5664.48,
+      "end": 5674.08,
+      "text": "So, here what we want to do in on-policy distillation is that we want the student to generate a completion based on a"
+    },
+    {
+      "start": 5674.08,
+      "end": 5683.8,
+      "text": "prompt. And then we ask the teacher, based on the context how much does the token generated by the student make sense to you?"
+    },
+    {
+      "start": 5683.8,
+      "end": 5688.08,
+      "text": "And we ask this question at each new generated token."
+    },
+    {
+      "start": 5688.08,
+      "end": 5694.4,
+      "text": "So, let's say you have this prompt with uh problem statement of Teddy in a sealed box."
+    },
+    {
+      "start": 5694.4,
+      "end": 5696.72,
+      "text": "And you ask, \"Where is Teddy?\""
+    },
+    {
+      "start": 5696.72,
+      "end": 5703.16,
+      "text": "So, let's say the sentence starts with Teddy. So, Teddy makes sense to the teacher. I would generate also Teddy."
+    },
+    {
+      "start": 5703.16,
+      "end": 5706.52,
+      "text": "But then the student says \"Teddy climbs.\""
+    },
+    {
+      "start": 5706.52,
+      "end": 5709.04,
+      "text": "And the teacher would say, \"Okay, wait."
+    },
+    {
+      "start": 5709.04,
+      "end": 5719.32,
+      "text": "Climbs is not a high-probability token in my distribution. So, this is what the teacher would penalize here and what"
+    },
+    {
+      "start": 5719.32,
+      "end": 5723.0,
+      "text": "the reverse KL divergence would penalize."
+    },
+    {
+      "start": 5723.0,
+      "end": 5724.2,
+      "text": "And so on."
+    },
+    {
+      "start": 5724.2,
+      "end": 5736.04,
+      "text": "Do you see anything that is not being penalized here and that is a surprise to you in this example? So, the things that are penalized in the in this toy example are things in red."
+    },
+    {
+      "start": 5736.04,
+      "end": 5745.76,
+      "text": "Yeah. So, the suggestion is box. So, in O2, why is box not penalized either? So, do you have an explanation for it? Or does it make"
+    },
+    {
+      "start": 5745.76,
+      "end": 5748.64,
+      "text": "sense that that it's not penalized?"
+    },
+    {
+      "start": 5748.64,
+      "end": 5751.12,
+      "text": "Yeah."
+    },
+    {
+      "start": 5751.24,
+      "end": 5761.76,
+      "text": "Yeah. So, yeah, the intuition is is great. So, uh the answer was maybe the teacher interprets the the teddy bear as being a human. So, as we said,"
+    },
+    {
+      "start": 5761.76,
+      "end": 5770.16,
+      "text": "once you generate the next token, all the tokens generated before come into the context. So, let's say you are a teacher model."
+    },
+    {
+      "start": 5770.16,
+      "end": 5780.28,
+      "text": "Now, you know in your context that Teddy can do things like climbing, then walking might be in the span of possibilities. So, it's not something that is"
+    },
+    {
+      "start": 5780.28,
+      "end": 5782.6,
+      "text": "super surprising."
+    },
+    {
+      "start": 5782.6,
+      "end": 5786.88,
+      "text": "So, that is one property that is interesting."
+    },
+    {
+      "start": 5786.88,
+      "end": 5791.0,
+      "text": "And uh yeah, that's all I had to say here."
+    },
+    {
+      "start": 5791.0,
+      "end": 5801.12,
+      "text": "So, when we look at on-policy distribution on-policy distillation, we see that we have this supervision signal that is dense"
+    },
+    {
+      "start": 5801.12,
+      "end": 5806.0,
+      "text": "because it comes at the token level instead of the outcome level."
+    },
+    {
+      "start": 5806.0,
+      "end": 5814.44,
+      "text": "And contrary to SFT, it's as the name suggests on-policy, meaning that you're training the model"
+    },
+    {
+      "start": 5814.44,
+      "end": 5820.32,
+      "text": "to be better at with respect to its own completions."
+    },
+    {
+      "start": 5820.32,
+      "end": 5823.8,
+      "text": "And you see in practice great results coming from it."
+    },
+    {
+      "start": 5823.8,
+      "end": 5833.64,
+      "text": "And when you go even further than that with the same amount of compute, you see that you get more bang out of your buck from this method."
+    },
+    {
+      "start": 5833.64,
+      "end": 5843.72,
+      "text": "And also, it is more friendly to parameter constraint situations. So, there is this great blog post by"
+    },
+    {
+      "start": 5843.72,
+      "end": 5848.28,
+      "text": "Thinking Machine that did some toy ablation studies."
+    },
+    {
+      "start": 5848.28,
+      "end": 5858.8,
+      "text": "And for example, if you play with the rank of the weights that you want to tune, and you do SFT first and on-policy distillation next,"
+    },
+    {
+      "start": 5858.8,
+      "end": 5870.24,
+      "text": "you see that the delta between the performance that you get after SFT is shortened greatly after you apply on policy distillation,"
+    },
+    {
+      "start": 5870.24,
+      "end": 5877.68,
+      "text": "which shows that the method is great at operating under compute constraints."
+    },
+    {
+      "start": 5879.88,
+      "end": 5881.8,
+      "text": "Okay, great."
+    },
+    {
+      "start": 5881.8,
+      "end": 5892.8,
+      "text": "And also, since there is no reward model, there is nothing to hack. And if there were something to hack, we would be more than happy to because if on policy distillation wants to bring the"
+    },
+    {
+      "start": 5892.8,
+      "end": 5899.48,
+      "text": "loss down to zero, then you would align with the teacher distribution, which is a good edge case."
+    },
+    {
+      "start": 5899.48,
+      "end": 5901.52,
+      "text": "That is great."
+    },
+    {
+      "start": 5901.52,
+      "end": 5908.76,
+      "text": "But then, when I mentioned we need a teacher model, then you need to have that in the first place."
+    },
+    {
+      "start": 5908.76,
+      "end": 5918.36,
+      "text": "Let's say you're you're you're training like a model, then you need to have that and you're training a frontier model. Maybe you're the best, so you there is no one that"
+    },
+    {
+      "start": 5918.36,
+      "end": 5920.84,
+      "text": "could teach you."
+    },
+    {
+      "start": 5920.84,
+      "end": 5932.12,
+      "text": "And then the second thing is that contrary to GRPU, where the signal that you're basing your updates on is true labels,"
+    },
+    {
+      "start": 5932.12,
+      "end": 5942.56,
+      "text": "now you're comparing yourself to a teacher model's output distribution, and it might not be perfect, nor might it be"
+    },
+    {
+      "start": 5942.56,
+      "end": 5951.44,
+      "text": "complete in terms of coverage on the domains that you're interested in, which is why it's it might also come as a limitation."
+    },
+    {
+      "start": 5951.44,
+      "end": 5954.28,
+      "text": "Does that make sense?"
+    },
+    {
+      "start": 5955.36,
+      "end": 5967.28,
+      "text": "Okay, great. So, now I'm going to see each of these limitations more in detail. So, do you see a way where we could avoid the need for a teacher?"
+    },
+    {
+      "start": 5967.28,
+      "end": 5977.08,
+      "text": "Okay, I know it's it's not obvious, but once you're going to say it, it sounds magical. So, you just need to recall that everything that you're inputting"
+    },
+    {
+      "start": 5977.08,
+      "end": 5987.84,
+      "text": "for you to obtain the output distributions is done by teacher forcing way. So, the figure that I've shown had a thing here"
+    },
+    {
+      "start": 5987.84,
+      "end": 5999.52,
+      "text": "between generation and training, you would be on the right side where once you generate the tokens from your student model, you put all of them, the prompts plus"
+    },
+    {
+      "start": 5999.52,
+      "end": 6008.84,
+      "text": "the tokens from the student model as input of your teacher, and you look at the output next token prediction of your teacher model."
+    },
+    {
+      "start": 6008.84,
+      "end": 6020.0,
+      "text": "So, nothing prevents you from injecting things that could help a potential teacher as part of the prompt, including the answer and everything that"
+    },
+    {
+      "start": 6020.0,
+      "end": 6021.76,
+      "text": "leads up to the answer."
+    },
+    {
+      "start": 6021.76,
+      "end": 6025.16,
+      "text": "So, this is what the on-policy self-distillation paper does."
+    },
+    {
+      "start": 6025.16,
+      "end": 6035.72,
+      "text": "So, you have a prompt, then you have the complete answer, and you ask the model to come back with an answer once again."
+    },
+    {
+      "start": 6035.72,
+      "end": 6042.96,
+      "text": "And this is just a trick for you to get these nice probability distributions ready to compare with a student."
+    },
+    {
+      "start": 6042.96,
+      "end": 6048.160000000001,
+      "text": "And the nice thing here is that you can do that with the same model."
+    },
+    {
+      "start": 6049.36,
+      "end": 6051.64,
+      "text": "Does that look magical?"
+    },
+    {
+      "start": 6051.64,
+      "end": 6052.92,
+      "text": "Yeah."
+    },
+    {
+      "start": 6052.92,
+      "end": 6054.32,
+      "text": "Yeah, I know."
+    },
+    {
+      "start": 6054.32,
+      "end": 6055.48,
+      "text": "Looks great."
+    },
+    {
+      "start": 6055.48,
+      "end": 6061.8,
+      "text": "So, okay. So, the second thing that we mentioned is the Oh, yeah. There was a question."
+    },
+    {
+      "start": 6061.8,
+      "end": 6072.12,
+      "text": "So, the question is if I had to summarize, is when would you benefit most from on-policy distillation? So, yeah, you're right that let's say you're the best model out"
+    },
+    {
+      "start": 6072.12,
+      "end": 6083.12,
+      "text": "there, maybe you will have a lesser benefit from this uh from this method, and maybe you would use on-policy distillation for other needs."
+    },
+    {
+      "start": 6083.12,
+      "end": 6094.2,
+      "text": "The like GLM 5 paper that we saw last week is one example where you would use it to calibrate the fact that you do not lose knowledge that you have learned in the past. So,"
+    },
+    {
+      "start": 6094.2,
+      "end": 6097.56,
+      "text": "you would distill yourself on previously gained knowledge."
+    },
+    {
+      "start": 6097.56,
+      "end": 6107.76,
+      "text": "But uh you're right, you would typically use it on faster models of your of your series. So, let's say you have"
+    },
+    {
+      "start": 6107.76,
+      "end": 6117.24,
+      "text": "like your Frontier Lab, you have a Pro and a Flash model. Maybe on-policy distillation would be what you use on your Flash series and then um and then your Pro series might be"
+    },
+    {
+      "start": 6117.24,
+      "end": 6128.92,
+      "text": "more foundational GRPO and then like these core techniques that might need more compute, but that are based off like hardcore levels."
+    },
+    {
+      "start": 6128.92,
+      "end": 6129.56,
+      "text": ">> Thank you."
+    },
+    {
+      "start": 6129.56,
+      "end": 6131.0,
+      "text": ">> Yep."
+    },
+    {
+      "start": 6131.0,
+      "end": 6132.04,
+      "text": "Awesome."
+    },
+    {
+      "start": 6132.04,
+      "end": 6143.92,
+      "text": "So, the last thing that I wanted to mention is on the fact that you might be bounded by the teacher's abilities. So, one approach is to"
+    },
+    {
+      "start": 6143.92,
+      "end": 6153.08,
+      "text": "take a model and then use these verifiable rewards across domains and then have experts for each domain."
+    },
+    {
+      "start": 6153.08,
+      "end": 6161.6,
+      "text": "And then when you want to do this on-policy distillation, do it against the expert of that domain."
+    },
+    {
+      "start": 6161.6,
+      "end": 6166.96,
+      "text": "So, this is why there is a multi-teacher on-policy distillation that comes in the picture."
+    },
+    {
+      "start": 6166.96,
+      "end": 6173.68,
+      "text": "So, now is it a surprise to anyone that we need multiple teachers here and not just one?"
+    },
+    {
+      "start": 6173.68,
+      "end": 6185.04,
+      "text": "Well, empirically, if you do this post-training RL on just a single one, you might have things like forgetting that happens and you might use a given"
+    },
+    {
+      "start": 6185.04,
+      "end": 6196.12,
+      "text": "set of parameters towards multiple objectives. So, this is a method that is that that has shown to be more efficient."
+    },
+    {
+      "start": 6196.12,
+      "end": 6200.92,
+      "text": "Okay, awesome. And with that, I hope you have a great weekend."
+    }
+  ],
+  "heatmap": [],
+  "view_count": 33660,
+  "like_count": 283,
+  "comment_count": 10,
+  "published_at": "2026-10-19T23:10:53+00:00",
+  "chapters": [
+    {
+      "start_time": 0,
+      "title": "Introduction",
+      "end_time": 395
+    },
+    {
+      "start_time": 395,
+      "title": "RL setup",
+      "end_time": 572
+    },
+    {
+      "start_time": 572,
+      "title": "Reward design",
+      "end_time": 743
+    },
+    {
+      "start_time": 743,
+      "title": "Policy gradient",
+      "end_time": 1032
+    },
+    {
+      "start_time": 1032,
+      "title": "Derivation of the gradient",
+      "end_time": 1430
+    },
+    {
+      "start_time": 1430,
+      "title": "REINFORCE",
+      "end_time": 1551
+    },
+    {
+      "start_time": 1551,
+      "title": "Importance sampling ratio",
+      "end_time": 2002
+    },
+    {
+      "start_time": 2002,
+      "title": "Challenges of policy gradients",
+      "end_time": 2434
+    },
+    {
+      "start_time": 2434,
+      "title": "Proximal Policy Optimization (PPO)",
+      "end_time": 2569
+    },
+    {
+      "start_time": 2569,
+      "title": "Value function and advantage",
+      "end_time": 3076
+    },
+    {
+      "start_time": 3076,
+      "title": "Policy ratio",
+      "end_time": 3183
+    },
+    {
+      "start_time": 3183,
+      "title": "Ratio clipping",
+      "end_time": 3465
+    },
+    {
+      "start_time": 3465,
+      "title": "KL Penalty",
+      "end_time": 3588
+    },
+    {
+      "start_time": 3588,
+      "title": "Connection with DPO",
+      "end_time": 4049
+    },
+    {
+      "start_time": 4049,
+      "title": "Group Relative Policy Optimization (GRPO)",
+      "end_time": 4182
+    },
+    {
+      "start_time": 4182,
+      "title": "Comparison of GRPO and PPO",
+      "end_time": 4705
+    },
+    {
+      "start_time": 4705,
+      "title": "Limitations of GRPO",
+      "end_time": 4961
+    },
+    {
+      "start_time": 4961,
+      "title": "DAPO, Dr. GRPO",
+      "end_time": 5117
+    },
+    {
+      "start_time": 5117,
+      "title": "On-Policy Distillation (OPD)",
+      "end_time": 5972
+    },
+    {
+      "start_time": 5972,
+      "title": "Self (OPSD) and Multi-Teacher (OPD) variants",
+      "end_time": 6206
+    }
+  ],
+  "transcript_origin": "youtube_public_captions"
+}

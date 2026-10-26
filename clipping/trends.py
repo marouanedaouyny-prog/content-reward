@@ -21,6 +21,8 @@ NICHES = (
     {'name': 'Fitness', 'query': 'fitness training coach interview'},
     {'name': 'Sport', 'query': 'football sports full interview'},
     {'name': 'Culture & comedy', 'query': 'comedy culture podcast interview'},
+    {'name': 'Streams', 'query': 'livestream streamer full interview discussion'},
+    {'name': 'Education', 'query': 'educational lecture science history full explanation'},
 )
 INTERVAL = 6 * 3600
 MIN_SOURCE_SECONDS = 1200
@@ -184,10 +186,42 @@ def candidate(item, niche):
             and duration is not None and MIN_SOURCE_SECONDS < duration <= MAX_SOURCE_SECONDS)}
 
 
+def bounded_search_records(records):
+    """Keep only public fields consumed by ranking; never cache provider URLs or headers."""
+    if not isinstance(records, list):
+        raise ValueError('YouTube search results must be a list')
+    safe = []
+    for record in records[:8]:
+        if not isinstance(record, dict):
+            continue
+        item = {}
+        identifier = record.get('id')
+        if isinstance(identifier, str) and re.fullmatch(r'[A-Za-z0-9_-]{11}', identifier):
+            item['id'] = identifier
+        for key in ('title', 'uploader', 'channel', 'published_at', 'upload_date', 'live_status'):
+            value = record.get(key)
+            if isinstance(value, str):
+                item[key] = value[:500]
+        for key in ('view_count', 'duration', 'timestamp'):
+            value = finite_number(record.get(key))
+            if value is not None:
+                item[key] = value
+        if isinstance(record.get('is_live'), bool):
+            item['is_live'] = record['is_live']
+        if 'id' in item:
+            safe.append(item)
+    return safe
+
+
 class TrendResearchAgent:
-    def __init__(self, engine, niches=None):
+    def __init__(self, engine, niches=None, *, cache_database=None):
         self.engine = engine
         self.niches = tuple(niches) if niches is not None else NICHES
+        if cache_database is not None:
+            from app.repositories.cache import CacheRepository
+            self.cache = CacheRepository(cache_database)
+        else:
+            self.cache = None
         with engine.connection() as db:
             db.execute('''CREATE TABLE IF NOT EXISTS clipping_trend_run (
                 id TEXT PRIMARY KEY, status TEXT NOT NULL, output TEXT NOT NULL,
@@ -214,6 +248,12 @@ class TrendResearchAgent:
         value = dict(row)
         data = json.loads(value.pop('output'))
         return {**value, **data}
+
+    @staticmethod
+    def search_cache_identity(run, niche):
+        return {'research_run_id': run['id'], 'niche': niche['name'],
+            'query': niche['query'], 'provider': run['provider'],
+            'region': run['region'], 'language': run['language'], 'version': 1}
 
     def status(self):
         with self.engine.connection() as db:
@@ -311,7 +351,19 @@ class TrendResearchAgent:
                     if niche['name'] in run['searched_niches']:
                         continue
                     try:
-                        records = discover(niche)
+                        identity = self.search_cache_identity(run, niche)
+                        records = (self.cache.get_json('youtube_search_results', identity, max_bytes=2_000_000)
+                                   if self.cache is not None else None)
+                        if records is not None and not isinstance(records, list):
+                            if self.cache is not None:
+                                self.cache.delete('youtube_search_results', identity)
+                            records = None
+                        if records is None:
+                            records = bounded_search_records(discover(niche))
+                            if self.cache is not None:
+                                self.cache.put_json('youtube_search_results', identity, records,
+                                                    ttl_seconds=24 * 3600, max_bytes=2_000_000)
+                        records = bounded_search_records(records)
                         existing = {item['id']: item for item in run['results']}
                         for record in records[:8]:
                             item = candidate(record, niche)

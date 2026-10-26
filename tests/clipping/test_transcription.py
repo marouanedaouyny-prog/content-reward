@@ -3,17 +3,13 @@ import json
 import subprocess
 import sys
 from types import SimpleNamespace
-import uuid
-from pathlib import Path
 
 import pytest
 
 
 @pytest.fixture
-def storage():
-    folder = Path('.workflow-tests') / uuid.uuid4().hex
-    folder.mkdir(parents=True)
-    return folder.resolve()
+def storage(tmp_path):
+    return tmp_path
 
 
 def ready_model(storage, name):
@@ -35,10 +31,63 @@ def test_cached_english_model_requires_explicit_english_language(storage, monkey
     assert media.whisper_model_location(storage, 'en') == 'base'
 
 
+def test_english_only_model_accepts_regional_english_and_rejects_other_languages(storage, monkeypatch):
+    media = importlib.import_module('clipping.media')
+    model = ready_model(storage, 'tiny.en')
+    monkeypatch.setenv('WHISPER_MODEL', 'tiny.en')
+
+    assert media.whisper_model_location(storage, 'en-US') == str(model)
+    assert media.whisper_model_location(storage, 'fr') == 'small'
+
+
 def test_downloaded_multilingual_model_handles_auto_detection(storage, monkeypatch):
     monkeypatch.delenv('WHISPER_MODEL', raising=False)
     model = ready_model(storage, 'small')
     assert importlib.import_module('clipping.media').whisper_model_location(storage, None) == str(model)
+
+
+def test_yaml_model_selection_is_honored_before_an_unrelated_cached_model(storage, monkeypatch):
+    from clipping.media import whisper_model_location
+    monkeypatch.delenv('WHISPER_MODEL', raising=False)
+    ready_model(storage, 'tiny.en')
+    preferred = ready_model(storage, 'small')
+    config = storage / 'model-choice.yaml'
+    config.write_text('whisper:\n  model: small\n', encoding='utf-8')
+    monkeypatch.setenv('CONTENT_REWARD_CONFIG', str(config))
+    assert whisper_model_location(storage, 'en') == str(preferred)
+
+
+def test_uncached_configured_model_is_not_silently_replaced_with_tiny(storage, monkeypatch):
+    from clipping.media import whisper_model_location
+    monkeypatch.delenv('WHISPER_MODEL', raising=False)
+    ready_model(storage, 'tiny.en')
+    config = storage / 'model-choice.yaml'
+    config.write_text('whisper:\n  model: base\n', encoding='utf-8')
+    monkeypatch.setenv('CONTENT_REWARD_CONFIG', str(config))
+    assert whisper_model_location(storage, 'en') == 'base'
+
+
+def test_environment_model_choice_overrides_yaml_and_cache(storage, monkeypatch):
+    from clipping.media import whisper_model_location
+    ready_model(storage, 'tiny.en')
+    ready_model(storage, 'small')
+    preferred = ready_model(storage, 'base')
+    config = storage / 'model-choice.yaml'
+    config.write_text('whisper:\n  model: small\n', encoding='utf-8')
+    monkeypatch.setenv('CONTENT_REWARD_CONFIG', str(config))
+    monkeypatch.setenv('WHISPER_MODEL', 'base')
+    assert whisper_model_location(storage, 'en') == str(preferred)
+
+
+def test_configured_local_model_folder_is_not_replaced_with_cached_tiny(storage, monkeypatch):
+    from clipping.media import whisper_model_location
+    monkeypatch.delenv('WHISPER_MODEL', raising=False)
+    ready_model(storage, 'tiny.en')
+    preferred = ready_model(storage, 'custom-model')
+    config = storage / 'model-choice.yaml'
+    config.write_text('whisper:\n  model: ' + preferred.as_posix() + '\n', encoding='utf-8')
+    monkeypatch.setenv('CONTENT_REWARD_CONFIG', str(config))
+    assert whisper_model_location(storage, 'en') == str(preferred)
 
 
 def test_practice_srt_is_used_as_labeled_sample_text(storage):
@@ -226,6 +275,84 @@ def test_transcription_worker_requests_and_preserves_word_timestamps(storage, mo
     assert result['segments'][0]['words'] == [
         {'start': .2, 'end': .8, 'word': ' Hello'},
         {'start': .8, 'end': 1.5, 'word': ' world.'}]
+
+
+def test_worker_preserves_diagnostic_segment_and_word_confidence(storage, monkeypatch, capsys):
+    from clipping import _transcribe
+    segment = SimpleNamespace(start=.2, end=1.5, text='Hello world.', avg_logprob=-.27,
+        no_speech_prob=.01, compression_ratio=1.4, words=[
+            SimpleNamespace(start=.2, end=.8, word=' Hello', probability=.96),
+            SimpleNamespace(start=.8, end=1.5, word=' world.', probability=.77)])
+
+    class Model:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def transcribe(self, *args, **kwargs):
+            return iter([segment]), SimpleNamespace(language='en')
+
+    monkeypatch.setitem(sys.modules, 'faster_whisper', SimpleNamespace(WhisperModel=Model))
+    monkeypatch.setattr(sys, 'argv', ['_transcribe.py', 'source.mp4', 'local model', str(storage)])
+    assert _transcribe.main() == 0
+    result = json.loads(capsys.readouterr().out)['segments'][0]
+    assert result['avg_logprob'] == -.27
+    assert result['no_speech_prob'] == .01
+    assert result['compression_ratio'] == 1.4
+    assert [word['probability'] for word in result['words']] == [.96, .77]
+
+
+def test_optional_invalid_worker_confidence_is_unavailable_instead_of_invalid_json(storage, monkeypatch, capsys):
+    from clipping import _transcribe
+    segment = SimpleNamespace(start=0, end=1, text='Speech.', avg_logprob=float('-inf'),
+        no_speech_prob=float('nan'), compression_ratio=True, words=[
+            SimpleNamespace(start=0, end=1, word='Speech.', probability=1.2)])
+
+    class Model:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def transcribe(self, *args, **kwargs):
+            return iter([segment]), SimpleNamespace(language='en')
+
+    monkeypatch.setitem(sys.modules, 'faster_whisper', SimpleNamespace(WhisperModel=Model))
+    monkeypatch.setattr(sys, 'argv', ['_transcribe.py', 'source.mp4', 'local model', str(storage)])
+    assert _transcribe.main() == 0
+    result = json.loads(capsys.readouterr().out)['segments'][0]
+    assert result == {'start': 0, 'end': 1, 'text': 'Speech.',
+                      'words': [{'start': 0, 'end': 1, 'word': 'Speech.'}]}
+
+
+def test_confidence_and_its_limits_survive_the_saved_transcript(automatic_transcription, storage, monkeypatch):
+    media, folder, data, output, _ = automatic_transcription
+    segment = {'start': .2, 'end': 1.5, 'text': 'Hello world.', 'avg_logprob': -.27,
+        'no_speech_prob': .01, 'compression_ratio': 1.4, 'words': [
+            {'start': .2, 'end': .8, 'word': ' Hello', 'probability': .96},
+            {'start': .8, 'end': 1.5, 'word': ' world.', 'probability': .77}]}
+    monkeypatch.setattr(media, 'command', lambda *args, **kwargs:
+                        json.dumps({'language': 'en', 'segments': [segment]}))
+    result = media.transcribe(data, output, folder, storage)
+    saved = json.loads((storage / result['transcript_path']).read_text(encoding='utf-8'))
+    assert saved['segments'] == [segment]
+    assert saved['asr_confidence']['available'] is True
+    assert saved['asr_confidence']['segments_with_diagnostics'] == 1
+    assert saved['asr_confidence']['words_with_probability'] == 2
+    assert saved['asr_confidence']['speech_accuracy'] == 'not_verified'
+    assert saved['asr_confidence']['limitations']
+
+
+@pytest.mark.parametrize('field,value', [('avg_logprob', float('nan')),
+    ('no_speech_prob', 1.1), ('compression_ratio', float('inf')), ('probability', True)])
+def test_invalid_confidence_cannot_be_saved_as_transcript_evidence(
+        automatic_transcription, storage, monkeypatch, field, value):
+    media, folder, data, output, _ = automatic_transcription
+    segment = {'start': 0, 'end': 1, 'text': 'Speech.', 'words': [
+        {'start': 0, 'end': 1, 'word': 'Speech.'}]}
+    (segment['words'][0] if field == 'probability' else segment)[field] = value
+    monkeypatch.setattr(media, 'command', lambda *args, **kwargs:
+                        json.dumps({'language': 'en', 'segments': [segment]}))
+    with pytest.raises(media.TranscriptRequired):
+        media.transcribe(data, output, folder, storage)
+    assert not (folder / 'transcript.json').exists()
 
 
 @pytest.mark.parametrize('words', [

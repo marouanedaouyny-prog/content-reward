@@ -13,6 +13,40 @@ def config():
     return module().Config(provider='public', caption_style='colorized', framing_mode='fit')
 
 
+@pytest.mark.parametrize('version', [
+    'ffmpeg version 8.1.1',
+    'ffmpeg version N-124716-g054dffd133-20260531',
+    'ffmpeg version N-128000-gabcdef-20260804',
+])
+def test_preflight_rejects_ffmpeg_before_9_for_bounded_section_seeking(tmp_path, monkeypatch, version):
+    mod = module()
+    monkeypatch.setattr(mod.shutil, 'which', lambda name: f'C:/tools/{name}.exe')
+    monkeypatch.setattr(mod.importlib.util, 'find_spec', lambda name: object())
+    monkeypatch.setattr(mod.media, 'whisper_model_location', lambda *args: tmp_path / 'model')
+    monkeypatch.setattr(mod.media, 'model_files_ready', lambda path: True)
+    monkeypatch.setattr(mod.subprocess, 'run', lambda *args, **kwargs:
+                        mod.subprocess.CompletedProcess(args[0], 0, version, ''))
+    with pytest.raises(mod.SetupIssue) as error:
+        mod.check_environment(config(), tmp_path)
+    assert error.value.code == 'ffmpeg_section_seek_unsupported'
+
+
+@pytest.mark.parametrize('version', [
+    'ffmpeg version 9.0.1-essentials_build',
+    'ffmpeg version N-128000-gabcdef-20260805',
+    'ffmpeg version N-130000-gabcdef-20261019',
+])
+def test_preflight_accepts_supported_ffmpeg_for_bounded_section_seeking(tmp_path, monkeypatch, version):
+    mod = module()
+    monkeypatch.setattr(mod.shutil, 'which', lambda name: f'C:/tools/{name}.exe')
+    monkeypatch.setattr(mod.importlib.util, 'find_spec', lambda name: object())
+    monkeypatch.setattr(mod.media, 'whisper_model_location', lambda *args: tmp_path / 'model')
+    monkeypatch.setattr(mod.media, 'model_files_ready', lambda path: True)
+    monkeypatch.setattr(mod.subprocess, 'run', lambda *args, **kwargs:
+                        mod.subprocess.CompletedProcess(args[0], 0, version, ''))
+    mod.check_environment(config(), tmp_path)
+
+
 def connected_pipeline(monkeypatch):
     from clipping import media, trends
     mod = module()
@@ -72,7 +106,7 @@ def test_new_orders_search_fresh_and_produce_their_own_result(tmp_path, monkeypa
     assert second.run(connection_attempts=1)['status'] == 'ready_for_review'
     assert second.state['id'] != first.state['id']
     assert second.state['job_id'] != first.state['job_id']
-    assert counts == {'search': 12, 'ingest': 2, 'transcribe': 2, 'render': 2}
+    assert counts == {'search': 2 * len(mod.trends.NICHES), 'ingest': 2, 'transcribe': 2, 'render': 2}
 
 
 def test_connection_failure_is_bounded_saved_and_resumed_without_a_fake_clip(tmp_path, monkeypatch):
@@ -111,7 +145,7 @@ def test_download_recovery_keeps_the_same_order_and_does_not_search_again(tmp_pa
     monkeypatch.setattr(media, 'ingest', original)
     restored = mod.Controller(tmp_path, resume='latest', emit=lambda _: None)
     assert restored.run(connection_attempts=1)['status'] == 'ready_for_review'
-    assert restored.state['job_id'] == job_id and counts['search'] == 6
+    assert restored.state['job_id'] == job_id and counts['search'] == len(mod.trends.NICHES)
     assert counts['transcribe'] == 1
 
 
@@ -148,7 +182,7 @@ def test_resume_after_transcription_does_not_download_or_transcribe_again(tmp_pa
     monkeypatch.setattr(media, 'render', original)
     restored = mod.Controller(tmp_path, resume='latest', emit=lambda _: None)
     assert restored.run(connection_attempts=1)['status'] == 'ready_for_review'
-    assert counts['search'] == 6 and counts['ingest'] == counts['transcribe'] == 1
+    assert counts['search'] == len(mod.trends.NICHES) and counts['ingest'] == counts['transcribe'] == 1
 
 
 def test_finished_order_resume_does_not_run_a_new_search(tmp_path, monkeypatch):
@@ -158,7 +192,7 @@ def test_finished_order_resume_does_not_run_a_new_search(tmp_path, monkeypatch):
     controller.run(connection_attempts=1)
     restored = mod.Controller(tmp_path, resume=controller.state['id'], emit=lambda _: None)
     assert restored.run(connection_attempts=1)['status'] == 'ready_for_review'
-    assert counts['search'] == 6 and counts['render'] == 1
+    assert counts['search'] == len(mod.trends.NICHES) and counts['render'] == 1
 
 
 def test_inaccessible_source_uses_the_next_fresh_candidate_without_researching(tmp_path, monkeypatch):
@@ -184,7 +218,7 @@ def test_inaccessible_source_uses_the_next_fresh_candidate_without_researching(t
     controller = mod.Controller(tmp_path, config(), emit=lambda _: None)
     result = controller.run(connection_attempts=1)
     assert result['status'] == 'ready_for_review'
-    assert len(attempted) == 2 and counts['search'] == 6
+    assert len(attempted) == 2 and counts['search'] == len(mod.trends.NICHES)
     assert result['source_id'] == 'lmnopqrstuv'
     assert result['rejected_sources'] == ['abcdefghijk']
 
@@ -236,7 +270,7 @@ def test_exclusive_resume_finishes_only_unsearched_niches_after_a_crash(tmp_path
     controller.update(research_run_id=scan['id'])
     restored = mod.Controller(tmp_path, resume='latest', emit=lambda _: None)
     assert restored.run(connection_attempts=1)['status'] == 'ready_for_review'
-    assert counts['search'] == 6
+    assert counts['search'] == len(mod.trends.NICHES)
 
 
 def test_transcription_can_resume_after_the_operator_repairs_its_runtime(tmp_path, monkeypatch):
@@ -251,7 +285,7 @@ def test_transcription_can_resume_after_the_operator_repairs_its_runtime(tmp_pat
     monkeypatch.setattr(media, 'transcribe', original)
     restored = mod.Controller(tmp_path, resume='latest', emit=lambda _: None)
     assert restored.run(connection_attempts=1)['status'] == 'ready_for_review'
-    assert counts['search'] == 6 and counts['ingest'] == counts['transcribe'] == 1
+    assert counts['search'] == len(mod.trends.NICHES) and counts['ingest'] == counts['transcribe'] == 1
 
 
 def test_order_lock_and_resume_paths_prevent_duplicate_or_outside_work(tmp_path):

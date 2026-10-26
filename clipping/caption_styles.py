@@ -5,6 +5,21 @@ import re
 from clipping.captions import caption_words, cues_for_window
 from clipping.template import STYLED_CAPTION_STYLES
 
+# PRD-GROWTH section 17 emphasis families for the gold `pro` style: numbers,
+# money, results, strong emotions, surprise/conflict and established keyword
+# emphasis. Spans describe the displayed words; they never add new claims.
+EMPHASIS = re.compile(
+    r'\$\s?\d[\d,]*(?:\.\d+)?'
+    r'|\b\d[\d,.]*(?:\.\d+)?\b'
+    r'|\b\d+(?:\.\d+)?\s?(?:percent|%)\b'
+    r'|\b(?:million|billion|thousand|dollars|money|revenue|profit|paid|earned|cost|price)\b'
+    r'|\b(?:never|always|impossible|nobody|secret|mistake|biggest|worst|best|only)\b'
+    r'|\b(?:business|successful|home|work|office|ideas)\b'
+    r'|\b(?:shocking|unbelievable|insane|crazy|amazing|furious|terrified|heartbroken|excited|angry|disgusting)\b'
+    r'|\b(?:scam|lied|exposed|backlash|conflict|fight|war)\b'
+    r'|\b(?:won|winner|lost|failed|succeeded|beat|crushed|destroyed|bankrupt|millionaire)\b',
+    re.IGNORECASE)
+
 
 def ass_time(seconds):
     value = round(seconds * 100)
@@ -30,9 +45,14 @@ def painted(text, spans, accent, base, uppercase=False):
     return ''.join(parts)
 
 
-def ass_for_window(segments, start, duration, width, height, style):
+def ass_for_window(segments, start, duration, width, height, style, *, settings=None, time_map=None):
+    from app.core.config import load_settings
+    settings = settings or load_settings()
     if style not in STYLED_CAPTION_STYLES:
         raise ValueError('Choose colorized, pro, or studio caption style')
+    # time_map shifts every timestamp through a silence-removal plan so burned
+    # captions stay synchronized with the shortened clip.
+    map_time = time_map or (lambda value: value)
     colorful = style == 'colorized'
     base, accent = ('FFFFFF', '6BFF7C') if colorful else ('F3F3EE', '5FC8F6')
     if style == 'studio':
@@ -59,14 +79,15 @@ def ass_for_window(segments, start, duration, width, height, style):
     lines = []
 
     def event(begin, finish, text):
+        begin, finish = map_time(begin), map_time(finish)
         if round(finish * 100) > round(begin * 100):
             lines.append(f'Dialogue: 0,{ass_time(begin)},{ass_time(finish)},Caption,,0,0,0,,{text}')
 
-    emphasis = re.compile(r'\b(?:business|successful|home|work|office|impossible|ideas|never|always)\b', re.I)
-    for cue in cues_for_window(segments, start, duration):
+    highlight_active = bool(settings.captions.highlight_active_word) and style in ('colorized', 'studio')
+    for cue in cues_for_window(segments, start, duration, settings=settings):
         text, begin, finish = cue['text'], cue['start'], cue['end']
         if style == 'pro':
-            spans = [(m.start(), m.end()) for m in emphasis.finditer(text)]
+            spans = [(match.start(), match.end()) for match in EMPHASIS.finditer(text)]
             event(begin, finish, painted(text, spans, accent, base))
             continue
         aligned, offset = [], 0
@@ -96,6 +117,6 @@ def ass_for_window(segments, start, duration, width, height, style):
         for event_start, event_end in zip(boundaries, boundaries[1:]):
             middle = (event_start + event_end) / 2
             active = next((span for word_start, word_end, span in aligned
-                           if word_start <= middle < word_end), None)
+                           if word_start <= middle < word_end), None) if highlight_active else None
             event(event_start, event_end, painted(text, [active] if active else [], accent, base, uppercase=colorful))
     return header + '\n'.join(lines) + '\n'

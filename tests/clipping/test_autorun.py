@@ -112,6 +112,33 @@ def test_status_with_no_order_does_not_create_one(tmp_path, capsys):
     assert not list(tmp_path.iterdir())
 
 
+def test_status_reports_missing_delivery_without_rewriting_saved_completion(tmp_path, capsys):
+    previous = saved_order(tmp_path, 'ready_for_review')
+    previous.update(result={'clips': [{'number': 1, 'clip': str(tmp_path / 'missing.mp4'),
+                                      'subtitles': str(tmp_path / 'missing.srt')}],
+                            'index': str(tmp_path / 'missing-index.txt')})
+    snapshot = previous.manifest.read_bytes()
+    mod = importlib.import_module('clipping.autorun')
+    assert mod.main(['--storage', str(tmp_path), '--status']) == 0
+    report = result(capsys)
+    assert report['status'] == 'delivery_unavailable'
+    assert report['recorded_status'] == 'ready_for_review'
+    assert report['available_clip_count'] == 0 and report['clips'] == [] and report['index'] is None
+    assert report['missing_artifacts'][0]['missing_artifacts'] == ['video', 'subtitles', 'post_caption']
+    assert previous.manifest.read_bytes() == snapshot
+
+
+def test_status_exposes_only_allowlisted_source_diagnostics(tmp_path, capsys):
+    previous = saved_order(tmp_path)
+    previous.update(source_failure={'reason': 'timeout', 'timeout_seconds': 300,
+                                    'stderr': 'SECRET_SENTINEL', 'command': 'SECRET_SENTINEL'})
+    mod = importlib.import_module('clipping.autorun')
+    assert mod.main(['--storage', str(tmp_path), '--status']) == 0
+    report = result(capsys)
+    assert report['source_failure'] == {'reason': 'timeout', 'timeout_seconds': 300}
+    assert 'SECRET_SENTINEL' not in json.dumps(report)
+
+
 def test_explicit_changed_target_requires_a_new_order(tmp_path, monkeypatch, capsys):
     previous = saved_order(tmp_path)
     snapshot = previous.manifest.read_bytes()
@@ -123,6 +150,27 @@ def test_explicit_changed_target_requires_a_new_order(tmp_path, monkeypatch, cap
     assert mod.main(['--storage', str(tmp_path), '--new', '--clips', '40']) == 75
     assert calls[0][0].config.clip_count == 40
     assert calls[0][0].state['id'] != previous.state['id']
+
+
+def test_learning_context_is_saved_and_cannot_silently_change_on_resume(tmp_path, monkeypatch, capsys):
+    calls = run_stub(monkeypatch)
+    mod = importlib.import_module('clipping.autorun')
+    context = {'account_id': 'local-review-account', 'reporting_window_hours': 24.0,
+               'view_definition': 'engaged_views', 'definition_version': '2026-08-24'}
+    path = tmp_path / 'learning.json'
+    path.write_text(json.dumps(context), encoding='utf-8')
+    assert mod.main(['--storage', str(tmp_path), '--learning-context', str(path)]) == 75
+    assert calls[0][0].config.measurement_context == context
+    identifier = calls[0][0].state['id']
+    capsys.readouterr()
+    assert mod.main(['--storage', str(tmp_path)]) == 75
+    assert calls[1][0].state['id'] == identifier
+    assert calls[1][0].config.measurement_context == context
+    context['reporting_window_hours'] = 48.0
+    path.write_text(json.dumps(context), encoding='utf-8')
+    assert mod.main(['--storage', str(tmp_path), '--learning-context', str(path)]) == 2
+    assert result(capsys)['reason'] == 'pending_order_settings_conflict'
+    assert len(calls) == 2
 
 
 def test_explicit_resume_uses_its_order_even_when_another_is_latest(tmp_path, monkeypatch, capsys):

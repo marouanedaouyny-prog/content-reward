@@ -3,7 +3,9 @@
 import argparse
 import importlib.util
 import json
+import logging
 import os
+import re
 import shutil
 import ssl
 import subprocess
@@ -20,6 +22,8 @@ from urllib.request import Request, urlopen
 from clipping import media, trends
 from clipping.template import CAPTION_STYLES, DEFAULT_CAPTION_STYLE, DEFAULT_FRAMING_MODE
 from clipping.workflow import ClippingWorkflow
+
+logger = logging.getLogger(__name__)
 
 
 class ConnectionIssue(Exception):
@@ -48,11 +52,18 @@ class Config:
     clip_count: int = 1
     partial_downloads: bool = False
     delivery_dir: str | None = None
+    organize_by_niche: bool = False
+    measurement_context: dict | None = None
     caption_styles: list[str] | None = None
     clips_per_source: int = 4
     campaign_id: str | None = None
+    # Broad discovery runs when the recorded scan finds no usable source.
+    discovery_fallback: bool = True
 
     def validate(self):
+        if self.measurement_context is not None:
+            from analytics.models import MeasurementContext
+            self.measurement_context = MeasurementContext.model_validate(self.measurement_context).model_dump(mode='json')
         if self.campaign_id is not None and (not isinstance(self.campaign_id, str)
                                             or not 1 <= len(self.campaign_id) <= 200):
             raise ValueError('Campaign ID must be a nonempty stable identifier')
@@ -60,8 +71,8 @@ class Config:
             raise ValueError('Choose selenium or public discovery')
         if self.caption_style not in CAPTION_STYLES:
             raise ValueError('Choose a supported caption style')
-        if self.framing_mode not in ('fit', 'crop'):
-            raise ValueError('Choose fit or crop framing')
+        if self.framing_mode not in ('fit', 'crop', 'speaker-focus'):
+            raise ValueError('Choose fit, crop, or speaker-focus framing')
         if isinstance(self.duration, bool) or not isinstance(self.duration, int) or not 15 <= self.duration <= 60:
             raise ValueError('Choose a clip duration from 15 to 60 seconds')
         if self.niche is not None and self.niche not in [item['name'] for item in trends.NICHES]:
@@ -84,6 +95,8 @@ class Config:
                 raise ValueError('Choose one to four supported caption styles')
             if not self.partial_downloads:
                 raise ValueError('Multiple caption styles require a partial-download batch')
+        if not isinstance(self.discovery_fallback, bool):
+            raise TypeError('Invalid discovery fallback setting')
 
 
 def timestamp():
@@ -124,10 +137,30 @@ def order_lock(folder):
                 fcntl.flock(handle, fcntl.LOCK_UN)
 
 
+def ffmpeg_supports_bounded_sections(output):
+    """Share the bounded-seek requirement between production and offline smoke."""
+    version_line = output.splitlines()[0] if isinstance(output, str) and output else ''
+    match = re.match(r'ffmpeg version (\d+)\.(\d+)', version_line)
+    if match:
+        return tuple(map(int, match.groups())) >= (9, 0)
+    build_date = re.search(r'-(20\d{6})(?:\s|$)', version_line)
+    # yt-dlp/yt-dlp#16546 identifies working FFmpeg autobuilds from August 5.
+    return bool(build_date and build_date.group(1) >= '20260805')
+
+
 def check_environment(config, storage):
     for executable in ('ffmpeg', 'ffprobe'):
         if not shutil.which(executable):
             raise SetupIssue(executable + '_missing')
+    try:
+        version = subprocess.run([shutil.which('ffmpeg'), '-version'], capture_output=True,
+                                 text=True, encoding='utf-8', errors='replace', timeout=10, check=False)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise SetupIssue('ffmpeg_version_unavailable') from exc
+    if version.returncode:
+        raise SetupIssue('ffmpeg_version_unavailable')
+    if not ffmpeg_supports_bounded_sections(version.stdout):
+        raise SetupIssue('ffmpeg_section_seek_unsupported')
     for name in ('yt_dlp', 'yt_dlp_ejs', 'faster_whisper'):
         if not importlib.util.find_spec(name):
             raise SetupIssue(name + '_missing')
@@ -222,6 +255,7 @@ class Controller:
         with self.mutex:
             self.state.update(values, updated_at=timestamp())
             self._revision = self.store.save_order(self.state, expected_revision=self._revision,
+                duration_ms=values.get('duration_ms'),
                 sync_candidates=bool({'clip_entries', 'skipped_entries', 'moments', 'source_selection'} & values.keys()))
             atomic_json(self.manifest, self.state)
             from app.core.logging import event_record
@@ -240,6 +274,18 @@ class Controller:
             else:
                 self.emit(message)
 
+    def bind_render_metrics(self, engine):
+        def record(job_id, outcome, attempt_id):
+            try:
+                self.store.record_render_event(self.state['id'], job_id, outcome, attempt_id)
+            except Exception:
+                # Reporting must not turn a verified media render into a failed job.
+                logger.warning('Could not persist render telemetry', extra={
+                    'event': 'render_metric_write_failed', 'order_id': self.state['id'],
+                    'clip_id': job_id, 'stage': 'render', 'error_code': 'DATABASE_ERROR'})
+        engine.render_event = record
+        return engine
+
     def connected(self, action, stage, attempts, delay):
         for attempt in range(attempts):
             self.update(status='running', stage=stage, reason=None, next_attempt_at=None,
@@ -256,6 +302,37 @@ class Controller:
                             retry_in_seconds=seconds, attempt=attempt + 1)
                 self.sleeper(seconds)
 
+    def discover_supplement(self, research):
+        """Broaden discovery with the resilient engine when the scan found no source.
+
+        The recorded scan searches one query per niche. When that finds
+        nothing usable, the engine searches several query variants across
+        several providers, relaxes the eligibility tiers and ranks the
+        survivors. A supplement failure never hides the original failure.
+        """
+        from clipping.discovery import pipeline as discovery_pipeline
+        try:
+            from app.core.config import load_settings
+            settings = load_settings()
+        except (ValueError, OSError, KeyError, TypeError):
+            return []
+        niches = list(getattr(research, 'niches', ()) or ())
+        if not niches:
+            return []
+        try:
+            records, outcomes = discovery_pipeline.supplement(
+                niches, mode=settings.discovery.mode, settings=settings, storage=self.storage,
+                limit=3, target=settings.discovery.target_sources)
+        except Exception:  # noqa: BLE001 - a broad search must not replace the reported failure.
+            return []
+        self.update(discovery_supplement={
+            'sources': len(records),
+            'runs': [{'niche': outcome.niche, 'run_id': outcome.run_id, 'tier': outcome.tier,
+                      'candidates_found': outcome.diagnostics.get('candidates_found'),
+                      'providers': outcome.providers, 'error': outcome.error}
+                     for outcome in outcomes]})
+        return records
+
     def search(self, research):
         if not self.state.get('research_run_id'):
             scan = research.request_scan()
@@ -267,6 +344,17 @@ class Controller:
         if scan['status'] not in ('completed', 'partial'):
             research.consume_once()
         scan = research.get(self.state['research_run_id'])
+        if not any(source.get('eligible_preview') for source in scan['results']):
+            # One strict query per niche can miss a usable source. Broaden the
+            # search before reporting that this order has no sources at all.
+            supplement = self.discover_supplement(research) if self.config.discovery_fallback else []
+            if supplement:
+                existing = {item['id']: item for item in scan['results']}
+                for item in supplement:
+                    existing.setdefault(item['id'], item)
+                scan['results'] = list(existing.values())
+                research._save(scan, 'partial')
+                scan = research.get(self.state['research_run_id'])
         if scan['status'] == 'retry_scheduled':
             raise ConnectionIssue('youtube_search_unavailable')
         if scan['status'] == 'failed':
@@ -331,8 +419,11 @@ class Controller:
             raise ValueError('Invalid connection retry policy')
         try:
             with order_lock(self.folder):
+                self.state, self._revision = self.store.read_order(self.state['id'])
+                self.config = Config(**self.state['config'])
+                self.config.validate()
                 try:
-                    return self.execute(connection_attempts, retry_delay)
+                    self.execute(connection_attempts, retry_delay)
                 except ConnectionIssue as exc:
                     self.update(status='connection_unavailable', reason=exc.code,
                                 next_attempt_at=None, action='Check connectivity in the normal terminal and resume this saved order.')
@@ -340,6 +431,8 @@ class Controller:
                     action = ('Run the resume command in a normal terminal; Chrome could not create a browser session here.'
                               if exc.code in ('browser_execution_refused', 'browser_session_not_created', 'driver_or_browser_unavailable')
                               else 'Correct the reported setup or search settings, then resume the order.')
+                    if exc.code == 'ffmpeg_section_seek_unsupported':
+                        action = 'Install FFmpeg 9.0 or newer, then resume this saved order.'
                     self.update(status='no_sources' if exc.code in ('no_eligible_sources', 'no_accessible_sources') else 'setup_required',
                                 reason=exc.code, action=action)
                 except KeyboardInterrupt:
@@ -352,9 +445,9 @@ class Controller:
                 except Exception:  # noqa: BLE001 - redact untrusted worker exceptions at the CLI boundary.
                     self.update(status='quality_failed' if self.state['stage'] == 'export_review' else 'failed',
                                 reason='stage_failed', action='Inspect the saved stage and correct it before resuming.')
+                self.update(duration_ms=round((time.monotonic() - started) * 1000))
         except OrderBusy:
             return {**self.state, 'status': 'already_running', 'reason': 'saved_order_in_use'}
-        self.update(duration_ms=round((time.monotonic() - started) * 1000))
         return self.state
 
     def execute(self, attempts, delay):
@@ -365,7 +458,7 @@ class Controller:
             from clipping.batch import execute_batch
             return execute_batch(self, attempts, delay)
         atomic_json(self.orders / 'latest.json', {'id': self.state['id']})
-        self.engine = ClippingWorkflow(self.folder / 'workflow.db', self.storage)
+        self.engine = self.bind_render_metrics(ClippingWorkflow(self.folder / 'workflow.db', self.storage))
         if self.state.get('job_id'):
             interrupted = self.engine.get(self.state['job_id'])
             if interrupted['status'] == 'running':
@@ -376,7 +469,8 @@ class Controller:
         self.update(status='running', stage='preflight', action=None)
         check_environment(self.config, self.storage)
         niches = [item for item in trends.NICHES if not self.config.niche or item['name'] == self.config.niche]
-        research = trends.TrendResearchAgent(self.engine, niches=niches)
+        research = trends.TrendResearchAgent(self.engine, niches=niches,
+            cache_database=self.store.path)
         scan = None
         if not self.state.get('job_id'):
             self.connected(lambda: check_browser(self.config), 'source_connectivity', attempts, delay)
@@ -425,9 +519,12 @@ def main(argv=None):
     parser.add_argument('--per-source', type=int, help='Maximum moments per source in larger runs (1 to 20; default: 4)')
     parser.add_argument('--output', type=Path, help='One flat delivery folder (default: project clips folder)')
     parser.add_argument('--duration', type=int, help='Target duration, 15 to 60 seconds (default: 35)')
-    parser.add_argument('--framing', choices=('fit', 'crop'), help='Fit preserves the full source over a blurred background')
+    parser.add_argument('--framing', choices=('fit', 'crop', 'speaker-focus'),
+                        help='Fit preserves the full source over a blurred background; speaker-focus crops to a stable detected face')
     parser.add_argument('--connection-attempts', type=int, default=3)
     parser.add_argument('--retry-delay', type=int, default=5, help='Initial backoff seconds; doubles up to 60 seconds')
+    parser.add_argument('--no-discovery-fallback', action='store_true',
+                        help='Do not broaden the search when the recorded scan finds no usable source')
     parser.add_argument('--storage', type=Path, default=Path(__file__).resolve().parents[1] / 'storage/clipping')
     options = parser.parse_args(argv)
     if options.new and (options.resume or options.status):
@@ -438,6 +535,8 @@ def main(argv=None):
             (options.provider, options.niche, options.caption_style, options.duration, options.framing,
              options.clips, options.output, options.caption_styles, options.per_source)):
         parser.error('Resume uses saved source and caption settings. Start a new order to change them.')
+    if (options.resume or options.status) and options.no_discovery_fallback:
+        parser.error('Resume uses the saved discovery settings. Start a new order to change them.')
     try:
         config = Config(provider=options.provider or 'selenium', browser_python=options.browser_python,
                         niche=options.niche, caption_style=options.caption_style or DEFAULT_CAPTION_STYLE,
@@ -447,7 +546,8 @@ def main(argv=None):
                         partial_downloads=True,
                         delivery_dir=str(options.output.resolve()) if options.output else None,
                         caption_styles=options.caption_styles,
-                        clips_per_source=options.per_source if options.per_source is not None else 4)
+                        clips_per_source=options.per_source if options.per_source is not None else 4,
+                        discovery_fallback=not options.no_discovery_fallback)
         controller = Controller(options.storage, config, resume=options.resume or ('latest' if options.status else None))
         if options.status:
             print(json.dumps(controller.state, ensure_ascii=True))

@@ -4,6 +4,7 @@ import html
 import json
 import math
 import re
+import shutil
 import subprocess
 
 from clipping import media
@@ -16,13 +17,7 @@ def remote_command(args, timeout):
     try:
         return media.command(args, timeout=timeout, kill_tree=True)
     except (ValueError, subprocess.TimeoutExpired) as exc:
-        transient = isinstance(exc, subprocess.TimeoutExpired) or any(term in str(exc).lower() for term in (
-            'connection refused', 'unable to connect to proxy', '10061', 'timed out',
-            'temporary failure', 'connection reset', 'name resolution', 'getaddrinfo failed',
-            'http error 429', 'http error 500', 'http error 502', 'http error 503', 'http error 504'))
-        if transient:
-            raise media.SourceUnavailable('Source connection temporarily unavailable; section progress is saved.') from exc
-        raise media.SourceAccessRequired('Public captions or partial media are unavailable for this source.') from exc
+        raise media.classify_source_failure(exc) from exc
 
 
 def parse_captions(data, duration):
@@ -68,13 +63,27 @@ def parse_captions(data, duration):
     return merged
 
 
-def inspect_source(source, folder):
+def inspect_source(source, folder, *, cache=None):
     folder.mkdir(parents=True, exist_ok=True)
+    identity = {'youtube_video_id': source['id'], 'caption_language': 'en', 'parser_version': 1}
+    if cache is not None:
+        cached = cache.get_json('source_transcript_replay', identity, max_bytes=8_000_000)
+        if (isinstance(cached, dict) and cached.get('id') == source['id']
+                and isinstance(cached.get('segments'), list) and 0 < len(cached['segments']) <= 5000
+                and isinstance(cached.get('duration'), (int, float)) and cached['duration'] > 0):
+            return {**cached, 'title': str(source.get('title') or cached.get('title') or '')[:500],
+                'view_count': source.get('views', cached.get('view_count')),
+                'like_count': source.get('likes', cached.get('like_count')),
+                'comment_count': source.get('comments', cached.get('comment_count')),
+                'published_at': source.get('published_at', cached.get('published_at'))}
     # Print only safe metadata, never stream URLs, cookies, headers or the full info dict.
     fields = '%(.{id,title,duration,view_count,like_count,comment_count,upload_date,channel,uploader,heatmap,chapters})j'
     response = remote_command([*media.ytdlp_command(), '--ignore-config', '--no-playlist',
         '--skip-download', '--no-simulate', '--write-subs', '--write-auto-subs',
         '--sub-langs', 'en-orig,en,en-US,en-GB', '--sub-format', 'json3',
+        # A rate limit on one redundant track must not discard the tracks that
+        # already downloaded; any parseable track is sufficient.
+        '--ignore-errors',
         '--socket-timeout', '15', '--retries', '2', '--extractor-retries', '1',
         '--print', fields, '-o', str(folder / 'captions.%(ext)s'), source['url']], 120)
     try:
@@ -94,13 +103,17 @@ def inspect_source(source, folder):
                 continue
         if not segments:
             raise ValueError('No public English transcript')
-        return {'id': raw['id'], 'title': str(raw.get('title') or '')[:500],
+        result = {'id': raw['id'], 'title': str(raw.get('title') or '')[:500],
                 'duration': duration, 'segments': segments,
                 'heatmap': usable_heatmap(raw.get('heatmap'), duration),
                 'view_count': raw.get('view_count'), 'like_count': raw.get('like_count'),
                 'comment_count': raw.get('comment_count'), 'published_at': source.get('published_at'),
                 'chapters': raw.get('chapters') if isinstance(raw.get('chapters'), list) else [],
                 'transcript_origin': 'youtube_public_captions'}
+        if cache is not None:
+            cache.put_json('source_transcript_replay', identity, result, ttl_seconds=6 * 3600,
+                           max_bytes=8_000_000)
+        return result
     except (ValueError, KeyError, TypeError) as exc:
         raise media.SourceAccessRequired('This source has no usable public English captions; no full download was attempted.') from exc
 
@@ -133,15 +146,12 @@ def select_moments(source, count, target, *, strict=False, excluded=(), settings
         try:
             pool = suggest_cuts(source['segments'], source['duration'], target, 15, 60,
                 keywords, source.get('heatmap'), limit=20, min_gap=3,
-                excluded_windows=reserved, require_standalone=strict, settings=settings, source=source)
+                excluded_windows=reserved, require_standalone=strict, settings=settings, source=source,
+                rank_by_growth=True, feedback=feedback)
         except ValueError as exc:
             if 'No complete transcript window' not in str(exc):
                 raise
             break
-        if feedback is not None:
-            from analytics.feedback import adjust_candidate
-            pool = [adjust_candidate(choice, feedback(choice)) for choice in pool]
-            pool.sort(key=lambda choice: (-choice['feedback']['adjusted_score'], choice['clip_plan']['start_seconds']))
         # Refill after text exclusions, rather than letting twenty repeated peaks
         # hide a later useful moment. Every considered interval is retired.
         reserved.extend(choice['clip_plan'] for choice in pool)
@@ -183,7 +193,7 @@ def _validate_section(path, expected_duration, minimum_duration):
     return duration
 
 
-def download_section(source, plan, source_duration, folder):
+def download_section(source, plan, source_duration, folder, *, cache=None):
     start, length = plan['start_seconds'], plan['duration_seconds']
     if (any(isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v)
             for v in (start, length, source_duration)) or start < 0 or not 15 <= length <= 60
@@ -193,6 +203,9 @@ def download_section(source, plan, source_duration, folder):
     folder.mkdir(parents=True, exist_ok=True)
     files = [folder / f'section{suffix}' for suffix in ('.mp4', '.mkv', '.webm')]
     path = next((candidate for candidate in files if candidate.is_file()), None)
+    cache_identity = ({'youtube_video_id': source['id'], 'source_offset': begin,
+        'requested_end': end, 'format': 'bounded-audio-video-v1'} if cache is not None else None)
+    cache_result, reused_bytes = None, None
     if path is not None:
         try:
             duration = _validate_section(path, end - begin, start - begin + length)
@@ -200,6 +213,47 @@ def download_section(source, plan, source_duration, folder):
             # An interrupted download is not a checkpoint; reacquire only this range.
             path.unlink()
             path = None
+    if path is None:
+        if cache is not None:
+            cached_path = cache.get_file('downloaded_section', cache_identity)
+            if cached_path is not None and cached_path.suffix in ('.mp4', '.mkv', '.webm'):
+                path = folder / ('section' + cached_path.suffix)
+                shutil.copy2(cached_path, path)
+                try:
+                    duration = _validate_section(path, end - begin, start - begin + length)
+                    cache_result = 'exact_hit'
+                    reused_bytes = path.stat().st_size
+                except (ValueError, KeyError, TypeError):
+                    path.unlink(missing_ok=True)
+                    path = None
+            if path is None and hasattr(cache, 'find_file'):
+                containing = cache.find_file('downloaded_section', lambda identity:
+                    identity.get('youtube_video_id') == source['id']
+                    and identity.get('format') == 'bounded-audio-video-v1'
+                    and isinstance(identity.get('source_offset'), (int, float))
+                    and isinstance(identity.get('requested_end'), (int, float))
+                    and identity['source_offset'] <= begin
+                    and identity['requested_end'] >= end)
+                if containing is not None:
+                    cached_path, containing_identity = containing
+                    trim_offset = begin - containing_identity['source_offset']
+                    path = folder / 'section.mp4'
+                    try:
+                        media.command(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-y',
+                            '-ss', f'{trim_offset:g}', '-i', str(cached_path), '-t', f'{end - begin:g}',
+                            '-map', '0:v:0', '-map', '0:a:0', '-c:v', 'libx264', '-preset', 'veryfast',
+                            '-crf', '18', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart',
+                            str(path)], timeout=180)
+                        duration = _validate_section(path, end - begin, start - begin + length)
+                        cache_result = 'containing_hit'
+                        reused_bytes = cached_path.stat().st_size
+                    except (ValueError, KeyError, TypeError, OSError, RuntimeError):
+                        path.unlink(missing_ok=True)
+                        path = None
+                        cache_result = 'trim_failed'
+        if cache is not None and hasattr(cache, 'record_access'):
+            cache.record_access('downloaded_section', cache_result or 'miss',
+                reused_bytes=reused_bytes, requested_seconds=length)
     if path is None:
         remote_command([*media.ytdlp_command(), '--ignore-config', '--no-playlist',
             '--no-write-subs', '--no-write-auto-subs', '--socket-timeout', '20',
@@ -212,5 +266,7 @@ def download_section(source, plan, source_duration, folder):
         if path is None:
             raise ValueError('Partial download produced no section')
         duration = _validate_section(path, end - begin, start - begin + length)
+    if cache is not None:
+        cache.put_file('downloaded_section', cache_identity, path, ttl_seconds=7 * 86400)
     return {'path': path, 'source_offset': begin, 'local_start': start - begin,
             'requested_end': end, 'duration': duration, 'sha256': media.file_hash(path)}

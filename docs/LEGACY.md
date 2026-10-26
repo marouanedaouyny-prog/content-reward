@@ -23,20 +23,25 @@ local historical inspection, stay in the repository root and set `PYTHONPATH`
 to the absolute `legacy/` path, then invoke the old module. Explicitly set
 `DATABASE_URL`, `STORAGE_DIR`, `LOG_DIR` and other required values to the original
 absolute locations. Supply environment files locally; never copy them into Git.
-The social connector uses its own original `social-connector/.env` and its own
-encryption key. A root Instagram token does not establish its authentication.
+The social connector uses its own original `legacy/social-connector/.env` and
+its own encryption key. A root Instagram token does not establish its
+authentication.
 
 Historical containers have their data binds adjusted to original host locations;
 the social connector compose invocation requires
-`--env-file social-connector/.env` from the repository root. These commands are
-documentary, not authorization to start services, connect accounts or publish.
+`--env-file legacy/social-connector/.env` from the repository root (its former
+root-level `social-connector/` folder was consolidated into `legacy/` alongside
+its databases). These commands are documentary, not authorization to start
+services, connect accounts or publish.
 Read the legacy configuration before any manual startup.
 
 ## Retention/deletion criteria
 
 Keep each archived stack until its useful rules/fixtures are ported, dependency
 references are checked again, and an operator explicitly decides its local data
-and credentials no longer need it. No runtime dependency from clipping is known;
+and credentials no longer need it. Legacy local data and credential files now
+live at their relocated paths: `legacy/project/data/empire.db` and
+`legacy/social-connector/` (`.env` plus `data/app.db`). No runtime dependency from clipping is known;
 this does not prove outside scripts or user workflows have no dependency.
 Archived tests are intentionally excluded from the supported `pytest` run.
 Their original root-wide collection required SQLModel absent from the audited

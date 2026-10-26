@@ -11,6 +11,7 @@
       --canvas:#f5f7f5; --tint:#eaf4ef; --focus:#a56f16; --error:#9a3725; --space:8px;
       --studio-tint:#fce9df; --studio-ink:#74331f; --studio-face:#f6ba8c; --studio-side:#c47547;
       --source-tint:#e7efff; --source-ink:#254ba0; --caption-tint:#fff2ce; --caption-ink:#765417;
+      --library-gap:calc(var(--space) * 3); --library-meta-size:.875rem;
     }
     * { box-sizing:border-box; }
     html { scroll-padding-top:24px; scrollbar-color:#a5bab1 var(--canvas); }
@@ -42,6 +43,40 @@
     .autopilot-panel { grid-area:automatic; background:var(--tint); }
     .preview-panel { grid-area:preview; }
     .run-history { grid-area:history; min-width:0; }
+    .growth-report { margin:24px 0; }
+    .growth-report-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:24px; }
+    .growth-report ol,.growth-report ul { padding-left:22px; }
+    .growth-report li { margin:6px 0; overflow-wrap:anywhere; }
+    .growth-report [role=status] { min-height:1.6em; }
+    .niche-library { margin:var(--library-gap) 0; scroll-margin-top:var(--library-gap); }
+    .library-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:var(--library-gap); }
+    .library-heading button { flex-shrink:0; }
+    .library-filter { max-width:320px; margin-top:var(--space); }
+    .library-filter select { min-height:44px; }
+    .library-location { overflow-wrap:anywhere; color:var(--muted); font-size:var(--library-meta-size); }
+    .library-location code { color:var(--ink); }
+    .library-category { padding-top:var(--library-gap); border-top:1px solid var(--line); margin-top:var(--library-gap); }
+    .library-category h3 { margin-bottom:var(--space); }
+    .library-meta { display:flex; align-items:baseline; flex-wrap:wrap; gap:var(--space); margin:var(--space) 0; font-size:var(--library-meta-size); }
+    .library-count { font-variant-numeric:tabular-nums; color:var(--muted); }
+    .library-clips { list-style:none; padding:0; margin:var(--space) 0 0; }
+    .library-clip { padding:calc(var(--space) * 2) 0; border-top:1px solid var(--line); overflow-wrap:anywhere; }
+    .library-file { font-weight:600; }
+    .library-availability { color:var(--accent); }
+    .library-availability.is-missing { color:var(--error); }
+    .library-caption { white-space:pre-wrap; overflow-wrap:anywhere; }
+    .library-clip details { margin:var(--space) 0 0; }
+    .library-clip summary { min-height:44px; display:list-item; align-content:center; }
+    #niche-library-status { min-height:1.6em; }
+    .hashtag-suggest { margin-top:24px; padding-top:20px; border-top:1px solid var(--line); }
+    .hashtag-suggest form { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; align-items:end; }
+    .hashtag-suggest label { display:grid; gap:4px; font-weight:600; }
+    .hashtag-suggest input,.hashtag-suggest select { width:100%; min-height:44px; }
+    .posting-time-check { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; align-items:end; margin-top:20px; }
+    .posting-time-check label { display:grid; gap:4px; font-weight:600; }
+    .posting-time-check input,.posting-time-check select { width:100%; min-height:44px; }
+    #hashtag-suggestions { display:flex; flex-wrap:wrap; gap:8px; padding:0; list-style:none; }
+    #hashtag-suggestions li { border:1px solid var(--line); border-radius:4px; padding:4px 9px; background:var(--canvas); }
     #automatic-start { width:100%; margin-top:8px; min-height:48px; }
     #automatic-message { font-size:13px; margin:12px 0 16px; }
     .automation-note { font-size:13px; margin:0; }
@@ -208,6 +243,8 @@
       h1 { font-size:32px; }
     }
     @media(max-width:600px) {
+      .library-heading { flex-direction:column; gap:var(--space); }
+      .library-filter { max-width:none; }
       .map-inputs,.map-result { grid-template-columns:minmax(0,1fr); }
       .studio-layout { grid-template-columns:minmax(0,1fr); }
       .studio-controls { max-width:none; }
@@ -244,8 +281,44 @@
   <div class="connection"><p id="health" class="muted" role="status">Connecting…</p><button id="kill" type="button" class="secondary">Pause processing</button></div>
 </header>
 <main>
-  <nav class="workspace-nav" aria-label="Workspace sections"><a href="#workspace">Preview</a><a href="#clip-studio">Clip studio</a><a href="#trending-research">Trending research</a><a href="#workflow-map">Workflow map</a><a href="#manual-intake" id="campaign-nav">Campaign setup</a><a href="#social-accounts">Instagram account</a></nav>
+  <nav class="workspace-nav" aria-label="Workspace sections"><a href="#workspace">Preview</a><a href="#niche-library">Niche library</a><a href="#growth-report">Growth report</a><a href="#clip-studio">Clip studio</a><a href="#trending-research">Trending research</a><a href="#workflow-map">Workflow map</a><a href="#manual-intake" id="campaign-nav">Campaign setup</a><a href="#social-accounts">Instagram account</a></nav>
   <p id="message" role="alert"></p>
+  <section class="niche-library" id="niche-library" aria-labelledby="niche-library-heading" aria-busy="true">
+    <div class="library-heading"><div><h2 id="niche-library-heading">Niche library</h2><p class="muted">Review clips by topic and find their local files. Refresh after a run finishes.</p></div><button type="button" id="niche-library-refresh" class="secondary">Refresh library</button></div>
+    <p id="niche-library-status" role="status" aria-live="polite">Checking your saved clips…</p>
+    <label class="library-filter" for="niche-library-filter">Show niche<select id="niche-library-filter" disabled><option value="all">All niches</option></select></label>
+    <p id="niche-library-root" class="library-location"></p>
+    <div id="niche-library-content"><p class="muted">Your saved clip folders will appear here.</p></div>
+    <p id="niche-library-note" class="muted"></p>
+    <p class="muted">Local review library. Publishing is disabled.</p>
+  </section>
+  <section class="growth-report" id="growth-report" aria-labelledby="growth-report-heading">
+    <h2 id="growth-report-heading">Measured growth report</h2>
+    <p class="muted">Conversion uses manually imported or recorded observations. Descriptive patterns need at least three clips; they do not predict results.</p>
+    <p id="growth-report-status" role="status" aria-live="polite">Loading measured observations…</p>
+    <div id="growth-report-content" class="growth-report-grid"></div>
+    <div id="performance-periods" class="growth-report-grid" aria-live="polite"></div>
+    <div class="hashtag-suggest">
+      <h3>Hashtag suggestions for review</h3>
+      <p class="muted">Suggestions use the text you enter and measured observations for the selected platform. Review them before use; nothing is posted.</p>
+      <form id="hashtag-suggest-form">
+        <label for="hashtag-platform">Platform<select id="hashtag-platform"><option value="instagram">Instagram</option><option value="youtube">YouTube</option><option value="tiktok">TikTok</option></select></label>
+        <label for="hashtag-niche">Niche terms<input id="hashtag-niche" maxlength="500" placeholder="business, interviews"></label>
+        <label for="hashtag-topic">Topic terms<input id="hashtag-topic" maxlength="500" placeholder="pricing, startup"></label>
+        <label for="hashtag-clip-topic">Clip topic<input id="hashtag-clip-topic" maxlength="500" required placeholder="What the clip discusses"></label>
+        <button id="hashtag-submit" type="submit">Suggest hashtags</button>
+      </form>
+      <p id="hashtag-suggest-status" role="status" aria-live="polite"></p>
+      <ul id="hashtag-suggestions" aria-label="Hashtag suggestions"></ul>
+    </div>
+    <div class="posting-time-check">
+      <div><h3>Posting-time recommendation</h3><p class="muted">Uses confirmed publication history when enough samples exist; otherwise shows configured windows.</p></div>
+      <label for="posting-time-platform">Platform<select id="posting-time-platform"><option value="instagram">Instagram</option><option value="youtube">YouTube</option><option value="tiktok">TikTok</option></select></label>
+      <label for="posting-time-account">Account identifier<input id="posting-time-account" maxlength="200" placeholder="Optional saved account ID"></label>
+      <button id="posting-time-check-button" class="secondary" type="button">Check posting time</button>
+      <p id="posting-time-status" role="status" aria-live="polite">No recommendation requested.</p>
+    </div>
+  </section>
   <div class="columns" id="workspace">
     <section class="autopilot-panel" aria-labelledby="new-heading">
       <h2 id="new-heading">Find a YouTube highlight</h2>
@@ -401,6 +474,178 @@
   const statusLabel=job=>job.payload.preview_only && job.status==='completed' ? 'Preview ready' : statuses[job.status] || job.status;
   function node(tag,text,cls) {const element=document.createElement(tag);if(text!==undefined) element.textContent=text;if(cls) element.className=cls;return element;}
   function report(error) {document.querySelector('#message').textContent=error?.message || '';}
+  let nicheLibrary=null, nicheLibraryLoading=false;
+  function libraryClip(clip) {
+    const item=node('li',undefined,'library-clip');
+    const filename=String(clip.path || '').replaceAll('\\','/').split('/').pop() || clip.id;
+    const facts=node('div',undefined,'library-meta');
+    facts.append(node('span',filename,'library-file'));
+    const missing=Array.isArray(clip.missing_artifacts) ? clip.missing_artifacts : [];
+    const changed=Array.isArray(clip.changed_artifacts) ? clip.changed_artifacts : [];
+    const issues=[];
+    if(missing.length) issues.push(`Files missing: ${missing.join(', ')}`);
+    if(changed.length) issues.push(`Files changed: ${changed.join(', ')}`);
+    facts.append(node('span',clip.available ? 'Files available' : issues.join(' · ') || 'File availability unknown',
+      `library-availability${clip.available ? '' : ' is-missing'}`));
+    item.append(facts);
+    const location=node('p',undefined,'library-location');
+    location.append(node('code',clip.path || 'Clip location unavailable'));item.append(location);
+    if(clip.subtitles) {
+      const subtitles=node('p',undefined,'library-location');
+      subtitles.append(node('span','Subtitles: '),node('code',clip.subtitles));item.append(subtitles);
+    }
+    const details=node('details'),summary=node('summary','Post caption');
+    details.append(summary,node('p',clip.caption || 'No post caption was saved.','library-caption'));
+    item.append(details);return item;
+  }
+  function renderNicheLibrary() {
+    if(!nicheLibrary) return;
+    const content=document.querySelector('#niche-library-content');content.replaceChildren();
+    const selectedNiche=document.querySelector('#niche-library-filter').value || 'all';
+    const categories=nicheLibrary.categories.filter(category=>selectedNiche==='all' || category.id===selectedNiche);
+    if(!categories.length || !nicheLibrary.categories.some(category=>category.clip_count)) {
+      content.append(node('p','No saved clips yet. Run the clipping workflow to fill your niche folders.','muted'));
+      return;
+    }
+    for(const category of categories) {
+      const group=node('div',undefined,'library-category'),heading=node('h3',category.name);
+      const count=node('p',`${category.clip_count} saved · ${category.available_clip_count} available`,'library-count');
+      const folder=node('p',undefined,'library-location');folder.append(node('span','Folder: '),node('code',category.folder));
+      group.append(heading,count,folder);
+      if(!category.clips.length) group.append(node('p',`No clips in ${category.name} yet.`,'muted'));
+      else {
+        const clips=node('ul',undefined,'library-clips'),more=node('button','Show more clips','secondary');
+        more.type='button';let shown=0;
+        const showMore=()=>{
+          const next=category.clips.slice(shown,shown+50);
+          for(const clip of next) clips.append(libraryClip(clip));
+          shown+=next.length;more.hidden=shown>=category.clips.length;
+          more.textContent=`Show more clips (${category.clips.length-shown} remaining)`;
+        };
+        more.onclick=showMore;showMore();group.append(clips,more);
+      }
+      content.append(group);
+    }
+  }
+  async function refreshNicheLibrary() {
+    if(nicheLibraryLoading) return;nicheLibraryLoading=true;
+    const button=document.querySelector('#niche-library-refresh'),status=document.querySelector('#niche-library-status');
+    const section=document.querySelector('#niche-library'),filter=document.querySelector('#niche-library-filter');
+    button.disabled=true;section.setAttribute('aria-busy','true');status.textContent='Checking local clip files…';
+    try {
+      const result=await api('/niche-library');
+      if(!Array.isArray(result.categories) || result.categories.some(category=>!Array.isArray(category.clips)))
+        throw new Error('The clip library response could not be read. Try refreshing.');
+      nicheLibrary=result;
+      const previous=filter.value,all=node('option','All niches');all.value='all';filter.replaceChildren(all);
+      for(const category of result.categories) {
+        const option=node('option',`${category.name} (${category.clip_count})`);option.value=category.id;filter.append(option);
+      }
+      filter.value=result.categories.some(category=>category.id===previous) ? previous : 'all';
+      filter.disabled=false;
+      const total=result.categories.reduce((sum,category)=>sum+category.clip_count,0);
+      const available=result.categories.reduce((sum,category)=>sum+category.available_clip_count,0);
+      status.textContent=`${total} saved ${total===1 ? 'clip' : 'clips'} · ${available} available · ${total-available} unavailable.`;
+      const root=document.querySelector('#niche-library-root');root.replaceChildren(node('span','Library folder: '),node('code',result.root));
+      document.querySelector('#niche-library-note').textContent=result.ranking_note || '';
+      renderNicheLibrary();
+    } catch(error) {
+      status.textContent=`Library unavailable: ${error.message} Use Refresh library to try again.`;
+      if(!nicheLibrary) document.querySelector('#niche-library-content').replaceChildren(node('p',
+        'Your saved clips could not be checked. Refresh the library when the local service is available.','muted'));
+    } finally {button.disabled=false;section.setAttribute('aria-busy','false');nicheLibraryLoading=false;}
+  }
+  document.querySelector('#niche-library-filter').onchange=renderNicheLibrary;
+  document.querySelector('#niche-library-refresh').onclick=refreshNicheLibrary;
+  const hashtagForm=document.querySelector('#hashtag-suggest-form');
+  hashtagForm.onsubmit=async event=>{
+    event.preventDefault();
+    const button=document.querySelector('#hashtag-submit'),status=document.querySelector('#hashtag-suggest-status');
+    const tags=document.querySelector('#hashtag-suggestions');button.disabled=true;status.textContent='Preparing suggestions…';tags.replaceChildren();
+    const words=id=>document.querySelector(id).value.split(/[,;]+/).map(value=>value.trim()).filter(Boolean);
+    try {
+      const result=await api('/hashtags/suggest',{platform:document.querySelector('#hashtag-platform').value,
+        niche_keywords:words('#hashtag-niche'),topic_keywords:words('#hashtag-topic'),
+        clip_topic:document.querySelector('#hashtag-clip-topic').value.trim()});
+      for(const tag of result.suggestion.hashtags) tags.append(node('li',tag));
+      status.textContent=result.history_status==='measured'
+        ? `Suggestions include measured ${document.querySelector('#hashtag-platform').value} history. Results are descriptive and tags remain for review.`
+        : 'No hashtag history meets the three-clip minimum; suggestions use neutral history and remain for review.';
+      if(!result.suggestion.hashtags.length) tags.append(node('li','No supported tags found. Add specific niche or topic terms.','muted'));
+    } catch(error) {status.textContent=`Suggestions unavailable: ${error.message}`;}
+    finally {button.disabled=false;}
+  };
+  document.querySelector('#posting-time-check-button').onclick=async event=>{
+    const button=event.currentTarget,status=document.querySelector('#posting-time-status');button.disabled=true;
+    status.textContent='Checking saved history…';
+    const platform=document.querySelector('#posting-time-platform').value;
+    const account=document.querySelector('#posting-time-account').value.trim();
+    const query=account ? `?account_id=${encodeURIComponent(account)}` : '';
+    try {
+      const result=await api(`/posting-time/${platform}${query}`);
+      const when=new Date(result.recommended_at).toLocaleString();
+      const basis=result.basis==='account_history'
+        ? `Confirmed account history · ${result.samples} samples · ${result.followers_per_1000_views} followers per 1,000 views`
+        : `Configured fallback · no measured posting-time sample met the minimum`;
+      status.textContent=`${when} (${result.timezone}). ${basis}.`;
+    } catch(error) {status.textContent=`Posting-time recommendation unavailable: ${error.message}`;}
+    finally {button.disabled=false;}
+  };
+  function renderGrowthReport(data) {
+    const status=document.querySelector('#growth-report-status'),content=document.querySelector('#growth-report-content');
+    content.replaceChildren();
+    if(data.status==='insufficient_data') {
+      status.textContent=`${data.measured_clip_count} of ${data.minimum_independent_clips} required clips have measured follower conversion. Add observations to see patterns.`;
+      return;
+    }
+    status.textContent=`Based on ${data.measured_clip_count} measured clips. Rates are followers per 1,000 views.`;
+    for(const [title,entries,key,format] of [
+      ['Top measured clips',data.best_clips,'clip_id',item=>`${item.clip_id}: ${item.followers_per_1000_views} followers / 1,000 views (${item.views} views)`],
+      ['Lowest measured clips',data.worst_clips,'clip_id',item=>`${item.clip_id}: ${item.followers_per_1000_views} followers / 1,000 views (${item.views} views)`],
+      ['Duration patterns',data.duration_patterns,'duration_seconds',item=>`${item.duration_seconds}–${item.duration_seconds+4} sec: ${item.followers_per_1000_views} followers / 1,000 views (${item.clip_count} clips)`],
+      ['Detected hook patterns',data.hook_patterns,'hook_type',item=>`${item.hook_type.replaceAll('_',' ')}: ${item.followers_per_1000_views} followers / 1,000 views (${item.clip_count} clips)`],
+      ['Observed hashtag groups',data.hashtag_patterns,'hashtags',item=>`${item.platform} · ${item.hashtags.join(' ') || '(no hashtags)'}: ${item.followers_per_1000_views} followers / 1,000 views (${item.clip_count} clips)`],
+      ['Observed calls to action',data.cta_patterns,'cta',item=>`${item.platform} · ${item.cta}: ${item.followers_per_1000_views} followers / 1,000 views (${item.clip_count} clips)`]
+    ]) {
+      if(!entries.length) continue;
+      const section=document.createElement('div'),heading=node('h3',title),list=node('ol');
+      for(const item of entries) list.append(node('li',format(item)));
+      section.append(heading,list);content.append(section);
+    }
+    const details=document.createElement('details'),summary=node('summary','How to read this report'),list=node('ul');
+    for(const limitation of data.limitations) list.append(node('li',limitation));
+    details.append(summary,list);content.append(details);
+  }
+  function renderPerformancePeriods(metrics) {
+    const content=document.querySelector('#performance-periods');content.replaceChildren();
+    const title=node('h3','Recent observed performance');content.append(title);
+    let shown=0;
+    for(const [period,label,limit] of [['daily','Days',7],['weekly','Weeks',8],['monthly','Months',6]]) {
+      const entries=metrics.performance_periods[period].slice(-limit);
+      if(!entries.length) continue;
+      const section=document.createElement('div'),heading=node('h4',label),list=node('ul');
+      for(const item of entries) {
+        const rate=item.followers_per_1000_views===null ? 'conversion unknown' :
+          `${item.followers_per_1000_views} followers / 1,000 views`;
+        list.append(node('li',`${item.period_start}: ${rate} · ${item.measured_clips} clips, ${item.observations} observations`));
+      }
+      section.append(heading,list);content.append(section);shown+=entries.length;
+    }
+    if(!shown) content.append(node('p','No imported performance observations yet.','muted'));
+  }
+  async function refreshGrowthReport() {
+    const status=document.querySelector('#growth-report-status');
+    status.textContent='Updating measured observations…';
+    try {renderGrowthReport(await api('/growth-insights'));}
+    catch(error) {
+      status.textContent=`Growth report unavailable: ${error.message}`;
+      const retry=node('button','Retry growth report','secondary');retry.type='button';retry.onclick=refreshGrowthReport;
+      document.querySelector('#growth-report-content').replaceChildren(retry);
+    }
+    try {renderPerformancePeriods(await api('/metrics'));}
+    catch(error) {document.querySelector('#performance-periods').replaceChildren(node('p',
+      `Performance periods unavailable: ${error.message}`,'muted'));}
+  }
   async function importSrt(file,target) {if(!file) return;if(file.size>2000000) throw new Error('The SRT file must be under 2 MB.');target.value=await file.text();}
   field('srt_file').onchange=async()=>{try {await importSrt(field('srt_file').files[0],field('transcript_srt'));report(null);} catch(error) {report(error);}};
   document.querySelector('#sample-srt').onclick=async()=>{try {if(!field('dry_run').checked) throw new Error('Enable practice mode to use the sample captions.');const response=await fetch('/examples/practice.srt');if(!response.ok) throw new Error('The subtitle demo is unavailable.');field('transcript_srt').value=await response.text();field('start').value='0';field('duration').value='5';window.clipStudio?.refresh();report(null);} catch(error) {report(error);}};
@@ -531,6 +776,7 @@
         }
         if(job.id===selected && shownRevision!==`${job.id}:${job.updated_at}`) {renderJob(job);shownRevision=`${job.id}:${job.updated_at}`;}
       }
+      refreshGrowthReport();
     } catch(error) {report(error);} finally {refreshing=false;}
   }
   form.onsubmit=async event=>{
@@ -554,7 +800,7 @@
   };
   window.selectClippingJob=async id=>{selected=id;shownRevision='';await refresh();document.querySelector('#workspace').scrollIntoView({behavior:scrollBehavior(),block:'start'});};
   document.querySelector('#kill').onclick=async()=>{try {await api('/api/v1/system/kill-switch',{enabled:!paused});await refresh();} catch(error) {report(error);}};
-  refresh();setInterval(refresh,4000);
+  refreshNicheLibrary();refresh();setInterval(refresh,4000);
 </script>
 <script src="/studio.js"></script>
 <script src="/research.js"></script>

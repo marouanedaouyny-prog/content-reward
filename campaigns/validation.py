@@ -25,10 +25,14 @@ def validate_campaign(campaign, clip, metadata, platform, *, source=None, for_pu
     if platform not in rules.allowed_platforms:
         violations.append('destination_not_allowed')
     text = metadata.get('caption', '')
+    title = metadata.get('title', '')
+    if (not isinstance(text, str) or not isinstance(title, str)
+            or len(text) > 10000 or len(title) > 300):
+        return Eligibility(eligible=False, violations=['invalid_publication_text'])
     tags = {tag.casefold() for tag in re.findall(r'#[\w]+', text)}
     if any(tag.casefold() not in tags for tag in rules.required_hashtags):
         violations.append('required_hashtags_missing')
-    content = clip.get('transcript', '') + ' ' + text
+    content = clip.get('transcript', '') + ' ' + text + ' ' + title
     if any(re.search(r'(?<!\w)' + re.escape(topic) + r'(?!\w)', content, re.I) for topic in rules.forbidden_topics):
         violations.append('forbidden_topic_detected')
     if rules.allowed_source_ids and clip.get('source_id') not in rules.allowed_source_ids:

@@ -24,7 +24,8 @@ class PublishingManager:
             raise PipelineError('PUBLISH_ERROR', stage='publish', retryable=False)
         if (not isinstance(key, str) or not 1 <= len(key) <= 300 or not isinstance(metadata, dict)
                 or set(metadata) - {'caption', 'title'} or not isinstance(metadata.get('caption'), str)
-                or len(metadata['caption']) > 10000):
+                or len(metadata['caption']) > 10000 or not isinstance(metadata.get('title', ''), str)
+                or len(metadata.get('title', '')) > 300):
             raise ValueError('Invalid publication metadata or idempotency key')
         clip = self.store.get_clip(clip_id)
         path = Path(clip['path'])
@@ -48,7 +49,7 @@ class PublishingManager:
             if old:
                 if old['payload_hash'] != fingerprint:
                     raise ValueError('Idempotency key belongs to different publication inputs')
-                if old['status'] == 'READY':
+                if old['status'] == 'READY' and self.publisher.mode != 'manual':
                     return dict(old) | {'metadata': json.loads(old['metadata'])}
                 identifier = old['id']
                 db.execute("UPDATE publications SET status='PUBLISHING',updated_at=? WHERE id=?",

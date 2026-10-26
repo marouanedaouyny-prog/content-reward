@@ -15,6 +15,41 @@ anchors merge before window construction. Completed sentence endings remain a
 priority. Strict production selection rejects incomplete/contextual/advertising
 windows, enforces `selection.minimum_score`, and keeps nonoverlapping moments.
 
+The production `select_moments` path ranks every eligible window by the configured
+`GrowthScorer` score before greedy overlap suppression or the twenty-candidate
+limit. Its `ranking` report names the active basis and evidence coverage. Missing
+weighted growth evidence falls back to `selection.score`; selection and editorial
+scores remain deterministic tie-breakers. Direct `suggest_cuts` callers retain
+selection ordering unless they explicitly request growth ranking. Strict source
+selection applies the selection floor and pre-render candidate gates before
+ranking, so a weak window cannot suppress an eligible overlapping alternative.
+Production gates require an actual source excerpt and explicit transcript safety
+flags, including ending-question evidence from either the current quality report
+or saved transcript features. Pre-render validation also rechecks the excerpt for
+unresolved openings, host administration, promotions, introductions and unanswered
+question endings. These checks catch obsolete saved flags while retaining full
+question-and-answer moments, named subjects and self-contained impersonal hooks.
+
+Supported historical feedback adjusts that active ranking before pruning and
+records the original and adjusted scores. Adjustments require the configured
+minimum independent clips in both the matching duration/question group and an
+independent comparison group. Both groups must belong to the same saved delivery
+niche, target platform and caption style, and have known positive views. When
+the niche or platform is not supplied, only one unambiguous observed cohort may
+be inferred. Unclassified history cannot establish a niche cohort. Order ranking
+uses its chosen/discovered source niche and campaign platform when configured.
+
+Follower conversion is preferred when both groups have enough known follower
+observations; otherwise completion may be used with its own minimum support.
+Follower rates are view-weighted. The difference is relative to the observed
+comparison group, replacing the former fixed 50% completion target. Its effect
+shrinks by `n / (n + minimum_samples)`, where `n` is the smaller independent group,
+and is bounded by `feedback.maximum_adjustment`. Reports expose the chosen
+metric, scope, views, sample counts, comparator and shrinkage. Unsupported or
+ambiguous feedback contributes zero. These are editorial priorities informed by
+manual/imported associations; none is a probability of future views or causal
+evidence that a hook or duration produced an outcome.
+
 `selection.signals` contains each configured weight, observed normalized value,
 normalization basis and weighted contribution. Missing signals have `null`
 values. The final score divides available weighted evidence by its available

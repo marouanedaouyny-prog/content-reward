@@ -143,3 +143,10 @@ def test_invalid_saved_word_metadata_is_not_rendered(render_subtitles):
         {'start': 0, 'end': 2, 'word': ' Altered.'}]}
     with pytest.raises(ValueError, match='Word text'):
         render_subtitles([segment], 0, 2)
+
+
+def test_disfluency_only_word_segment_does_not_produce_an_empty_caption():
+    from clipping.captions import cues_for_window
+    segment = {'start': 0, 'end': 1, 'text': 'Um uh.', 'words': [
+        {'start': 0, 'end': .5, 'word': ' Um'}, {'start': .5, 'end': 1, 'word': ' uh.'}]}
+    assert cues_for_window([segment], 0, 1) == []

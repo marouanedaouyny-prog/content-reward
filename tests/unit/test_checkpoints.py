@@ -32,3 +32,12 @@ def test_legacy_valid_artifact_receives_hash_without_reprocessing(tmp_path):
     output, invalid = verified_checkpoints({'transcript_path': path.name}, tmp_path)
     assert output['transcript_sha256'] == hashlib.sha256(path.read_bytes()).hexdigest()
     assert invalid == []
+
+
+def test_missing_subtitle_invalidates_only_render_checkpoint(tmp_path):
+    from clipping.pipeline.checkpoints import verified_checkpoints
+    clip = tmp_path / 'clip.mp4'
+    clip.write_bytes(b'valid video checkpoint')
+    output, invalid = verified_checkpoints({'clip_path': clip.name,
+        'clip_sha256': hashlib.sha256(clip.read_bytes()).hexdigest(), 'subtitle_path': 'missing.srt'}, tmp_path)
+    assert invalid == ['render'] and 'clip_path' not in output

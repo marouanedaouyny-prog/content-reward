@@ -5,6 +5,7 @@ import http.client
 import json
 import os
 import socket
+import sys
 
 
 def reuse_workspace(host, port):
@@ -40,7 +41,11 @@ def reuse_workspace(host, port):
         connection.close()
 
 
-def main():
+def main(argv=None):
+    arguments = list(sys.argv[1:] if argv is None else argv)
+    if arguments and (not arguments[0].startswith('-') or arguments[0] in ('--help', '--storage')):
+        from clipping.cli import main as cli
+        return cli(arguments)
     parser = argparse.ArgumentParser(description='Run the clipping workspace and built-in workflow worker.')
     parser.add_argument('--host', default='127.0.0.1', help='Bind address (default: local machine only)')
     parser.add_argument('--port', type=int, default=8000, help='HTTP port (default: 8000)')
@@ -48,7 +53,7 @@ def main():
                         help='Start the automatic IShowSpeed preview without form selections')
     parser.add_argument('--discover', action='store_true',
                         help='Search recent long YouTube videos and prepare one real captioned highlight')
-    options = parser.parse_args()
+    options = parser.parse_args(arguments)
     if options.discover and options.ishowspeed:
         parser.error('Choose either long-video discovery or the saved IShowSpeed preset')
     if options.discover:
@@ -76,4 +81,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    raise SystemExit(main())

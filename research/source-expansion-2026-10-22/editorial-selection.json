@@ -1,0 +1,1466 @@
+{
+  "entries": [
+    {
+      "source": {
+        "id": "hAaUgjArzow",
+        "url": "https://www.youtube.com/watch?v=hAaUgjArzow",
+        "title": "Should NOT Have Sold The Family Business | Down The Plughole Podcast ep1",
+        "creator": "Ashville",
+        "niches": [
+          "Business"
+        ],
+        "views": 69933,
+        "published_at": "2026-10-21T17:00:29+00:00",
+        "observed_at": "2026-10-22T16:26:41.438309+00:00",
+        "duration": 2656.0,
+        "views_per_hour_since_upload": 2330.49,
+        "measured_growth_per_hour": null,
+        "eligible_preview": true,
+        "discovery_evidence": "research/source-expansion-2026-10-22/metadata-checks.json"
+      },
+      "moment": {
+        "clip_plan": {
+          "start_seconds": 1684.68,
+          "duration_seconds": 59.4,
+          "aspect_ratio": "9:16"
+        },
+        "editorial_score": 58.0,
+        "score_type": "editorial_heuristic",
+        "reasons": [
+          "Starts and ends at subtitle boundaries",
+          "Includes a concrete number or step",
+          "Ends at sentence-ending punctuation"
+        ],
+        "source_excerpt": "We'd done another couple of jobs and everybody owed us money and all of a sudden it's coming near Christmas time and we're struggling to pay bills cuz no one's paying us. So I was walking about looking at windows thinking how are we going to get over this? So I went to the so-called friend of mine and I managed to get some money off of him by going there and begging for my own money that I earned. And he did and the same man did knock me for money. I rang the crowd up we'd done the demolition job for. They said that we didn't do this. So I said what do you think this is? So I took a reduction on the job. We got paid for that. I'd done the same with the other couple of jobs. I gave them all money back. We didn't earn any real profit that year or that that for doing them jobs, but we actually got paid. So, we got over that Christmas and I thought No, this cannot happen again. This cannot happen again.",
+        "caption": "Busy jobs did not guarantee cash in the bank. Michael O\u2019Donovan recalls chasing overdue payments before Christmas.",
+        "note": "Editorial selection from public timed captions; no replay data available. Opens with customers owing money and bills coming due; explains negotiating payment; ends with the lesson that this could not happen again.",
+        "strategies": [
+          "transcript_boundary"
+        ],
+        "transcript_features": {
+          "opening_question": false,
+          "opening_topic_matches": 0,
+          "topic_matches": 0,
+          "ending_question": false,
+          "words_per_second": 3.1313131313131386
+        },
+        "quality": {
+          "filler_opening": false,
+          "context_dependent_opening": false,
+          "mid_sentence_opening": false,
+          "intro_or_outro": false,
+          "host_meta_setup": false,
+          "completed_ending": true,
+          "ending_question": false,
+          "promotional": false,
+          "silence_seconds": 0,
+          "largest_speech_gap": 0.0,
+          "speech_ratio": 1.0
+        },
+        "selection": {
+          "score": 0.5724206575744478,
+          "signals": {
+            "hook": {
+              "value": 0.4,
+              "weight": 0.2,
+              "weighted_contribution": 0.08000000000000002,
+              "basis": "Configured transcript opening features / 100; not a measured audience response"
+            },
+            "semantic": {
+              "value": 0.58,
+              "weight": 0.15,
+              "weighted_contribution": 0.087,
+              "basis": "Configured topic, concrete-detail, duration and speech-gap heuristics / 100; no language model"
+            },
+            "replay": {
+              "value": null,
+              "weight": 0.15,
+              "weighted_contribution": null,
+              "basis": "Supplied normalized observation"
+            },
+            "emotion": {
+              "value": null,
+              "weight": 0.1,
+              "weighted_contribution": null,
+              "basis": "Supplied normalized observation"
+            },
+            "completeness": {
+              "value": 1.0,
+              "weight": 0.1,
+              "weighted_contribution": 0.1,
+              "basis": "Source sentence punctuation and question/answer ending"
+            },
+            "velocity": {
+              "value": null,
+              "weight": 0.1,
+              "weighted_contribution": null,
+              "basis": "Supplied normalized observation"
+            },
+            "engagement": {
+              "value": 0.050734274233909596,
+              "weight": 0.1,
+              "weighted_contribution": 0.00507342742339096,
+              "basis": "Observed (likes + comments) / views, capped at one"
+            },
+            "standalone": {
+              "value": 1.0,
+              "weight": 0.1,
+              "weighted_contribution": 0.1,
+              "basis": "Observable transcript context, introduction and promotion flags"
+            }
+          },
+          "evidence_coverage": 0.6499999999999999,
+          "missing_signals": [
+            "replay",
+            "emotion",
+            "velocity"
+          ],
+          "note": "Weighted available evidence; missing signals are excluded and coverage is reported. An editorial ranking score is not a probability of future views.",
+          "source_observations": {
+            "source_views": 69933.0,
+            "views_per_hour": 2330.483067552487,
+            "engagement_rate": 0.050734274233909596,
+            "velocity_basis": "Lifetime views / known source age; not a measured recent growth rate"
+          }
+        },
+        "growth": {
+          "score": 0.5026794326241135,
+          "signals": {
+            "hook_strength": {
+              "value": 0.5,
+              "weight": 0.22,
+              "weighted_contribution": 0.11,
+              "basis": "Rule-based hook markers detected in the supplied opening text; labels describe the wording and are not verified audience reactions or fabricated claims."
+            },
+            "retention_potential": {
+              "value": 0.9214,
+              "weight": 0.18,
+              "weighted_contribution": 0.165852,
+              "basis": "Heuristic transcript timing, structure and length signals with explicit penalties; not a measured retention curve or viewer forecast."
+            },
+            "shareability": {
+              "value": 0.0,
+              "weight": 0.14,
+              "weighted_contribution": 0.0,
+              "basis": "Money, number and stakes markers in the supplied transcript; not a measured share rate."
+            },
+            "standalone_clarity": {
+              "value": 1.0,
+              "weight": 0.12,
+              "weighted_contribution": 0.12,
+              "basis": "Observed opening, context and promotion flags in the supplied transcript."
+            },
+            "emotional_intensity": {
+              "value": 0.0,
+              "weight": 0.1,
+              "weighted_contribution": 0.0,
+              "basis": "Emotion-word markers in the supplied transcript; audio energy was not measured."
+            },
+            "novelty": {
+              "value": 0.3333333333333333,
+              "weight": 0.08,
+              "weighted_contribution": 0.026666666666666665,
+              "basis": "Unexpectedness markers in the supplied transcript; novelty is not independently verified."
+            },
+            "niche_relevance": {
+              "value": null,
+              "weight": 0.06,
+              "weighted_contribution": null,
+              "basis": "No niche keywords were supplied; niche relevance not evaluated."
+            },
+            "follow_potential": {
+              "value": 0.5,
+              "weight": 0.1,
+              "weighted_contribution": 0.05,
+              "basis": "Complete-idea structure and lesson markers; not measured follower conversion."
+            }
+          },
+          "evidence_coverage": 0.94,
+          "missing_signals": [
+            "niche_relevance"
+          ],
+          "note": "Weighted available evidence; missing signals are excluded and coverage is reported. An editorial ranking score is not a probability of future views.",
+          "hook": {
+            "value": 0.5,
+            "hook_type": "neutral",
+            "matched": [],
+            "opening_quality": 1.0,
+            "weak_opening": false,
+            "opening": "We'd done another couple of jobs and everybody owed us money and all of a sudden it's coming near Christmas time and we're struggling to pay bills cuz no one's ",
+            "basis": "Rule-based hook markers detected in the supplied opening text; labels describe the wording and are not verified audience reactions or fabricated claims."
+          },
+          "retention": {
+            "value": 0.9214,
+            "signals": {
+              "strong_first_sentence": 0.7,
+              "low_silence": 1.0,
+              "fast_information_density": 1.0,
+              "sentence_continuity": 1.0,
+              "clear_payoff": 1.0,
+              "clip_length": 0.75,
+              "topic_continuity": 1.0
+            },
+            "penalties": {},
+            "missing_signals": [],
+            "basis": "Heuristic transcript timing, structure and length signals with explicit penalties; not a measured retention curve or viewer forecast."
+          },
+          "completeness": 1.0,
+          "weights": {
+            "hook_strength": 0.22,
+            "retention_potential": 0.18,
+            "shareability": 0.14,
+            "standalone_clarity": 0.12,
+            "emotional_intensity": 0.1,
+            "novelty": 0.08,
+            "niche_relevance": 0.06,
+            "follow_potential": 0.1
+          }
+        },
+        "ranking": {
+          "basis": "configured_growth_score",
+          "base_score": 0.5026794326241135,
+          "feedback_adjustment": 0.0,
+          "score": 0.5026794326241135,
+          "growth_evidence_coverage": 0.94,
+          "note": "Editorial ranking before overlap pruning; this is not a probability of future views."
+        }
+      },
+      "source_clip_plan": {
+        "start_seconds": 1684.68,
+        "duration_seconds": 59.4,
+        "aspect_ratio": "9:16"
+      },
+      "metadata_source": "C:\\Users\\hp\\desktop\\new folder\\content rewerad\\research\\source-expansion-2026-10-22\\public-captions\\hAaUgjArzow\\source.json",
+      "niche_review": {
+        "niche": "business",
+        "rationale": "Opens with customers owing money and bills coming due; explains negotiating payment; ends with the lesson that this could not happen again."
+      },
+      "editorial_review": {
+        "decision": "selected_for_bounded_render",
+        "rationale": "Opens with customers owing money and bills coming due; explains negotiating payment; ends with the lesson that this could not happen again.",
+        "speech_accuracy": "requires_ASR_and_export_review"
+      }
+    },
+    {
+      "source": {
+        "id": "hAaUgjArzow",
+        "url": "https://www.youtube.com/watch?v=hAaUgjArzow",
+        "title": "Should NOT Have Sold The Family Business | Down The Plughole Podcast ep1",
+        "creator": "Ashville",
+        "niches": [
+          "Business"
+        ],
+        "views": 69933,
+        "published_at": "2026-10-21T17:00:29+00:00",
+        "observed_at": "2026-10-22T16:26:41.438309+00:00",
+        "duration": 2656.0,
+        "views_per_hour_since_upload": 2330.48,
+        "measured_growth_per_hour": null,
+        "eligible_preview": true,
+        "discovery_evidence": "research/source-expansion-2026-10-22/metadata-checks.json"
+      },
+      "moment": {
+        "clip_plan": {
+          "start_seconds": 2099.04,
+          "duration_seconds": 53.4,
+          "aspect_ratio": "9:16"
+        },
+        "editorial_score": 64.0,
+        "score_type": "editorial_heuristic",
+        "reasons": [
+          "Starts and ends at subtitle boundaries",
+          "Opening poses a question",
+          "Ends at sentence-ending punctuation"
+        ],
+        "source_excerpt": ">> What does success look like to you? What do you If If you see someone is successful or you feel successful, is it about money or is this What is your interpretation and what do you feel like is success? >> It's the achievement of getting there, isn't it? >> Getting wet. >> Money Getting there. Getting to be watching the lorries going out the yard in the morning, you think, \"Oh, I've done that.\" Or we done that, I should say, not I. We done that. And see all them lorries going up the road in the morning and you know you've done it. The bank account's irrelevant. It's You've got to have a bank account, but it's nice to see that Oh, that's me dad's name going up the road there now. I've done him proud. I haven't let it fall behind. I've pushed on.",
+        "caption": "What does success mean beyond the bank balance? Michael O\u2019Donovan talks about building a family business.",
+        "note": "Editorial selection from public timed captions; no replay data available. The question explicitly defines success. The answer names the fleet, shared achievement and family legacy, ending with having pushed the business forward.",
+        "strategies": [
+          "transcript_boundary"
+        ],
+        "transcript_features": {
+          "opening_question": true,
+          "opening_topic_matches": 0,
+          "topic_matches": 0,
+          "ending_question": false,
+          "words_per_second": 2.6966292134831416
+        },
+        "quality": {
+          "filler_opening": false,
+          "context_dependent_opening": false,
+          "mid_sentence_opening": false,
+          "intro_or_outro": false,
+          "host_meta_setup": false,
+          "completed_ending": true,
+          "ending_question": false,
+          "promotional": false,
+          "silence_seconds": 0,
+          "largest_speech_gap": 0.0,
+          "speech_ratio": 1.0
+        },
+        "selection": {
+          "score": 0.6293437344975248,
+          "signals": {
+            "hook": {
+              "value": 0.54,
+              "weight": 0.2,
+              "weighted_contribution": 0.10800000000000001,
+              "basis": "Configured transcript opening features / 100; not a measured audience response"
+            },
+            "semantic": {
+              "value": 0.64,
+              "weight": 0.15,
+              "weighted_contribution": 0.096,
+              "basis": "Configured topic, concrete-detail, duration and speech-gap heuristics / 100; no language model"
+            },
+            "replay": {
+              "value": null,
+              "weight": 0.15,
+              "weighted_contribution": null,
+              "basis": "Supplied normalized observation"
+            },
+            "emotion": {
+              "value": null,
+              "weight": 0.1,
+              "weighted_contribution": null,
+              "basis": "Supplied normalized observation"
+            },
+            "completeness": {
+              "value": 1.0,
+              "weight": 0.1,
+              "weighted_contribution": 0.1,
+              "basis": "Source sentence punctuation and question/answer ending"
+            },
+            "velocity": {
+              "value": null,
+              "weight": 0.1,
+              "weighted_contribution": null,
+              "basis": "Supplied normalized observation"
+            },
+            "engagement": {
+              "value": 0.050734274233909596,
+              "weight": 0.1,
+              "weighted_contribution": 0.00507342742339096,
+              "basis": "Observed (likes + comments) / views, capped at one"
+            },
+            "standalone": {
+              "value": 1.0,
+              "weight": 0.1,
+              "weighted_contribution": 0.1,
+              "basis": "Observable transcript context, introduction and promotion flags"
+            }
+          },
+          "evidence_coverage": 0.6499999999999999,
+          "missing_signals": [
+            "replay",
+            "emotion",
+            "velocity"
+          ],
+          "note": "Weighted available evidence; missing signals are excluded and coverage is reported. An editorial ranking score is not a probability of future views.",
+          "source_observations": {
+            "source_views": 69933.0,
+            "views_per_hour": 2330.482166628054,
+            "engagement_rate": 0.050734274233909596,
+            "velocity_basis": "Lifetime views / known source age; not a measured recent growth rate"
+          }
+        },
+        "growth": {
+          "score": 0.5579290780141845,
+          "signals": {
+            "hook_strength": {
+              "value": 0.675,
+              "weight": 0.22,
+              "weighted_contribution": 0.14850000000000002,
+              "basis": "Rule-based hook markers detected in the supplied opening text; labels describe the wording and are not verified audience reactions or fabricated claims."
+            },
+            "retention_potential": {
+              "value": 0.959,
+              "weight": 0.18,
+              "weighted_contribution": 0.17262,
+              "basis": "Heuristic transcript timing, structure and length signals with explicit penalties; not a measured retention curve or viewer forecast."
+            },
+            "shareability": {
+              "value": 0.0,
+              "weight": 0.14,
+              "weighted_contribution": 0.0,
+              "basis": "Money, number and stakes markers in the supplied transcript; not a measured share rate."
+            },
+            "standalone_clarity": {
+              "value": 1.0,
+              "weight": 0.12,
+              "weighted_contribution": 0.12,
+              "basis": "Observed opening, context and promotion flags in the supplied transcript."
+            },
+            "emotional_intensity": {
+              "value": 0.3333333333333333,
+              "weight": 0.1,
+              "weighted_contribution": 0.03333333333333333,
+              "basis": "Emotion-word markers in the supplied transcript; audio energy was not measured."
+            },
+            "novelty": {
+              "value": 0.0,
+              "weight": 0.08,
+              "weighted_contribution": 0.0,
+              "basis": "Unexpectedness markers in the supplied transcript; novelty is not independently verified."
+            },
+            "niche_relevance": {
+              "value": null,
+              "weight": 0.06,
+              "weighted_contribution": null,
+              "basis": "No niche keywords were supplied; niche relevance not evaluated."
+            },
+            "follow_potential": {
+              "value": 0.5,
+              "weight": 0.1,
+              "weighted_contribution": 0.05,
+              "basis": "Complete-idea structure and lesson markers; not measured follower conversion."
+            }
+          },
+          "evidence_coverage": 0.94,
+          "missing_signals": [
+            "niche_relevance"
+          ],
+          "note": "Weighted available evidence; missing signals are excluded and coverage is reported. An editorial ranking score is not a probability of future views.",
+          "hook": {
+            "value": 0.675,
+            "hook_type": "strong_question",
+            "matched": [
+              "strong_question"
+            ],
+            "opening_quality": 1.0,
+            "weak_opening": false,
+            "opening": "What does success look like to you?",
+            "basis": "Rule-based hook markers detected in the supplied opening text; labels describe the wording and are not verified audience reactions or fabricated claims."
+          },
+          "retention": {
+            "value": 0.959,
+            "signals": {
+              "strong_first_sentence": 1.0,
+              "low_silence": 1.0,
+              "fast_information_density": 0.963081861958265,
+              "sentence_continuity": 1.0,
+              "clear_payoff": 1.0,
+              "clip_length": 0.75,
+              "topic_continuity": 1.0
+            },
+            "penalties": {},
+            "missing_signals": [],
+            "basis": "Heuristic transcript timing, structure and length signals with explicit penalties; not a measured retention curve or viewer forecast."
+          },
+          "completeness": 1.0,
+          "weights": {
+            "hook_strength": 0.22,
+            "retention_potential": 0.18,
+            "shareability": 0.14,
+            "standalone_clarity": 0.12,
+            "emotional_intensity": 0.1,
+            "novelty": 0.08,
+            "niche_relevance": 0.06,
+            "follow_potential": 0.1
+          }
+        },
+        "ranking": {
+          "basis": "configured_growth_score",
+          "base_score": 0.5579290780141845,
+          "feedback_adjustment": 0.0,
+          "score": 0.5579290780141845,
+          "growth_evidence_coverage": 0.94,
+          "note": "Editorial ranking before overlap pruning; this is not a probability of future views."
+        }
+      },
+      "source_clip_plan": {
+        "start_seconds": 2099.04,
+        "duration_seconds": 53.4,
+        "aspect_ratio": "9:16"
+      },
+      "metadata_source": "C:\\Users\\hp\\desktop\\new folder\\content rewerad\\research\\source-expansion-2026-10-22\\public-captions\\hAaUgjArzow\\source.json",
+      "niche_review": {
+        "niche": "business",
+        "rationale": "The question explicitly defines success. The answer names the fleet, shared achievement and family legacy, ending with having pushed the business forward."
+      },
+      "editorial_review": {
+        "decision": "selected_for_bounded_render",
+        "rationale": "The question explicitly defines success. The answer names the fleet, shared achievement and family legacy, ending with having pushed the business forward.",
+        "speech_accuracy": "requires_ASR_and_export_review"
+      }
+    },
+    {
+      "source": {
+        "id": "hAaUgjArzow",
+        "url": "https://www.youtube.com/watch?v=hAaUgjArzow",
+        "title": "Should NOT Have Sold The Family Business | Down The Plughole Podcast ep1",
+        "creator": "Ashville",
+        "niches": [
+          "Business"
+        ],
+        "views": 69933,
+        "published_at": "2026-10-21T17:00:29+00:00",
+        "observed_at": "2026-10-22T16:26:41.438309+00:00",
+        "duration": 2656.0,
+        "views_per_hour_since_upload": 2330.48,
+        "measured_growth_per_hour": null,
+        "eligible_preview": true,
+        "discovery_evidence": "research/source-expansion-2026-10-22/metadata-checks.json"
+      },
+      "moment": {
+        "clip_plan": {
+          "start_seconds": 2164.68,
+          "duration_seconds": 44.56,
+          "aspect_ratio": "9:16"
+        },
+        "editorial_score": 58.0,
+        "score_type": "editorial_heuristic",
+        "reasons": [
+          "Starts and ends at subtitle boundaries",
+          "Includes a concrete number or step",
+          "Ends at sentence-ending punctuation"
+        ],
+        "source_excerpt": "We used to have a gang of drivers used to get there early and we'd all sit around and have a cup of coffee first thing in the morning. They'd go and do their walk-about checks, get ready to go. I'd walk down round with them. We'd have a crack. We'd have thing. They'd be off to wherever thing. Everybody had a bit of a spring in their step. And that to me meant everything. That drivers are going out being happy. Cuz if a driver goes out cuz he has cuz he's got the hump with you, he's going to wreck your lorry. He ain't going to care about your lorry. And when it comes to bank account, then it's irrelevant again because when your lorry's broke, you ain't earning no money to put in the bank account. So, you need everybody to be on your side. And then you are successful to have everybody pulling the rope the same way.",
+        "caption": "A happy team affects how the whole business runs. Michael O\u2019Donovan explains why everyone needs to pull in the same direction.",
+        "note": "Editorial selection from public timed captions; no replay data available. Starts with drivers gathering before work, connects morale to care for equipment and costs, and ends with the shared-direction takeaway.",
+        "strategies": [
+          "transcript_boundary"
+        ],
+        "transcript_features": {
+          "opening_question": false,
+          "opening_topic_matches": 0,
+          "topic_matches": 0,
+          "ending_question": false,
+          "words_per_second": 3.63554757630162
+        },
+        "quality": {
+          "filler_opening": false,
+          "context_dependent_opening": false,
+          "mid_sentence_opening": false,
+          "intro_or_outro": false,
+          "host_meta_setup": false,
+          "completed_ending": true,
+          "ending_question": false,
+          "promotional": false,
+          "silence_seconds": 0.24,
+          "largest_speech_gap": 0.24,
+          "speech_ratio": 0.995
+        },
+        "selection": {
+          "score": 0.5724206575744478,
+          "signals": {
+            "hook": {
+              "value": 0.4,
+              "weight": 0.2,
+              "weighted_contribution": 0.08000000000000002,
+              "basis": "Configured transcript opening features / 100; not a measured audience response"
+            },
+            "semantic": {
+              "value": 0.58,
+              "weight": 0.15,
+              "weighted_contribution": 0.087,
+              "basis": "Configured topic, concrete-detail, duration and speech-gap heuristics / 100; no language model"
+            },
+            "replay": {
+              "value": null,
+              "weight": 0.15,
+              "weighted_contribution": null,
+              "basis": "Supplied normalized observation"
+            },
+            "emotion": {
+              "value": null,
+              "weight": 0.1,
+              "weighted_contribution": null,
+              "basis": "Supplied normalized observation"
+            },
+            "completeness": {
+              "value": 1.0,
+              "weight": 0.1,
+              "weighted_contribution": 0.1,
+              "basis": "Source sentence punctuation and question/answer ending"
+            },
+            "velocity": {
+              "value": null,
+              "weight": 0.1,
+              "weighted_contribution": null,
+              "basis": "Supplied normalized observation"
+            },
+            "engagement": {
+              "value": 0.050734274233909596,
+              "weight": 0.1,
+              "weighted_contribution": 0.00507342742339096,
+              "basis": "Observed (likes + comments) / views, capped at one"
+            },
+            "standalone": {
+              "value": 1.0,
+              "weight": 0.1,
+              "weighted_contribution": 0.1,
+              "basis": "Observable transcript context, introduction and promotion flags"
+            }
+          },
+          "evidence_coverage": 0.6499999999999999,
+          "missing_signals": [
+            "replay",
+            "emotion",
+            "velocity"
+          ],
+          "note": "Weighted available evidence; missing signals are excluded and coverage is reported. An editorial ranking score is not a probability of future views.",
+          "source_observations": {
+            "source_views": 69933.0,
+            "views_per_hour": 2330.481633240216,
+            "engagement_rate": 0.050734274233909596,
+            "velocity_basis": "Lifetime views / known source age; not a measured recent growth rate"
+          }
+        },
+        "growth": {
+          "score": 0.47417659574468085,
+          "signals": {
+            "hook_strength": {
+              "value": 0.5,
+              "weight": 0.22,
+              "weighted_contribution": 0.11,
+              "basis": "Rule-based hook markers detected in the supplied opening text; labels describe the wording and are not verified audience reactions or fabricated claims."
+            },
+            "retention_potential": {
+              "value": 0.9207,
+              "weight": 0.18,
+              "weighted_contribution": 0.16572599999999998,
+              "basis": "Heuristic transcript timing, structure and length signals with explicit penalties; not a measured retention curve or viewer forecast."
+            },
+            "shareability": {
+              "value": 0.0,
+              "weight": 0.14,
+              "weighted_contribution": 0.0,
+              "basis": "Money, number and stakes markers in the supplied transcript; not a measured share rate."
+            },
+            "standalone_clarity": {
+              "value": 1.0,
+              "weight": 0.12,
+              "weighted_contribution": 0.12,
+              "basis": "Observed opening, context and promotion flags in the supplied transcript."
+            },
+            "emotional_intensity": {
+              "value": 0.0,
+              "weight": 0.1,
+              "weighted_contribution": 0.0,
+              "basis": "Emotion-word markers in the supplied transcript; audio energy was not measured."
+            },
+            "novelty": {
+              "value": 0.0,
+              "weight": 0.08,
+              "weighted_contribution": 0.0,
+              "basis": "Unexpectedness markers in the supplied transcript; novelty is not independently verified."
+            },
+            "niche_relevance": {
+              "value": null,
+              "weight": 0.06,
+              "weighted_contribution": null,
+              "basis": "No niche keywords were supplied; niche relevance not evaluated."
+            },
+            "follow_potential": {
+              "value": 0.5,
+              "weight": 0.1,
+              "weighted_contribution": 0.05,
+              "basis": "Complete-idea structure and lesson markers; not measured follower conversion."
+            }
+          },
+          "evidence_coverage": 0.94,
+          "missing_signals": [
+            "niche_relevance"
+          ],
+          "note": "Weighted available evidence; missing signals are excluded and coverage is reported. An editorial ranking score is not a probability of future views.",
+          "hook": {
+            "value": 0.5,
+            "hook_type": "neutral",
+            "matched": [],
+            "opening_quality": 1.0,
+            "weak_opening": false,
+            "opening": "We used to have a gang of drivers used to get there early and we'd all sit around and have a cup of coffee first thing in the morning.",
+            "basis": "Rule-based hook markers detected in the supplied opening text; labels describe the wording and are not verified audience reactions or fabricated claims."
+          },
+          "retention": {
+            "value": 0.9207,
+            "signals": {
+              "strong_first_sentence": 0.7,
+              "low_silence": 0.995,
+              "fast_information_density": 1.0,
+              "sentence_continuity": 1.0,
+              "clear_payoff": 1.0,
+              "clip_length": 0.75,
+              "topic_continuity": 1.0
+            },
+            "penalties": {},
+            "missing_signals": [],
+            "basis": "Heuristic transcript timing, structure and length signals with explicit penalties; not a measured retention curve or viewer forecast."
+          },
+          "completeness": 1.0,
+          "weights": {
+            "hook_strength": 0.22,
+            "retention_potential": 0.18,
+            "shareability": 0.14,
+            "standalone_clarity": 0.12,
+            "emotional_intensity": 0.1,
+            "novelty": 0.08,
+            "niche_relevance": 0.06,
+            "follow_potential": 0.1
+          }
+        },
+        "ranking": {
+          "basis": "configured_growth_score",
+          "base_score": 0.47417659574468085,
+          "feedback_adjustment": 0.0,
+          "score": 0.47417659574468085,
+          "growth_evidence_coverage": 0.94,
+          "note": "Editorial ranking before overlap pruning; this is not a probability of future views."
+        }
+      },
+      "source_clip_plan": {
+        "start_seconds": 2164.68,
+        "duration_seconds": 44.56,
+        "aspect_ratio": "9:16"
+      },
+      "metadata_source": "C:\\Users\\hp\\desktop\\new folder\\content rewerad\\research\\source-expansion-2026-10-22\\public-captions\\hAaUgjArzow\\source.json",
+      "niche_review": {
+        "niche": "business",
+        "rationale": "Starts with drivers gathering before work, connects morale to care for equipment and costs, and ends with the shared-direction takeaway."
+      },
+      "editorial_review": {
+        "decision": "selected_for_bounded_render",
+        "rationale": "Starts with drivers gathering before work, connects morale to care for equipment and costs, and ends with the shared-direction takeaway.",
+        "speech_accuracy": "requires_ASR_and_export_review"
+      }
+    },
+    {
+      "source": {
+        "id": "hAaUgjArzow",
+        "url": "https://www.youtube.com/watch?v=hAaUgjArzow",
+        "title": "Should NOT Have Sold The Family Business | Down The Plughole Podcast ep1",
+        "creator": "Ashville",
+        "niches": [
+          "Business"
+        ],
+        "views": 69933,
+        "published_at": "2026-10-21T17:00:29+00:00",
+        "observed_at": "2026-10-22T16:26:41.438309+00:00",
+        "duration": 2656.0,
+        "views_per_hour_since_upload": 2330.48,
+        "measured_growth_per_hour": null,
+        "eligible_preview": true,
+        "discovery_evidence": "research/source-expansion-2026-10-22/metadata-checks.json"
+      },
+      "moment": {
+        "clip_plan": {
+          "start_seconds": 2272.76,
+          "duration_seconds": 46.32,
+          "aspect_ratio": "9:16"
+        },
+        "editorial_score": 58.0,
+        "score_type": "editorial_heuristic",
+        "reasons": [
+          "Starts and ends at subtitle boundaries",
+          "Includes a concrete number or step",
+          "Ends at sentence-ending punctuation"
+        ],
+        "source_excerpt": "As in with our Donovans, you had What do we have? 130 odd lorries out? >> Would you go back to that? >> No. No, not to a hun not cuz uh more is not always a profitable thing. Less is profitable. >> So, what is the optimum number of vehicles to have on the road? For you. >> I reckon if you could run 20 tippers, 20 skips, and that would be enough. >> How many yards? >> 2 yards. You need 2 yards.",
+        "caption": "More vehicles do not always mean more profit. Michael O\u2019Donovan explains the fleet size he would choose now.",
+        "note": "Editorial selection from public timed captions; no replay data available. Names the former fleet size, asks whether he would return to it, and gives a smaller preferred fleet and the two yards needed.",
+        "strategies": [
+          "transcript_boundary"
+        ],
+        "transcript_features": {
+          "opening_question": false,
+          "opening_topic_matches": 0,
+          "topic_matches": 0,
+          "ending_question": false,
+          "words_per_second": 1.7055267702936203
+        },
+        "quality": {
+          "filler_opening": false,
+          "context_dependent_opening": false,
+          "mid_sentence_opening": false,
+          "intro_or_outro": false,
+          "host_meta_setup": false,
+          "completed_ending": true,
+          "ending_question": false,
+          "promotional": false,
+          "silence_seconds": 0.08,
+          "largest_speech_gap": 0.08,
+          "speech_ratio": 0.998
+        },
+        "selection": {
+          "score": 0.5724206575744478,
+          "signals": {
+            "hook": {
+              "value": 0.4,
+              "weight": 0.2,
+              "weighted_contribution": 0.08000000000000002,
+              "basis": "Configured transcript opening features / 100; not a measured audience response"
+            },
+            "semantic": {
+              "value": 0.58,
+              "weight": 0.15,
+              "weighted_contribution": 0.087,
+              "basis": "Configured topic, concrete-detail, duration and speech-gap heuristics / 100; no language model"
+            },
+            "replay": {
+              "value": null,
+              "weight": 0.15,
+              "weighted_contribution": null,
+              "basis": "Supplied normalized observation"
+            },
+            "emotion": {
+              "value": null,
+              "weight": 0.1,
+              "weighted_contribution": null,
+              "basis": "Supplied normalized observation"
+            },
+            "completeness": {
+              "value": 1.0,
+              "weight": 0.1,
+              "weighted_contribution": 0.1,
+              "basis": "Source sentence punctuation and question/answer ending"
+            },
+            "velocity": {
+              "value": null,
+              "weight": 0.1,
+              "weighted_contribution": null,
+              "basis": "Supplied normalized observation"
+            },
+            "engagement": {
+              "value": 0.050734274233909596,
+              "weight": 0.1,
+              "weighted_contribution": 0.00507342742339096,
+              "basis": "Observed (likes + comments) / views, capped at one"
+            },
+            "standalone": {
+              "value": 1.0,
+              "weight": 0.1,
+              "weighted_contribution": 0.1,
+              "basis": "Observable transcript context, introduction and promotion flags"
+            }
+          },
+          "evidence_coverage": 0.6499999999999999,
+          "missing_signals": [
+            "replay",
+            "emotion",
+            "velocity"
+          ],
+          "note": "Weighted available evidence; missing signals are excluded and coverage is reported. An editorial ranking score is not a probability of future views.",
+          "source_observations": {
+            "source_views": 69933.0,
+            "views_per_hour": 2330.4810310785388,
+            "engagement_rate": 0.050734274233909596,
+            "velocity_basis": "Lifetime views / known source age; not a measured recent growth rate"
+          }
+        },
+        "growth": {
+          "score": 0.463568085106383,
+          "signals": {
+            "hook_strength": {
+              "value": 0.5,
+              "weight": 0.22,
+              "weighted_contribution": 0.11,
+              "basis": "Rule-based hook markers detected in the supplied opening text; labels describe the wording and are not verified audience reactions or fabricated claims."
+            },
+            "retention_potential": {
+              "value": 0.8653,
+              "weight": 0.18,
+              "weighted_contribution": 0.15575399999999998,
+              "basis": "Heuristic transcript timing, structure and length signals with explicit penalties; not a measured retention curve or viewer forecast."
+            },
+            "shareability": {
+              "value": 0.0,
+              "weight": 0.14,
+              "weighted_contribution": 0.0,
+              "basis": "Money, number and stakes markers in the supplied transcript; not a measured share rate."
+            },
+            "standalone_clarity": {
+              "value": 1.0,
+              "weight": 0.12,
+              "weighted_contribution": 0.12,
+              "basis": "Observed opening, context and promotion flags in the supplied transcript."
+            },
+            "emotional_intensity": {
+              "value": 0.0,
+              "weight": 0.1,
+              "weighted_contribution": 0.0,
+              "basis": "Emotion-word markers in the supplied transcript; audio energy was not measured."
+            },
+            "novelty": {
+              "value": 0.0,
+              "weight": 0.08,
+              "weighted_contribution": 0.0,
+              "basis": "Unexpectedness markers in the supplied transcript; novelty is not independently verified."
+            },
+            "niche_relevance": {
+              "value": null,
+              "weight": 0.06,
+              "weighted_contribution": null,
+              "basis": "No niche keywords were supplied; niche relevance not evaluated."
+            },
+            "follow_potential": {
+              "value": 0.5,
+              "weight": 0.1,
+              "weighted_contribution": 0.05,
+              "basis": "Complete-idea structure and lesson markers; not measured follower conversion."
+            }
+          },
+          "evidence_coverage": 0.94,
+          "missing_signals": [
+            "niche_relevance"
+          ],
+          "note": "Weighted available evidence; missing signals are excluded and coverage is reported. An editorial ranking score is not a probability of future views.",
+          "hook": {
+            "value": 0.5,
+            "hook_type": "neutral",
+            "matched": [],
+            "opening_quality": 1.0,
+            "weak_opening": false,
+            "opening": "As in with our Donovans, you had What do we have?",
+            "basis": "Rule-based hook markers detected in the supplied opening text; labels describe the wording and are not verified audience reactions or fabricated claims."
+          },
+          "retention": {
+            "value": 0.8653,
+            "signals": {
+              "strong_first_sentence": 0.7,
+              "low_silence": 0.998,
+              "fast_information_density": 0.609116703676293,
+              "sentence_continuity": 1.0,
+              "clear_payoff": 1.0,
+              "clip_length": 0.75,
+              "topic_continuity": 1.0
+            },
+            "penalties": {},
+            "missing_signals": [],
+            "basis": "Heuristic transcript timing, structure and length signals with explicit penalties; not a measured retention curve or viewer forecast."
+          },
+          "completeness": 1.0,
+          "weights": {
+            "hook_strength": 0.22,
+            "retention_potential": 0.18,
+            "shareability": 0.14,
+            "standalone_clarity": 0.12,
+            "emotional_intensity": 0.1,
+            "novelty": 0.08,
+            "niche_relevance": 0.06,
+            "follow_potential": 0.1
+          }
+        },
+        "ranking": {
+          "basis": "configured_growth_score",
+          "base_score": 0.463568085106383,
+          "feedback_adjustment": 0.0,
+          "score": 0.463568085106383,
+          "growth_evidence_coverage": 0.94,
+          "note": "Editorial ranking before overlap pruning; this is not a probability of future views."
+        }
+      },
+      "source_clip_plan": {
+        "start_seconds": 2272.76,
+        "duration_seconds": 46.32,
+        "aspect_ratio": "9:16"
+      },
+      "metadata_source": "C:\\Users\\hp\\desktop\\new folder\\content rewerad\\research\\source-expansion-2026-10-22\\public-captions\\hAaUgjArzow\\source.json",
+      "niche_review": {
+        "niche": "business",
+        "rationale": "Names the former fleet size, asks whether he would return to it, and gives a smaller preferred fleet and the two yards needed."
+      },
+      "editorial_review": {
+        "decision": "selected_for_bounded_render",
+        "rationale": "Names the former fleet size, asks whether he would return to it, and gives a smaller preferred fleet and the two yards needed.",
+        "speech_accuracy": "requires_ASR_and_export_review"
+      }
+    },
+    {
+      "source": {
+        "id": "5hePe01Lva0",
+        "url": "https://www.youtube.com/watch?v=5hePe01Lva0",
+        "title": "CUFFEM EXPOSES THE TRUTH ABOUT STREAMING, MONEY & BEEF WITH JSHOCK",
+        "creator": "Bradley Martyn's Raw Talk",
+        "niches": [
+          "Streams"
+        ],
+        "views": 100830,
+        "published_at": "2026-10-20T18:00:39+00:00",
+        "observed_at": "2026-10-22T16:26:41.438309+00:00",
+        "duration": 5190.0,
+        "views_per_hour_since_upload": 1902.27,
+        "measured_growth_per_hour": null,
+        "eligible_preview": true,
+        "discovery_evidence": "research/source-expansion-2026-10-22/metadata-checks.json"
+      },
+      "moment": {
+        "clip_plan": {
+          "start_seconds": 111.2,
+          "duration_seconds": 37.2,
+          "aspect_ratio": "9:16"
+        },
+        "editorial_score": 72.0,
+        "score_type": "editorial_heuristic",
+        "reasons": [
+          "Starts and ends at subtitle boundaries",
+          "Opening poses a question",
+          "Includes a concrete number or step",
+          "Ends at sentence-ending punctuation"
+        ],
+        "source_excerpt": ">> Why' you Why' you start out not streaming your face? That's a good question. So, when I first came out, I ain't going to lie. Like, I felt like I was a monster. Like, I get called a monster now, but like if you seen the old me, like I felt like I was a monster. Like, I remember I was just too nervous to like come on with face cam on. Like, I was 16, >> so I was like I was like, I don't know. Like, I was always nervous to like show my face while I do content cuz like I felt like it'll take away the funniness. Like I act like myself. Yeah. Yeah. So, >> you thought that you'd be what in your own head about how you looked or >> Yep. Yep. And I realized I was like, \"Hold on.\" I was like, \"That's part of the content.\"",
+        "caption": "CUFFEM explains why he was nervous to use a face camera when he started streaming, and what changed his mind.",
+        "note": "Editorial selection from public timed captions; no replay data available. An explicit question about streaming without face cam leads to his insecurity and ends with realizing that his appearance was part of his content.",
+        "strategies": [
+          "chapter",
+          "transcript_boundary"
+        ],
+        "transcript_features": {
+          "opening_question": true,
+          "opening_topic_matches": 0,
+          "topic_matches": 0,
+          "ending_question": false,
+          "words_per_second": 4.059139784946236
+        },
+        "quality": {
+          "filler_opening": false,
+          "context_dependent_opening": false,
+          "mid_sentence_opening": false,
+          "intro_or_outro": false,
+          "host_meta_setup": false,
+          "completed_ending": true,
+          "ending_question": false,
+          "promotional": false,
+          "silence_seconds": 0,
+          "largest_speech_gap": 0.0,
+          "speech_ratio": 1.0
+        },
+        "selection": {
+          "score": 0.642624371562188,
+          "signals": {
+            "hook": {
+              "value": 0.54,
+              "weight": 0.2,
+              "weighted_contribution": 0.10800000000000001,
+              "basis": "Configured transcript opening features / 100; not a measured audience response"
+            },
+            "semantic": {
+              "value": 0.72,
+              "weight": 0.15,
+              "weighted_contribution": 0.108,
+              "basis": "Configured topic, concrete-detail, duration and speech-gap heuristics / 100; no language model"
+            },
+            "replay": {
+              "value": null,
+              "weight": 0.15,
+              "weighted_contribution": null,
+              "basis": "Supplied normalized observation"
+            },
+            "emotion": {
+              "value": null,
+              "weight": 0.1,
+              "weighted_contribution": null,
+              "basis": "Supplied normalized observation"
+            },
+            "completeness": {
+              "value": 1.0,
+              "weight": 0.1,
+              "weighted_contribution": 0.1,
+              "basis": "Source sentence punctuation and question/answer ending"
+            },
+            "velocity": {
+              "value": null,
+              "weight": 0.1,
+              "weighted_contribution": null,
+              "basis": "Supplied normalized observation"
+            },
+            "engagement": {
+              "value": 0.017058415154219974,
+              "weight": 0.1,
+              "weighted_contribution": 0.0017058415154219974,
+              "basis": "Observed (likes + comments) / views, capped at one"
+            },
+            "standalone": {
+              "value": 1.0,
+              "weight": 0.1,
+              "weighted_contribution": 0.1,
+              "basis": "Observable transcript context, introduction and promotion flags"
+            }
+          },
+          "evidence_coverage": 0.6499999999999999,
+          "missing_signals": [
+            "replay",
+            "emotion",
+            "velocity"
+          ],
+          "note": "Weighted available evidence; missing signals are excluded and coverage is reported. An editorial ranking score is not a probability of future views.",
+          "source_observations": {
+            "source_views": 100830.0,
+            "views_per_hour": 1902.2662511291928,
+            "engagement_rate": 0.017058415154219974,
+            "velocity_basis": "Lifetime views / known source age; not a measured recent growth rate"
+          }
+        },
+        "growth": {
+          "score": 0.5835106382978723,
+          "signals": {
+            "hook_strength": {
+              "value": 0.675,
+              "weight": 0.22,
+              "weighted_contribution": 0.14850000000000002,
+              "basis": "Rule-based hook markers detected in the supplied opening text; labels describe the wording and are not verified audience reactions or fabricated claims."
+            },
+            "retention_potential": {
+              "value": 1.0,
+              "weight": 0.18,
+              "weighted_contribution": 0.18,
+              "basis": "Heuristic transcript timing, structure and length signals with explicit penalties; not a measured retention curve or viewer forecast."
+            },
+            "shareability": {
+              "value": 0.0,
+              "weight": 0.14,
+              "weighted_contribution": 0.0,
+              "basis": "Money, number and stakes markers in the supplied transcript; not a measured share rate."
+            },
+            "standalone_clarity": {
+              "value": 1.0,
+              "weight": 0.12,
+              "weighted_contribution": 0.12,
+              "basis": "Observed opening, context and promotion flags in the supplied transcript."
+            },
+            "emotional_intensity": {
+              "value": 0.0,
+              "weight": 0.1,
+              "weighted_contribution": 0.0,
+              "basis": "Emotion-word markers in the supplied transcript; audio energy was not measured."
+            },
+            "novelty": {
+              "value": 0.0,
+              "weight": 0.08,
+              "weighted_contribution": 0.0,
+              "basis": "Unexpectedness markers in the supplied transcript; novelty is not independently verified."
+            },
+            "niche_relevance": {
+              "value": null,
+              "weight": 0.06,
+              "weighted_contribution": null,
+              "basis": "No niche keywords were supplied; niche relevance not evaluated."
+            },
+            "follow_potential": {
+              "value": 1.0,
+              "weight": 0.1,
+              "weighted_contribution": 0.1,
+              "basis": "Complete-idea structure and lesson markers; not measured follower conversion."
+            }
+          },
+          "evidence_coverage": 0.94,
+          "missing_signals": [
+            "niche_relevance"
+          ],
+          "note": "Weighted available evidence; missing signals are excluded and coverage is reported. An editorial ranking score is not a probability of future views.",
+          "hook": {
+            "value": 0.675,
+            "hook_type": "strong_question",
+            "matched": [
+              "strong_question"
+            ],
+            "opening_quality": 1.0,
+            "weak_opening": false,
+            "opening": "Why' you Why' you start out not streaming your face?",
+            "basis": "Rule-based hook markers detected in the supplied opening text; labels describe the wording and are not verified audience reactions or fabricated claims."
+          },
+          "retention": {
+            "value": 1.0,
+            "signals": {
+              "strong_first_sentence": 1.0,
+              "low_silence": 1.0,
+              "fast_information_density": 1.0,
+              "sentence_continuity": 1.0,
+              "clear_payoff": 1.0,
+              "clip_length": 1.0,
+              "topic_continuity": 1.0
+            },
+            "penalties": {},
+            "missing_signals": [],
+            "basis": "Heuristic transcript timing, structure and length signals with explicit penalties; not a measured retention curve or viewer forecast."
+          },
+          "completeness": 1.0,
+          "weights": {
+            "hook_strength": 0.22,
+            "retention_potential": 0.18,
+            "shareability": 0.14,
+            "standalone_clarity": 0.12,
+            "emotional_intensity": 0.1,
+            "novelty": 0.08,
+            "niche_relevance": 0.06,
+            "follow_potential": 0.1
+          }
+        },
+        "ranking": {
+          "basis": "configured_growth_score",
+          "base_score": 0.5835106382978723,
+          "feedback_adjustment": 0.0,
+          "score": 0.5835106382978723,
+          "growth_evidence_coverage": 0.94,
+          "note": "Editorial ranking before overlap pruning; this is not a probability of future views."
+        }
+      },
+      "source_clip_plan": {
+        "start_seconds": 111.2,
+        "duration_seconds": 37.2,
+        "aspect_ratio": "9:16"
+      },
+      "metadata_source": "C:\\Users\\hp\\desktop\\new folder\\content rewerad\\research\\source-expansion-2026-10-22\\public-captions\\5hePe01Lva0\\source.json",
+      "niche_review": {
+        "niche": "streams",
+        "rationale": "An explicit question about streaming without face cam leads to his insecurity and ends with realizing that his appearance was part of his content."
+      },
+      "editorial_review": {
+        "decision": "selected_for_bounded_render",
+        "rationale": "An explicit question about streaming without face cam leads to his insecurity and ends with realizing that his appearance was part of his content.",
+        "speech_accuracy": "requires_ASR_and_export_review"
+      }
+    },
+    {
+      "source": {
+        "id": "5hePe01Lva0",
+        "url": "https://www.youtube.com/watch?v=5hePe01Lva0",
+        "title": "CUFFEM EXPOSES THE TRUTH ABOUT STREAMING, MONEY & BEEF WITH JSHOCK",
+        "creator": "Bradley Martyn's Raw Talk",
+        "niches": [
+          "Streams"
+        ],
+        "views": 100830,
+        "published_at": "2026-10-20T18:00:39+00:00",
+        "observed_at": "2026-10-22T16:26:41.438309+00:00",
+        "duration": 5190.0,
+        "views_per_hour_since_upload": 1902.27,
+        "measured_growth_per_hour": null,
+        "eligible_preview": true,
+        "discovery_evidence": "research/source-expansion-2026-10-22/metadata-checks.json"
+      },
+      "moment": {
+        "clip_plan": {
+          "start_seconds": 1830.0,
+          "duration_seconds": 32.88,
+          "aspect_ratio": "9:16"
+        },
+        "editorial_score": 72.0,
+        "score_type": "editorial_heuristic",
+        "reasons": [
+          "Starts and ends at subtitle boundaries",
+          "Opening poses a question",
+          "Includes a concrete number or step",
+          "Ends at sentence-ending punctuation"
+        ],
+        "source_excerpt": ">> What did you do? How did you feel about Obviously, everyone hates taxes, but when you made your first million, were you like, \"Oh, I got to give this money away as well.\" >> I ain't going to lie, like battle from the trenches. Like, >> isn't it the craziest feeling ever? It's the craziest feeling. I was just I was like, \"Fuck taxes.\" Until I got an accountant, until I got a team, and then they told me straight up, they told me the reality, harsh reality. Uh they added everything together. They got all my bank statements. And then my first like time paying taxes, I owe like $600,000. >> Yeah. >> Yeah. And I was just like I was like, \"What the?\" And that's when I started said, \"Whoa, taxes is a scam.\" I'm like, >> \"Oh, it is.\"",
+        "caption": "CUFFEM recalls the shock of his first large tax bill after earning money as a streamer. This is his personal account.",
+        "note": "Editorial selection from public timed captions; no replay data available. The question explicitly asks about taxes after his first million. He describes hiring an accountant and receiving a bill, then gives his reaction. His tax opinion is presented as his own.",
+        "strategies": [
+          "chapter",
+          "transcript_boundary"
+        ],
+        "transcript_features": {
+          "opening_question": true,
+          "opening_topic_matches": 0,
+          "topic_matches": 0,
+          "ending_question": false,
+          "words_per_second": 4.166666666666653
+        },
+        "quality": {
+          "filler_opening": false,
+          "context_dependent_opening": false,
+          "mid_sentence_opening": false,
+          "intro_or_outro": false,
+          "host_meta_setup": false,
+          "completed_ending": true,
+          "ending_question": false,
+          "promotional": false,
+          "silence_seconds": 0,
+          "largest_speech_gap": 0.0,
+          "speech_ratio": 1.0
+        },
+        "selection": {
+          "score": 0.642624371562188,
+          "signals": {
+            "hook": {
+              "value": 0.54,
+              "weight": 0.2,
+              "weighted_contribution": 0.10800000000000001,
+              "basis": "Configured transcript opening features / 100; not a measured audience response"
+            },
+            "semantic": {
+              "value": 0.72,
+              "weight": 0.15,
+              "weighted_contribution": 0.108,
+              "basis": "Configured topic, concrete-detail, duration and speech-gap heuristics / 100; no language model"
+            },
+            "replay": {
+              "value": null,
+              "weight": 0.15,
+              "weighted_contribution": null,
+              "basis": "Supplied normalized observation"
+            },
+            "emotion": {
+              "value": null,
+              "weight": 0.1,
+              "weighted_contribution": null,
+              "basis": "Supplied normalized observation"
+            },
+            "completeness": {
+              "value": 1.0,
+              "weight": 0.1,
+              "weighted_contribution": 0.1,
+              "basis": "Source sentence punctuation and question/answer ending"
+            },
+            "velocity": {
+              "value": null,
+              "weight": 0.1,
+              "weighted_contribution": null,
+              "basis": "Supplied normalized observation"
+            },
+            "engagement": {
+              "value": 0.017058415154219974,
+              "weight": 0.1,
+              "weighted_contribution": 0.0017058415154219974,
+              "basis": "Observed (likes + comments) / views, capped at one"
+            },
+            "standalone": {
+              "value": 1.0,
+              "weight": 0.1,
+              "weighted_contribution": 0.1,
+              "basis": "Observable transcript context, introduction and promotion flags"
+            }
+          },
+          "evidence_coverage": 0.6499999999999999,
+          "missing_signals": [
+            "replay",
+            "emotion",
+            "velocity"
+          ],
+          "note": "Weighted available evidence; missing signals are excluded and coverage is reported. An editorial ranking score is not a probability of future views.",
+          "source_observations": {
+            "source_views": 100830.0,
+            "views_per_hour": 1902.2658749302043,
+            "engagement_rate": 0.017058415154219974,
+            "velocity_basis": "Lifetime views / known source age; not a measured recent growth rate"
+          }
+        },
+        "growth": {
+          "score": 0.5799645390070922,
+          "signals": {
+            "hook_strength": {
+              "value": 0.675,
+              "weight": 0.22,
+              "weighted_contribution": 0.14850000000000002,
+              "basis": "Rule-based hook markers detected in the supplied opening text; labels describe the wording and are not verified audience reactions or fabricated claims."
+            },
+            "retention_potential": {
+              "value": 1.0,
+              "weight": 0.18,
+              "weighted_contribution": 0.18,
+              "basis": "Heuristic transcript timing, structure and length signals with explicit penalties; not a measured retention curve or viewer forecast."
+            },
+            "shareability": {
+              "value": 0.3333333333333333,
+              "weight": 0.14,
+              "weighted_contribution": 0.04666666666666667,
+              "basis": "Money, number and stakes markers in the supplied transcript; not a measured share rate."
+            },
+            "standalone_clarity": {
+              "value": 1.0,
+              "weight": 0.12,
+              "weighted_contribution": 0.12,
+              "basis": "Observed opening, context and promotion flags in the supplied transcript."
+            },
+            "emotional_intensity": {
+              "value": 0.0,
+              "weight": 0.1,
+              "weighted_contribution": 0.0,
+              "basis": "Emotion-word markers in the supplied transcript; audio energy was not measured."
+            },
+            "novelty": {
+              "value": 0.0,
+              "weight": 0.08,
+              "weighted_contribution": 0.0,
+              "basis": "Unexpectedness markers in the supplied transcript; novelty is not independently verified."
+            },
+            "niche_relevance": {
+              "value": null,
+              "weight": 0.06,
+              "weighted_contribution": null,
+              "basis": "No niche keywords were supplied; niche relevance not evaluated."
+            },
+            "follow_potential": {
+              "value": 0.5,
+              "weight": 0.1,
+              "weighted_contribution": 0.05,
+              "basis": "Complete-idea structure and lesson markers; not measured follower conversion."
+            }
+          },
+          "evidence_coverage": 0.94,
+          "missing_signals": [
+            "niche_relevance"
+          ],
+          "note": "Weighted available evidence; missing signals are excluded and coverage is reported. An editorial ranking score is not a probability of future views.",
+          "hook": {
+            "value": 0.675,
+            "hook_type": "strong_question",
+            "matched": [
+              "strong_question"
+            ],
+            "opening_quality": 1.0,
+            "weak_opening": false,
+            "opening": "What did you do?",
+            "basis": "Rule-based hook markers detected in the supplied opening text; labels describe the wording and are not verified audience reactions or fabricated claims."
+          },
+          "retention": {
+            "value": 1.0,
+            "signals": {
+              "strong_first_sentence": 1.0,
+              "low_silence": 1.0,
+              "fast_information_density": 1.0,
+              "sentence_continuity": 1.0,
+              "clear_payoff": 1.0,
+              "clip_length": 1.0,
+              "topic_continuity": 1.0
+            },
+            "penalties": {},
+            "missing_signals": [],
+            "basis": "Heuristic transcript timing, structure and length signals with explicit penalties; not a measured retention curve or viewer forecast."
+          },
+          "completeness": 1.0,
+          "weights": {
+            "hook_strength": 0.22,
+            "retention_potential": 0.18,
+            "shareability": 0.14,
+            "standalone_clarity": 0.12,
+            "emotional_intensity": 0.1,
+            "novelty": 0.08,
+            "niche_relevance": 0.06,
+            "follow_potential": 0.1
+          }
+        },
+        "ranking": {
+          "basis": "configured_growth_score",
+          "base_score": 0.5799645390070922,
+          "feedback_adjustment": 0.0,
+          "score": 0.5799645390070922,
+          "growth_evidence_coverage": 0.94,
+          "note": "Editorial ranking before overlap pruning; this is not a probability of future views."
+        }
+      },
+      "source_clip_plan": {
+        "start_seconds": 1830.0,
+        "duration_seconds": 32.88,
+        "aspect_ratio": "9:16"
+      },
+      "metadata_source": "C:\\Users\\hp\\desktop\\new folder\\content rewerad\\research\\source-expansion-2026-10-22\\public-captions\\5hePe01Lva0\\source.json",
+      "niche_review": {
+        "niche": "business",
+        "rationale": "The question explicitly asks about taxes after his first million. He describes hiring an accountant and receiving a bill, then gives his reaction. His tax opinion is presented as his own."
+      },
+      "editorial_review": {
+        "decision": "selected_for_bounded_render",
+        "rationale": "The question explicitly asks about taxes after his first million. He describes hiring an accountant and receiving a bill, then gives his reaction. His tax opinion is presented as his own.",
+        "speech_accuracy": "requires_ASR_and_export_review"
+      }
+    }
+  ],
+  "publishing_enabled": false,
+  "limitations": [
+    "Public captions may contain errors.",
+    "Editorial selection does not establish virality.",
+    "Other source candidates remain deferred for contextual review."
+  ]
+}

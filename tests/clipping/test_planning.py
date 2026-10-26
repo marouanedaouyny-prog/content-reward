@@ -1,6 +1,7 @@
 import importlib
 import json
-import uuid
+import random
+import re
 from pathlib import Path
 
 import pytest
@@ -274,10 +275,10 @@ def test_downloader_enables_the_installed_youtube_javascript_runtime(monkeypatch
     assert media.ytdlp_command()[-2:] == ['--js-runtimes', 'node']
 
 
-def test_automatic_planning_respects_approval_and_persists_selected_cut(monkeypatch):
+def test_automatic_planning_respects_approval_and_persists_selected_cut(tmp_path, monkeypatch):
     from clipping.workflow import ClippingWorkflow
     from clipping import media
-    folder = Path('.workflow-tests') / uuid.uuid4().hex
+    folder = tmp_path
     engine = ClippingWorkflow(folder / 'jobs.db', folder / 'storage')
     data = {'campaign': {'title': 'Demo', 'url': 'https://example.com/campaign', 'platform': 'tiktok',
                         'rights_notes': 'Authorized fixture', 'rules': 'Complete moments',
@@ -310,10 +311,9 @@ def test_automatic_planning_respects_approval_and_persists_selected_cut(monkeypa
     assert 'publication' not in reloaded['output']
 
 
-def test_automatic_practice_source_fits_the_maximum_clip_window(monkeypatch):
+def test_automatic_practice_source_fits_the_maximum_clip_window(tmp_path, monkeypatch):
     from clipping import media
-    folder = Path('.workflow-tests') / uuid.uuid4().hex
-    folder.mkdir(parents=True)
+    folder = tmp_path
     recorded = []
     def create_source(args, **kwargs):
         recorded.append(float(args[args.index('-t') + 1]))
@@ -326,9 +326,9 @@ def test_automatic_practice_source_fits_the_maximum_clip_window(monkeypatch):
     assert result['source_duration'] == 180
 
 
-def test_default_planning_controls_preserve_existing_job_identity():
+def test_default_planning_controls_preserve_existing_job_identity(tmp_path):
     from clipping.workflow import ClippingWorkflow
-    folder = Path('.workflow-tests') / uuid.uuid4().hex
+    folder = tmp_path
     engine = ClippingWorkflow(folder / 'jobs.db', folder / 'storage')
     data = {'campaign': {'title': 'Demo', 'url': 'https://example.com/campaign', 'platform': 'tiktok',
                         'rights_notes': 'Synthetic fixture', 'rules': 'Manual cut'}, 'dry_run': True}
@@ -531,3 +531,173 @@ def test_a_conversational_explanation_of_subscriptions_is_not_a_channel_promotio
     result = module().suggest_cuts([{'start': 0, 'end': 35, 'text': text}], 35,
         min_duration=35, max_duration=35, require_standalone=True)
     assert result[0]['quality']['promotional'] is False
+
+
+@pytest.mark.parametrize('text', [
+    "He hasn't spoken since he left Manchester United. He's back working in the Netherlands now.",
+    "That's all positive from Tenhog on the current boss Michael Carrick. Michael Carrick has a news conference today.",
+    "We've got another voice note. This one's from Jacob. I've got loads of respect for Tennog.",
+    "I suppose he wasn't there either, was he? He wasn't there at that time because he was at Middlesbrough.",
+])
+def test_strict_planning_rejects_context_and_host_setups_seen_in_past_exports(text):
+    with pytest.raises(ValueError, match='window'):
+        module().suggest_cuts([{'start': 0, 'end': 35, 'text': text}], 35,
+            min_duration=35, max_duration=35, require_standalone=True)
+
+
+@pytest.mark.parametrize('text', [
+    'It is a mistake to hire before planning payroll. Keep reserves to cover salary payments.',
+    "It's a mistake to hire before planning payroll. Keep reserves to cover salary payments.",
+    'This is why cash reserves matter. They protect payroll before invoices are paid.',
+    'Why is it hard to hire good people? Define the role before interviewing.',
+    'Why does that team need a cash reserve? Late invoices can leave payroll unfunded.',
+    'He, Erik ten Hag, explained why Manchester United needed patience. Give a manager clear goals.',
+])
+def test_strict_planning_keeps_complete_hooks_with_an_explicit_subject(text):
+    choice = module().suggest_cuts([{'start': 0, 'end': 35, 'text': text}], 35,
+        min_duration=35, max_duration=35, require_standalone=True)[0]
+    assert choice['quality']['context_dependent_opening'] is False
+
+
+def _previous_payoff_check(text):
+    # Retain the full-window predicate as a differential oracle for optimization.
+    return bool(re.search(
+        r"(?:let me tell you what|here['’]s (?:the thing|what)|my (?:line of )?question(?:ing)?[^.!?]*|"
+        r"(?:it['’]s|it is) (?:really )?(?:just )?to (?:understand|know)[^.!?]*|"
+        r"(?:i|we) (?:want|would like|am trying|are trying) to (?:understand|know)[^.!?]*)"
+        r'''[.!?]["'”’»」』）)\]}]*$''', text, re.IGNORECASE))
+
+
+def test_payoff_check_limits_regex_work_to_the_final_sentence(monkeypatch):
+    mod = module()
+    search = mod.re.search
+    scanned = []
+
+    def recording_search(pattern, text, *args, **kwargs):
+        scanned.append(len(text))
+        return search(pattern, text, *args, **kwargs)
+
+    monkeypatch.setattr(mod.re, 'search', recording_search)
+    final_sentence = ' Here’s the thing.”'
+    earlier = ('A complete point about payroll. ' * 100).rstrip()
+    assert mod._needs_payoff(earlier + final_sentence)
+    assert scanned and max(scanned) <= len(final_sentence)
+
+
+def test_payoff_check_matches_previous_policy_for_generated_caption_windows():
+    mod = module()
+    prefixes = ['', 'A complete point. ', 'A question? ', 'A warning! ', 'An unfinished thought ',
+                'The example.com project worked. ', 'My question is answered. ']
+    endings = ['', '.', '!', '?', '."', '?”', '!’»」』）)]}', '.\n', '. ', '...']
+    statements = [
+        'Let me tell you what', 'Here’s the thing', "Here's what", 'My question is why payroll failed',
+        'My line of questioning is to understand the result', 'It is really just to know the result',
+        'I want to understand the result', 'We would like to know the result',
+        'I am trying to understand the result', 'We are trying to know the result',
+        'Cash reserves protect payroll', 'Here is the thing', 'WHY DOES PAYROLL MATTER',
+        '稳定的现金流支持团队。',
+    ]
+    corpus = [prefix + statement + ending
+              for prefix in prefixes for statement in statements for ending in endings]
+    rng = random.Random(2761)
+    fragments = [*prefixes, *statements, *endings, '\n', '\u2028', '\u00a0', '\u0301', '\u2026']
+    corpus.extend(''.join(rng.choices(fragments, k=rng.randrange(1, 12))) for _ in range(2000))
+    for text in corpus:
+        assert mod._needs_payoff(text) == _previous_payoff_check(text), repr(text)
+
+
+def test_payoff_optimization_preserves_complete_ranked_suggestions(monkeypatch):
+    from app.core.config import load_settings
+    mod = module()
+    statements = [
+        'Budgeting protects payroll. Build three cash reserves before hiring.',
+        'What makes a team successful? Clear roles help people make better decisions.',
+        'A written checklist protects suppliers. Review each payment before sending it.',
+        'My line of questioning is just to understand',
+        'how people make decisions. Clear roles reduce confusion.',
+        'Let me tell you what.',
+        'Planning protects the business. Here’s the thing.',
+        'Practice improves judgment. Review each decision after finishing the project.',
+        'Written goals help teams focus. Review one priority at the start of each day.',
+        'Customers explain useful problems. Ask for an example before building a feature.',
+        'Financial planning gives teams time. Keep a cash reserve for unexpected costs.',
+        'Useful feedback improves the next decision. Review the result after the project.',
+        'Clear roles improve hiring. Describe the responsibility before interviewing.',
+        'A checklist protects attention. Write down each required action before starting.',
+        'Small experiments expose weak ideas. Test the central assumption first.',
+        'Customer interviews reveal priorities. Listen for the task people repeat.',
+    ]
+    transcript = [{'start': index * 4, 'end': (index + 1) * 4,
+                   'text': statements[index % len(statements)]} for index in range(48)]
+    settings = load_settings(environ={})
+    arguments = dict(target_duration=30, min_duration=15, max_duration=40, keywords='business,payroll',
+                     limit=5, min_gap=3, require_standalone=True, settings=settings,
+                     rank_by_growth=True)
+    optimized = mod.suggest_cuts(transcript, 192, **arguments)
+    assert optimized
+    monkeypatch.setattr(mod, '_needs_payoff', _previous_payoff_check)
+    assert mod.suggest_cuts(transcript, 192, **arguments) == optimized
+
+
+@pytest.mark.parametrize('title', ['Intro', ' Introduction ', 'OUTRO', 'Sponsor', 'Sponsorship',
+                                  'Advertising', 'Advertisement', 'Ad', 'Ad break', 'Commercial break'])
+def test_strict_planning_rejects_explicit_intro_outro_and_advertising_chapters(title):
+    transcript = [{'start': 100, 'end': 135,
+                   'text': 'A written plan protects payroll. Assign one owner to each payment.'}]
+    with pytest.raises(ValueError, match='window'):
+        module().suggest_cuts(transcript, 200, min_duration=35, max_duration=35,
+            require_standalone=True, chapters=[{'start_time': 100, 'end_time': 135, 'title': title}])
+
+
+@pytest.mark.parametrize('title', ['Introduction to Algebra', 'Advertising advice',
+                                  'How to find a sponsor', 'Career advice', 'Intro to programming'])
+def test_strict_planning_keeps_educational_chapter_topics(title):
+    transcript = [{'start': 100, 'end': 135,
+                   'text': 'A written plan protects payroll. Assign one owner to each payment.'}]
+    result = module().suggest_cuts(transcript, 200, min_duration=35, max_duration=35,
+        require_standalone=True, chapters=[{'start_time': 100, 'end_time': 135, 'title': title}])
+    assert result[0]['clip_plan']['start_seconds'] == 100
+
+
+def test_strict_planning_filters_crossing_chapters_before_choosing_the_best_end():
+    transcript = [{'start': 0, 'end': 20, 'text': 'A written plan protects payroll.'},
+                  {'start': 20, 'end': 40, 'text': 'Assign one owner to each payment.'}]
+    result = module().suggest_cuts(transcript, 40, target_duration=40, min_duration=20, max_duration=40,
+        require_standalone=True, chapters=[{'start_time': 30, 'end_time': 35, 'title': 'Sponsor'}])
+    assert [item['clip_plan'] for item in result] == [
+        {'start_seconds': 0, 'duration_seconds': 20, 'aspect_ratio': '9:16'}]
+
+
+@pytest.mark.parametrize('chapters', [None, [], {}, [None],
+    [{'title': 'Intro', 'start_time': True, 'end_time': 35}],
+    [{'title': 'Intro', 'start_time': -1, 'end_time': 35}],
+    [{'title': 'Intro', 'start_time': 30, 'end_time': 20}],
+    [{'title': 'Intro', 'start_time': 0, 'end_time': float('inf')}],
+    [{'title': 'Intro', 'start_time': 0, 'end_time': 300}],
+    [{'title': 'Intro', 'start_time': 0}],
+    [{'start_time': 0, 'end_time': 35}],
+])
+def test_missing_or_malformed_chapters_do_not_fabricate_exclusions(chapters):
+    transcript = [{'start': 0, 'end': 35,
+                   'text': 'A written plan protects payroll. Assign one owner to each payment.'}]
+    assert module().suggest_cuts(transcript, 35, min_duration=35, max_duration=35,
+        require_standalone=True, chapters=chapters)
+
+
+def test_strict_chapter_exclusion_uses_source_times_and_allows_touching_boundaries():
+    transcript = [{'start': 325, 'end': 360,
+                   'text': 'A written plan protects payroll. Assign one owner to each payment.'}]
+    source = {'chapters': [{'start_time': 0, 'end_time': 325, 'title': 'Intro'},
+                           {'start_time': 360, 'end_time': 400, 'title': 'Outro'}]}
+    result = module().suggest_cuts(transcript, 400, min_duration=35, max_duration=35,
+                                   require_standalone=True, source=source)
+    assert result[0]['clip_plan']['start_seconds'] == 325
+
+
+def test_empty_explicit_chapters_do_not_hide_known_source_introduction():
+    transcript = [{'start': 0, 'end': 35,
+                   'text': 'A written plan protects payroll. Assign one owner to each payment.'}]
+    with pytest.raises(ValueError, match='window'):
+        module().suggest_cuts(transcript, 35, min_duration=35, max_duration=35,
+            require_standalone=True, chapters=[],
+            source={'chapters': [{'start_time': 0, 'end_time': 35, 'title': 'Intro'}]})

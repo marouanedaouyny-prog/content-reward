@@ -23,12 +23,80 @@ class TranscriptRequired(Exception):
     pass
 
 
-class SourceUnavailable(Exception):
+class SourceFailure(Exception):
+    """A source failure with bounded diagnostic fields safe for saved state."""
+
+    default_reason = 'downloader_setup_failed'
+    reasons = frozenset({'network_unavailable', 'http_unavailable', 'rate_limited',
+                         'proxy_unavailable', 'dns_unavailable', 'timeout',
+                         'tls_verification_failed', 'downloader_setup_failed', 'access_refused'})
+
+    def __init__(self, message, *, reason=None, http_status=None, timeout_seconds=None):
+        super().__init__(message)
+        self.diagnostic = {'reason': reason if isinstance(reason, str) and reason in self.reasons else self.default_reason}
+        if type(http_status) is int and 100 <= http_status <= 599:
+            self.diagnostic['http_status'] = http_status
+        if (type(timeout_seconds) in (int, float) and math.isfinite(timeout_seconds)
+                and 0 < timeout_seconds <= 86400):
+            self.diagnostic['timeout_seconds'] = timeout_seconds
+
+
+class SourceUnavailable(SourceFailure):
     """A temporary network failure, eligible for a saved automatic retry."""
 
+    default_reason = 'network_unavailable'
 
-class SourceAccessRequired(Exception):
+
+class SourceAccessRequired(SourceFailure):
     """A source-specific refusal; another researched source may be usable."""
+
+    default_reason = 'access_refused'
+
+
+class SourceSetupRequired(SourceFailure):
+    """A local downloader or TLS problem that must not retire a selected source."""
+
+
+def classify_source_failure(error):
+    """Classify provider output without persisting messages, URLs or arguments."""
+    timed_out = isinstance(error, subprocess.TimeoutExpired)
+    detail = error.stderr if timed_out else str(error)
+    if isinstance(detail, bytes):
+        detail = detail.decode('utf-8', errors='replace')
+    detail = str(detail or '').lower()
+    detail = re.sub(r'https?://\S+', '', detail[:4096] + detail[-4096:])
+    match = re.search(r'\b(?:http(?:\s+error)?|server returned)\s*:?\s*([45]\d{2})\b', detail)
+    status = int(match.group(1)) if match else None
+    diagnostic = {'http_status': status, 'timeout_seconds': error.timeout if timed_out else None}
+    if any(term in detail for term in ('certificate_verify_failed', 'certificate verify failed',
+                                       'certificate verification failed', 'ssl certificate problem')):
+        kind, reason = SourceSetupRequired, 'tls_verification_failed'
+    elif status == 429:
+        kind, reason = SourceUnavailable, 'rate_limited'
+    elif status is not None and (status >= 500 or status in (408, 425)):
+        kind, reason = SourceUnavailable, 'http_unavailable'
+    elif any(term in detail for term in ('unable to connect to proxy', 'proxy error', 'proxyerror',
+                                         'tunnel connection failed', 'could not resolve proxy', 'proxyconnect tcp')):
+        kind, reason = SourceUnavailable, 'proxy_unavailable'
+    elif timed_out or 'timed out' in detail or re.search(r'\btimeout\b', detail):
+        kind, reason = SourceUnavailable, 'timeout'
+    elif any(term in detail for term in ('name resolution', 'getaddrinfo failed', 'name or service not known',
+                                         'could not resolve hostname', 'nodename nor servname')):
+        kind, reason = SourceUnavailable, 'dns_unavailable'
+    elif any(term in detail for term in ('connection refused', '10061', 'temporary failure',
+                                         'connection reset', 'network is unreachable')):
+        kind, reason = SourceUnavailable, 'network_unavailable'
+    elif status is not None or any(term in detail for term in ('private video', 'video is private',
+            'video unavailable', 'video is unavailable', 'video has been removed',
+            'sign in to confirm', 'not available in your country',
+            'members-only', 'copyright', 'requested format is not available', 'no video formats found')):
+        kind, reason = SourceAccessRequired, 'access_refused'
+    else:
+        kind, reason = SourceSetupRequired, 'downloader_setup_failed'
+    messages = {SourceSetupRequired: 'Source downloader setup requires correction; selected moments are saved.',
+                SourceUnavailable: 'Source connection temporarily unavailable; section progress is saved.',
+                SourceAccessRequired: 'Public captions or partial media are unavailable for this source.'}
+    return kind(messages[kind], reason=reason, **diagnostic)
 
 
 class ProcessingInterrupted(Exception):
@@ -66,6 +134,7 @@ def command(args, cwd=None, timeout=300, kill_tree=False, should_stop=None):
     should_stop = should_stop or _stop_signal.get()
     if should_stop and should_stop():
         raise ProcessingInterrupted('Processing paused or cancelled')
+    process = None
     try:
         if not kill_tree and not should_stop:
             result = subprocess.run(args, cwd=cwd, capture_output=True, text=True,
@@ -80,22 +149,32 @@ def command(args, cwd=None, timeout=300, kill_tree=False, should_stop=None):
             with managed_process as process:
                 try:
                     deadline = time.monotonic() + timeout
+                    partial_stderr = None
                     while True:
                         if should_stop and should_stop():
                             raise ProcessingInterrupted('Processing paused or cancelled')
                         remaining = deadline - time.monotonic()
                         if remaining <= 0:
-                            raise subprocess.TimeoutExpired(args, timeout)
+                            raise subprocess.TimeoutExpired(args, timeout, stderr=partial_stderr)
                         try:
                             stdout, stderr = process.communicate(timeout=min(.5, remaining))
                             break
-                        except subprocess.TimeoutExpired:
+                        except subprocess.TimeoutExpired as exc:
+                            partial_stderr = exc.stderr[-8192:] if exc.stderr else partial_stderr
                             continue
                 except (subprocess.TimeoutExpired, ProcessingInterrupted):
                     if os.name != 'nt':
                         terminate_process(process)
                     raise
                 result = subprocess.CompletedProcess(args, process.returncode, stdout, stderr)
+    except subprocess.TimeoutExpired as exc:
+        if process is not None:
+            # Managed context exit has terminated the tree and drained its pipes.
+            # Windows does not expose partial communicate() buffers until EOF.
+            _, stderr = process.communicate(timeout=10)
+            if stderr:
+                exc.stderr = stderr[-8192:]
+        raise
     except FileNotFoundError as exc:
         raise ValueError(f'Install {args[0]} and make it available on PATH') from exc
     if result.returncode:
@@ -255,6 +334,8 @@ def validate_segments(segments, duration):
             raise ValueError('Transcript timestamps must be finite numbers')
         if not 0 <= start < end <= duration + 0.25 or not isinstance(text, str) or not text.strip():
             raise ValueError('Transcript segments must contain text within the source duration')
+        validate_confidence(segment, [('avg_logprob', None, 0), ('no_speech_prob', 0, 1),
+                                      ('compression_ratio', 0, None)])
         if 'words' in segment:
             words = segment['words']
             if not isinstance(words, list) or not words:
@@ -271,10 +352,21 @@ def validate_segments(segments, duration):
                     raise ValueError('Word timestamps must be ordered within the source duration')
                 if not isinstance(value, str) or not value.strip():
                     raise ValueError('Word timestamps must contain text')
+                validate_confidence(word, [('probability', 0, 1)])
                 previous_end = word_end
             if ' '.join(''.join(word['word'] for word in words).split()) != ' '.join(text.split()):
                 raise ValueError('Word text must match its transcript segment')
     return sorted(segments, key=lambda s: (s['start'], s['end']))
+
+
+def validate_confidence(record, fields):
+    for name, minimum, maximum in fields:
+        if name not in record:
+            continue
+        value = record[name]
+        if (isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value)
+                or minimum is not None and value < minimum or maximum is not None and value > maximum):
+            raise ValueError('Transcription confidence diagnostics must be finite numbers within their valid range')
 
 
 def model_files_ready(folder):
@@ -283,16 +375,37 @@ def model_files_ready(folder):
 
 
 def whisper_model_location(storage, language=None):
-    configured = os.environ.get('WHISPER_MODEL')
-    if configured:
-        local = Path(storage) / 'models' / configured
-        return str(local) if model_files_ready(local) else configured
-    names = ('small', 'tiny.en') if language == 'en' else ('small',)
-    for name in names:
-        local = Path(storage) / 'models' / name
-        if model_files_ready(local):
-            return str(local)
-    return 'small'
+    from app.repositories.store import Store as _Store
+    if isinstance(storage, _Store):
+        storage = storage.path.parent
+    elif not isinstance(storage, Path):
+        storage = Path(storage).parent
+    english = isinstance(language, str) and language.split('-', 1)[0].casefold() == 'en'
+    from app.core.config import load_settings
+    configured = load_settings().whisper.model
+    if Path(configured).name.casefold().endswith('.en') and not english:
+        configured = 'small'
+    local = storage / 'models' / configured
+    if model_files_ready(local):
+        return str(local)
+    direct = Path(configured).expanduser()
+    return str(direct) if model_files_ready(direct) else configured
+
+
+def asr_confidence(segments, origin, model=None):
+    """Summarize available model diagnostics without interpreting them as truth."""
+    automatic = origin.startswith('faster_whisper:')
+    segment_count = sum(any(field in segment for field in
+                            ('avg_logprob', 'no_speech_prob', 'compression_ratio')) for segment in segments)
+    words = [word for segment in segments for word in segment.get('words', [])]
+    probability_count = sum('probability' in word for word in words)
+    return {'available': automatic and bool(segment_count or probability_count),
+            'origin': origin, 'model': model, 'segment_count': len(segments),
+            'segments_with_diagnostics': segment_count, 'word_count': len(words),
+            'words_with_probability': probability_count, 'speech_accuracy': 'not_verified',
+            'limitations': ['Recognition confidence is a model diagnostic, not verified speech accuracy.',
+                            'Missing confidence is unknown; high confidence does not verify names or quotations.',
+                            'Values from different models and decoding settings are not directly comparable.']}
 
 
 def _infer_transcript(args, duration):
@@ -308,6 +421,7 @@ def _infer_transcript(args, duration):
 
 def transcribe(data, output, folder, storage):
     assessment = None
+    model = None
     if data.get('transcript_srt') or data.get('transcript'):
         segments = data.get('transcript') or parse_srt(data['transcript_srt'])
         origin = 'operator_supplied_practice' if data['dry_run'] else 'operator_supplied'
@@ -317,9 +431,13 @@ def transcribe(data, output, folder, storage):
         origin = 'synthetic_practice'
     else:
         try:
+            from app.core.config import load_settings
+            settings = load_settings()
+            model = whisper_model_location(storage, data.get('language'))
             args = [sys.executable, '-I', str(Path(__file__).with_name('_transcribe.py')),
                     str(storage / output['source_path']),
-                    whisper_model_location(storage, data.get('language')), str(storage / 'models')]
+                    model, str(storage / 'models'),
+                    '--device', settings.whisper.device, '--cpu-threads', str(settings.worker.cpu_threads)]
             if data.get('language'):
                 args.extend(['--language', data['language']])
             if data.get('transcription_hint'):
@@ -352,7 +470,9 @@ def transcribe(data, output, folder, storage):
                                      'English model, select English; otherwise provide timed SRT subtitles.') from exc
     segments = validate_segments(segments, output['source_duration'])
     path = folder / 'transcript.json'
-    path.write_text(json.dumps({'origin': origin, 'segments': segments}, ensure_ascii=False, indent=2),
+    path.write_text(json.dumps({'origin': origin, 'segments': segments,
+                               'asr_confidence': asr_confidence(segments, origin, model)},
+                              ensure_ascii=False, indent=2, allow_nan=False),
                     encoding='utf-8')
     result = {'transcript_path': path.relative_to(storage).as_posix(), 'transcript_origin': origin,
               'transcript_sha256': file_hash(path)}
@@ -376,28 +496,58 @@ def render(data, output, folder, storage):
     segments = validate_segments(transcript['segments'], output['source_duration'])
     plan = output.get('selected_clip_plan') or data['clip_plan']
     start, duration = plan['start_seconds'], plan['duration_seconds']
+    from app.core.config import load_settings
+    settings = load_settings()
+    window_cues = cues_for_window(segments, start, duration, settings=settings)
+    if not window_cues:
+        raise ValueError('Transcript has no speech in the selected clip window; choose another start time')
+    # PRD-GROWTH section 9: opt-in silence removal keeps captions synchronized.
+    silence_plan = None
+    if settings.silence.aggressive_cut:
+        from clipping import silence
+        silence_plan = silence.plan_removal(
+            duration, silence.detect(storage / output['source_path'], start, duration, settings=settings))
+        if silence_plan['applied']:
+            window_cues = silence.remap_cues(window_cues, silence_plan['gaps'])
+    effective_duration = (duration - silence_plan['removed_seconds']
+                          if silence_plan and silence_plan['applied'] else duration)
     cues = [f"{index}\n{srt_time(cue['start'])} --> {srt_time(cue['end'])}\n"
             + '\n'.join(textwrap.wrap(cue['text'], width=48, break_long_words=False,
                                       break_on_hyphens=False)) + '\n'
-            for index, cue in enumerate(cues_for_window(segments, start, duration), 1)]
-    if not cues:
-        raise ValueError('Transcript has no speech in the selected clip window; choose another start time')
+            for index, cue in enumerate(window_cues, 1)]
     subtitles = folder / 'subtitles.srt'
     subtitles.write_text('\n'.join(cues), encoding='utf-8')
     width, height = {'9:16': (1080, 1920), '16:9': (1920, 1080), '1:1': (1080, 1080)}[plan['aspect_ratio']]
     caption_style = data.get('caption_style', DEFAULT_CAPTION_STYLE)
     subtitle_filter = "subtitles=subtitles.srt:force_style='FontSize=15,MarginV=48,MarginL=24,MarginR=24,Outline=2,Shadow=0,Alignment=2'"
+    time_map = None
+    if silence_plan and silence_plan['applied']:
+        from clipping import silence
+        time_map = silence.time_map(silence_plan['gaps'])
     if caption_style != 'classic':
         from clipping.caption_styles import ass_for_window
         styled = folder / 'subtitles.ass'
-        styled.write_text(ass_for_window(segments, start, duration, width, height, caption_style),
-                          encoding='utf-8')
+        styled.write_text(ass_for_window(segments, start, duration, width, height, caption_style,
+                                         settings=settings, time_map=time_map), encoding='utf-8')
         subtitle_filter = 'subtitles=subtitles.ass'
     vf = (f'scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},setsar=1,'
           + subtitle_filter)
     framing = data.get('framing_mode', DEFAULT_FRAMING_MODE)
+    framing_eff = framing
+    focus_report = None
+    if framing == 'speaker-focus':
+        # PRD-GROWTH section 12: speaker-focus only when a stable face is
+        # reliable; otherwise the export falls back to the fit template.
+        from clipping import framing as framing_analysis
+        focus_report = framing_analysis.analyze(storage / output['source_path'], start, duration,
+                                                plan['aspect_ratio'])
+        framing_eff = 'speaker-focus' if focus_report['crop'] else 'fit'
+        if focus_report['crop']:
+            crop_x, crop_y, crop_w, crop_h = focus_report['crop']
+            vf = (f'crop={crop_w}:{crop_h}:{crop_x}:{crop_y},'
+                  f'scale={width}:{height},setsar=1,' + subtitle_filter)
     filters = ['-vf', vf]
-    if framing == 'fit':
+    if framing_eff == 'fit':
         graph = (f'[0:v]split[background][foreground];'
                  f'[background]scale={width}:{height}:force_original_aspect_ratio=increase,'
                  f'crop={width}:{height},setsar=1,boxblur=24:2,eq=brightness=-0.12[blurred];'
@@ -406,13 +556,34 @@ def render(data, output, folder, storage):
                  f'[blurred][fullframe]overlay=(W-w)/2:(H-h)/2,{subtitle_filter}[composed]')
         filters = ['-filter_complex_threads', '1', '-filter_complex', graph,
                    '-map', '[composed]', '-map', '0:a:0']
+    if silence_plan and silence_plan['applied']:
+        kept = silence_plan['kept']
+        graph = ''.join(f'[0:v]trim=start={begin:g}:end={finish:g},setpts=PTS-STARTPTS[v{index}];'
+                        f'[0:a]atrim=start={begin:g}:end={finish:g},asetpts=PTS-STARTPTS[a{index}];'
+                        for index, (begin, finish) in enumerate(kept))
+        graph += ''.join(f'[v{index}][a{index}]' for index in range(len(kept))) \
+                 + f'concat=n={len(kept)}:v=1:a=1[cutv][cuta];'
+        if framing_eff == 'fit':
+            graph += ('[cutv]split[background][foreground];'
+                      f'[background]scale={width}:{height}:force_original_aspect_ratio=increase,'
+                      f'crop={width}:{height},setsar=1,boxblur=24:2,eq=brightness=-0.12[blurred];'
+                      f'[foreground]scale={width}:{height}:force_original_aspect_ratio=decrease:'
+                      f'force_divisible_by=2,setsar=1[fullframe];'
+                      f'[blurred][fullframe]overlay=(W-w)/2:(H-h)/2,{subtitle_filter}[composed]')
+        else:
+            graph += (f'[cutv]scale={width}:{height}:force_original_aspect_ratio=increase,'
+                      f'crop={width}:{height},setsar=1,{subtitle_filter}[composed]')
+        filters = ['-filter_complex_threads', '1', '-filter_complex', graph,
+                   '-map', '[composed]', '-map', '[cuta]']
     clip = folder / 'clip.mp4'
-    from app.core.config import load_settings
-    resources = load_settings().worker
+    resources = settings.worker
+    from clipping.encoding import encoder_options
+    encoding = encoder_options(settings.video.encoder_profile)
     command(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-y',
              '-max_alloc', str(resources.memory_limit_mb * 1024 * 1024), '-ss', str(start),
-             '-i', str(storage / output['source_path']), '-t', str(duration), *filters,
-             '-c:v', 'libx264', '-threads', str(resources.cpu_threads), '-preset', 'fast', '-crf', '23',
+             '-i', str(storage / output['source_path']), '-t', f'{effective_duration:g}', *filters,
+             '-c:v', 'libx264', '-threads', str(resources.cpu_threads), '-preset', encoding['preset'],
+             '-crf', str(encoding['crf']),
              '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', str(clip)], cwd=folder)
     info = probe(clip)
     video = next((s for s in info['streams'] if s['codec_type'] == 'video'), {})
@@ -420,22 +591,36 @@ def render(data, output, folder, storage):
     actual_duration = float(info['format']['duration'])
     checks = {'dimensions': (video.get('width'), video.get('height')) == (width, height),
               'h264': video.get('codec_name') == 'h264', 'aac_audio': audio.get('codec_name') == 'aac',
-              'duration': abs(actual_duration - duration) < 0.3, 'nonempty': clip.stat().st_size > 1024}
+              'duration': abs(actual_duration - effective_duration) < 0.3, 'nonempty': clip.stat().st_size > 1024}
     if not all(checks.values()):
         raise ValueError(f'Clip quality checks failed: {checks}')
     from clipping.quality.validation import validate_media
-    assessment = validate_media(clip, subtitles, duration=duration, aspect=plan['aspect_ratio'], info=info)
+    assessment = validate_media(clip, subtitles, duration=effective_duration, aspect=plan['aspect_ratio'], info=info)
     if not assessment.passed:
         raise ValueError('Clip quality checks failed: ' + ', '.join(assessment.violations))
     result = {'clip_path': clip.relative_to(storage).as_posix(), 'clip_sha256': file_hash(clip),
               'subtitle_path': subtitles.relative_to(storage).as_posix(),
-              'quality': {'checks': checks, 'width': width, 'height': height, 'duration': actual_duration}}
+              'subtitle_sha256': file_hash(subtitles),
+              'quality': {'checks': checks, 'width': width, 'height': height, 'duration': actual_duration,
+                          'encoder_profile': settings.video.encoder_profile,
+                          'encoder_preset': encoding['preset'], 'encoder_crf': encoding['crf']}}
+    if silence_plan is not None:
+        from clipping import silence
+        result['silence_removal'] = {**silence_plan, 'note': silence.NOTE}
+        if silence_plan['applied']:
+            result['render_duration_seconds'] = round(effective_duration, 3)
     result['quality_report'] = assessment.model_dump()
     if caption_style != 'classic':
         result.update(caption_style=caption_style,
-                      styled_subtitle_path=styled.relative_to(storage).as_posix())
-    if framing == 'fit':
-        result['framing_mode'] = framing
-    if caption_style == 'studio' and framing == 'fit' and plan['aspect_ratio'] == '9:16':
+                      styled_subtitle_path=styled.relative_to(storage).as_posix(),
+                      styled_subtitle_sha256=file_hash(styled))
+    if focus_report is not None:
+        result['speaker_focus'] = focus_report
+        if framing_eff == 'fit':
+            result['framing_fallback'] = {'requested': 'speaker-focus', 'used': 'fit',
+                                          'reason': focus_report['reason']}
+    if framing_eff in ('fit', 'speaker-focus'):
+        result['framing_mode'] = framing_eff
+    if caption_style == 'studio' and framing_eff == 'fit' and plan['aspect_ratio'] == '9:16':
         result['render_template'] = TEMPLATE_ID
     return result

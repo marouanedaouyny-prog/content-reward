@@ -41,6 +41,16 @@ def test_inverted_or_nonfinite_rules_are_rejected():
         Rules(min_duration=float('nan'))
 
 
+def test_forbidden_topics_include_every_exported_text_field():
+    from campaigns.models import Campaign
+    from campaigns.validation import validate_campaign
+    campaign = Campaign(title='Restricted', platform='youtube', rules={'forbidden_topics': ['gambling']})
+    result = validate_campaign(campaign, {'duration_seconds': 35, 'transcript': 'Useful advice.'},
+                               {'caption': 'Useful advice.', 'title': 'Gambling advice'}, 'youtube')
+    assert not result.eligible
+    assert 'forbidden_topic_detected' in result.violations
+
+
 def test_campaign_is_persisted_and_rejects_invalid_source_before_download(tmp_path, monkeypatch):
     from campaigns.models import Campaign
     from clipping.orchestrator import Config, Controller, SetupIssue

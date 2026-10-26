@@ -42,6 +42,7 @@ and at completion. Never install a paid dependency or download a real video to t
 | 4 | `clipping/planning.py`, `clipping/sections.py`, `clipping/clip_history.py` | Integrate scoring/dedup with existing transcript/replay/QA generation; preserve editorial provenance |
 | 4 | `clipping/quality/__init__.py`, `clipping/quality/validation.py`, `clipping/clip_review.py`, `clipping/media.py` | Pre-render complete-thought/ads/speech/duration checks; post-render decode/audio/FPS/black/silence/subtitle/file-size gates; bounded remote downloads |
 | 5 | `app/repositories/__init__.py`, `app/repositories/database.py`, `app/repositories/store.py` | Versioned transactional SQLite migrations, normalized domain records and repositories |
+| 5 | `app/repositories/cache.py`, `clipping/sections.py`, `clipping/trends.py` | Deterministic TTL cache for source captions/replay, bounded sections and same-run search recovery; hashes verify cached media, while new orders still search fresh |
 | 5 | `app/models/__init__.py`, `app/models/domain.py` | Validated stable-ID domain records, artifact references and performance models |
 | 5 | `clipping/orchestrator.py`, `clipping/batch.py`, `clipping/production.py` | Persist orders/sources/candidates/clips/artifacts; import old manifests once, export JSON from DB state |
 | 5 | `clipping/autorun.py`, `clipping/clip_history.py` | Read latest order and historical reservations from DB after one-time historical manifest import; JSON exports never override committed state |
@@ -75,6 +76,15 @@ and at completion. Never install a paid dependency or download a real video to t
    gradually; variant summaries expose sample counts and unmeasured metrics.
 8. Final: supported tests, lint/type checks, smoke, CLI commands, container context,
    secret scan and documented remaining external integration limits.
+
+## Final implementation evidence
+
+The phase checklist in `tasks/todo.md` records completion. Final supported-suite,
+Ruff, smoke and isolated-wheel results are recorded in `docs/AUDIT.md`. The wheel
+was imported from an external working directory and its API/worker smoke checks
+passed. Build and smoke fixtures were confined to ignored `.workflow-tests/` and
+temporary directories. The supported workflow did not publish or access social
+accounts.
 
 ## Risks and mitigations
 

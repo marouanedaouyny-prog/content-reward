@@ -22,7 +22,7 @@ def agent(tmp_path, monkeypatch):
     mod = module()
     monkeypatch.setattr(mod, 'now', lambda: datetime(2026, 10, 10, tzinfo=timezone.utc))
     engine = ClippingWorkflow(tmp_path / 'jobs.db', tmp_path / 'storage')
-    return mod.TrendResearchAgent(engine), mod
+    return mod.TrendResearchAgent(engine, cache_database=tmp_path / 'storage' / 'content-reward.db'), mod
 
 
 def test_live_research_is_persisted_deduplicated_and_explains_ranking(tmp_path, monkeypatch):
@@ -37,7 +37,7 @@ def test_live_research_is_persisted_deduplicated_and_explains_ranking(tmp_path, 
     assert research.consume_once()
     saved = research.get(requested['id'])
     assert saved['status'] == 'completed'
-    assert len(calls) == 6
+    assert len(calls) == len(mod.NICHES)
     assert len(saved['results']) == 2
     first = saved['results'][0]
     assert first['id'] == 'bbbbbbbbbbb'
@@ -47,6 +47,46 @@ def test_live_research_is_persisted_deduplicated_and_explains_ranking(tmp_path, 
     restored = mod.TrendResearchAgent(research.engine)
     assert restored.status()['latest']['id'] == saved['id']
     assert not restored.consume_once(), 'Completed research should wait for the scheduled scan'
+
+
+def test_search_cache_is_reused_only_within_the_same_fresh_research_run(tmp_path, monkeypatch):
+    research, mod = agent(tmp_path, monkeypatch)
+    first = research.request_scan()
+    identity = research.search_cache_identity(first, mod.NICHES[0])
+    research.cache.put_json('youtube_search_results', identity, [video()], ttl_seconds=3600)
+    calls = []
+    monkeypatch.setattr(mod, 'discover', lambda niche: calls.append(niche) or [])
+    assert research.consume_once()
+    assert len(calls) == len(mod.NICHES) - 1
+    assert research.get(first['id'])['results'][0]['id'] == 'aaaaaaaaaaa'
+    second = research.request_scan()
+    assert second['id'] != first['id']
+    calls.clear()
+    assert research.consume_once()
+    assert len(calls) == len(mod.NICHES), 'A new order must repeat discovery rather than reuse old search hits'
+
+
+def test_search_cache_strips_unneeded_urls_and_provider_fields():
+    mod = module()
+    record = video() | {'url': 'https://media.example/?token=SECRET',
+        'webpage_url': 'https://www.youtube.com/watch?v=aaaaaaaaaaa',
+        'http_headers': {'Authorization': 'SECRET'}, 'description': 'not used'}
+    safe = mod.bounded_search_records([record])
+    assert safe == [{key: record[key] for key in
+        ('id', 'title', 'uploader', 'view_count', 'timestamp', 'duration', 'live_status')}]
+    assert 'SECRET' not in str(safe)
+
+
+def test_invalid_cached_search_shape_is_discarded_and_refetched(tmp_path, monkeypatch):
+    research, mod = agent(tmp_path, monkeypatch)
+    run = research.request_scan()
+    research.cache.put_json('youtube_search_results',
+        research.search_cache_identity(run, mod.NICHES[0]), {'invalid': 'shape'}, ttl_seconds=3600)
+    calls = []
+    monkeypatch.setattr(mod, 'discover', lambda niche: calls.append(niche) or [])
+    assert research.consume_once()
+    assert len(calls) == len(mod.NICHES)
+    assert research.get(run['id'])['status'] == 'completed'
 
 
 def test_temporary_search_failure_retries_without_inventing_results(tmp_path, monkeypatch):

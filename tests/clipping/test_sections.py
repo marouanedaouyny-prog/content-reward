@@ -10,6 +10,56 @@ def sections_module():
     return sections
 
 
+@pytest.mark.parametrize(('message', 'kind', 'reason', 'status'), [
+    ('Server returned 503 Service Unavailable', 'SourceUnavailable', 'http_unavailable', 503),
+    ('HTTP Error 429: Too Many Requests', 'SourceUnavailable', 'rate_limited', 429),
+    ('Unable to connect to proxy', 'SourceUnavailable', 'proxy_unavailable', None),
+    ('Tunnel connection failed: 502 Bad Gateway', 'SourceUnavailable', 'proxy_unavailable', None),
+    ('Temporary failure in name resolution', 'SourceUnavailable', 'dns_unavailable', None),
+    ('CERTIFICATE_VERIFY_FAILED: certificate verify failed', 'SourceSetupRequired', 'tls_verification_failed', None),
+    ('Unrecognized option rw_timeout', 'SourceSetupRequired', 'downloader_setup_failed', None),
+    ('Install ffmpeg and make it available on PATH', 'SourceSetupRequired', 'downloader_setup_failed', None),
+    ('Unknown downloader failure', 'SourceSetupRequired', 'downloader_setup_failed', None),
+    ('Server returned 403 Forbidden', 'SourceAccessRequired', 'access_refused', 403),
+    ('This video is private', 'SourceAccessRequired', 'access_refused', None),
+    ('This video has been removed', 'SourceAccessRequired', 'access_refused', None),
+])
+def test_remote_failures_retain_safe_diagnostics_without_blacklisting_setup_errors(
+        monkeypatch, message, kind, reason, status):
+    from clipping import media
+    mod = sections_module()
+    def fail(*args, **kwargs):
+        raise ValueError(message + ' https://media.test/?token=SECRET_SENTINEL')
+    monkeypatch.setattr(media, 'command', fail)
+    with pytest.raises(Exception) as error:
+        mod.remote_command(['synthetic-command'], 300)
+    assert type(error.value).__name__ == kind
+    assert error.value.diagnostic == {
+        'reason': reason, **({'http_status': status} if status is not None else {})}
+    assert 'SECRET_SENTINEL' not in str(error.value) + json.dumps(error.value.diagnostic)
+
+
+def test_section_timeout_exposes_bounded_diagnostic_without_signed_command_arguments(monkeypatch):
+    import subprocess
+    from clipping import media
+    mod = sections_module()
+    def fail(*args, **kwargs):
+        raise subprocess.TimeoutExpired(['tool', 'https://media.test/?token=SECRET_SENTINEL'], 300)
+    monkeypatch.setattr(media, 'command', fail)
+    with pytest.raises(media.SourceUnavailable) as error:
+        mod.remote_command(['synthetic-command'], 300)
+    assert error.value.diagnostic == {'reason': 'timeout', 'timeout_seconds': 300}
+    assert 'SECRET_SENTINEL' not in str(error.value) + json.dumps(error.value.diagnostic)
+
+
+def test_source_failure_diagnostics_reject_untrusted_codes_and_unbounded_values():
+    from clipping import media
+    failure = media.SourceUnavailable('Public failure', reason=['SECRET_SENTINEL'],
+                                      http_status='https://media.test/?token=SECRET_SENTINEL',
+                                      timeout_seconds=float('inf'))
+    assert failure.diagnostic == {'reason': 'network_unavailable'}
+
+
 def test_caption_first_inspection_never_requests_video_or_exposes_media_urls(tmp_path, monkeypatch):
     from clipping import media
     mod = sections_module()
@@ -30,6 +80,29 @@ def test_caption_first_inspection_never_requests_video_or_exposes_media_urls(tmp
     assert result['segments'][0]['text'] == 'How do you build a team?'
     assert 'SECRET' not in json.dumps(result)
     assert not list(tmp_path.glob('*.mp4'))
+
+
+def test_inspection_reuses_recent_cached_transcript_and_replay_metadata(tmp_path, monkeypatch):
+    from clipping import media
+    mod = sections_module()
+    cached = {'id': 'abcdefghijk', 'title': 'Older title', 'duration': 1800,
+        'segments': [{'start': 10.0, 'end': 14.0, 'text': 'A complete useful thought.'}],
+        'heatmap': [{'start_time': 10, 'end_time': 14, 'value': .8}], 'view_count': 100,
+        'like_count': None, 'comment_count': None, 'published_at': None, 'chapters': [],
+        'transcript_origin': 'youtube_public_captions'}
+
+    class Cache:
+        def get_json(self, *args, **kwargs):
+            return cached
+        def put_json(self, *args, **kwargs):
+            raise AssertionError('a cache hit must not rewrite its entry')
+
+    monkeypatch.setattr(media, 'command', lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError('network used')))
+    result = mod.inspect_source({'id': 'abcdefghijk', 'title': 'Fresh title', 'views': 200,
+        'url': 'https://www.youtube.com/watch?v=abcdefghijk'}, tmp_path, cache=Cache())
+    assert result['segments'] == cached['segments']
+    assert result['heatmap'] == cached['heatmap']
+    assert result['title'] == 'Fresh title' and result['view_count'] == 200
 
 
 def test_json3_normalizes_rolling_overlap_and_rejects_empty_or_invalid_captions():
@@ -145,6 +218,63 @@ def test_section_download_is_bounded_and_rejects_full_length_response(tmp_path, 
     monkeypatch.setattr(media, 'probe', lambda p: {'format': {'duration': '1800'}, 'streams': [{'codec_type': 'video'}, {'codec_type': 'audio'}]})
     with pytest.raises(ValueError, match='section'):
         mod.download_section(source, plan, 1800, tmp_path)
+
+
+def test_section_cache_reuses_only_hash_valid_bounded_source_windows(tmp_path, monkeypatch):
+    from clipping import media
+    mod = sections_module()
+    calls = []
+    cached = {}
+
+    class Cache:
+        def get_file(self, kind, identity):
+            return cached.get((kind, json.dumps(identity, sort_keys=True)))
+        def put_file(self, kind, identity, path, **kwargs):
+            cached[(kind, json.dumps(identity, sort_keys=True))] = path
+
+    cache = Cache()
+    def download(args, timeout):
+        calls.append(args)
+        (first_folder / 'section.mp4').write_bytes(b'VALID BOUNDED SECTION')
+        return ''
+
+    first_folder = tmp_path / 'first'
+    monkeypatch.setattr(mod, 'remote_command', download)
+    monkeypatch.setattr(media, 'probe', lambda p: {'format': {'duration': '41'},
+        'streams': [{'codec_type': 'video'}, {'codec_type': 'audio'}]})
+    source = {'id': 'abcdefghijk', 'url': 'https://www.youtube.com/watch?v=abcdefghijk'}
+    plan = {'start_seconds': 600, 'duration_seconds': 35}
+    original = mod.download_section(source, plan, 1800, first_folder, cache=cache)
+    second = mod.download_section(source, plan, 1800, tmp_path / 'second', cache=cache)
+    assert len(calls) == 1
+    assert second['path'].read_bytes() == original['path'].read_bytes()
+    assert second['path'] != original['path']
+
+
+def test_section_cache_trims_a_verified_containing_section_without_network(tmp_path, monkeypatch):
+    from app.repositories.cache import CacheRepository
+    from clipping import media
+    mod = sections_module()
+    cache = CacheRepository(tmp_path / 'cache.db')
+    cached = tmp_path / 'wide.mp4'
+    media.command(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-y',
+        '-f', 'lavfi', '-i', 'color=c=blue:s=64x64:r=10',
+        '-f', 'lavfi', '-i', 'anullsrc=r=8000:cl=mono', '-t', '40',
+        '-c:v', 'libx264', '-preset', 'ultrafast', '-c:a', 'aac', str(cached)], timeout=30)
+    cache.put_file('downloaded_section', {'youtube_video_id': 'abcdefghijk', 'source_offset': 590,
+        'requested_end': 630, 'format': 'bounded-audio-video-v1'}, cached, ttl_seconds=3600)
+    monkeypatch.setattr(mod, 'remote_command', lambda *args, **kwargs: pytest.fail('should reuse containing cache'))
+
+    result = mod.download_section({'id': 'abcdefghijk', 'url': 'https://youtube.test/video'},
+        {'start_seconds': 600, 'duration_seconds': 20}, 1800, tmp_path / 'trimmed', cache=cache)
+
+    assert result['source_offset'] == 597
+    assert result['duration'] == pytest.approx(26, abs=1.2)
+    assert result['local_start'] == 3
+    assert media.probe(result['path'])['streams']
+    stats = cache.stats()
+    assert stats['requests'] == 1 and stats['hits'] == 1
+    assert stats['by_kind']['downloaded_section']['containing_hits'] == 1
 
 
 @pytest.mark.parametrize('cached_content', ['unreadable', 'short_window'])

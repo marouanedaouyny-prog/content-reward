@@ -134,11 +134,28 @@ Preserve `clips/` as the default user delivery directory under the standing
 workflow; optional export destinations may coexist. Publishing stays disabled;
 manual export must record readiness without claiming a public post exists.
 
-## Acceptance evidence to collect
+## Final verification
 
-After each major phase run affected tests, configured lint/type checks, and the
-smoke command once available. Final evidence must include the entire supported
-suite, a synthetic source-to-render/QC path, unchanged-data migration tests,
-resume hash checks, campaign rejection gates, manual publishing idempotency,
-feedback provenance, CLI help/status, and clean secret scans. Official platform
-uploads and real performance collection remain unverified without API access.
+The final supported run used the required Windows environment command:
+`.venv/Scripts/python.exe tests/clipping/run_tests.py tests -q` — **552 passed,
+1 skipped**. Repository-configured lint passed with
+`.venv/Scripts/python.exe -m ruff check .`. The offline in-repository smoke
+passed configuration, FFmpeg/ffprobe, dependencies, Whisper availability,
+temporary storage, isolated SQLite, worker, and loopback API checks.
+
+The built wheel was installed into an isolated target and imported with the
+repository absent from the working directory. Its CLI smoke, including API
+startup and worker probe, passed. The wheel check caught and fixed omission of
+the `growth` runtime package in setuptools discovery. `git diff --check` passed.
+A final pattern scan found no AWS, Google API, GitHub, or private-key-shaped
+secrets in the supported tree; ignored local data and `legacy/` were excluded.
+
+Analytics regressions cover multi-platform reward aggregation per clip, malformed
+reward validation, pending campaign decisions, render attempts, calendar-span clip
+rates, order-linked reward/hour, and manual-preparation vs actual-publication
+separation. The report keeps metrics unknown when their evidence is absent.
+
+Official platform publishing and automatic performance collection remain
+unimplemented and disabled. The system does not claim public uploads, verified
+platform metrics, guaranteed rewards, or causal experiment results. Manual export
+is local review preparation only.

@@ -10,7 +10,8 @@ STAGES = (
       'selected_clip_plan', 'clip_suggestions', 'ideas_path', 'planning_origin', 'planning_note'}),
     ('render', 'clip_path', 'clip_sha256',
      {'clip_path', 'clip_sha256', 'subtitle_path', 'styled_subtitle_path', 'package_path',
-      'render_template', 'quality_report', 'render_duration_seconds'}),
+      'subtitle_sha256', 'styled_subtitle_sha256', 'render_template', 'quality_report',
+      'render_duration_seconds', 'silence_removal'}),
 )
 
 
@@ -26,6 +27,20 @@ def verified_checkpoints(output, storage):
             valid = path.is_relative_to(storage) and path.is_file() and path.stat().st_size > 0
             digest = file_hash(path) if valid else None
             valid = valid and (hash_key not in result or result[hash_key] == digest)
+            if valid and key == 'clip_path':
+                for sidecar, checksum in [('subtitle_path', 'subtitle_sha256'),
+                                           ('styled_subtitle_path', 'styled_subtitle_sha256')]:
+                    if sidecar == 'styled_subtitle_path' and sidecar not in result:
+                        continue
+                    asset = (storage / result.get(sidecar, '')).resolve()
+                    if not asset.is_relative_to(storage) or not asset.is_file() or not asset.stat().st_size:
+                        valid = False
+                        break
+                    actual = file_hash(asset)
+                    if checksum in result and result[checksum] != actual:
+                        valid = False
+                        break
+                    result[checksum] = actual
         except (OSError, TypeError, ValueError):
             valid = False
         if valid:

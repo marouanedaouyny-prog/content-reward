@@ -1,0 +1,23 @@
+[
+  {
+    "id": "hAaUgjArzow",
+    "niche": "Business",
+    "status": "usable_public_captions",
+    "metadata_path": "research/source-expansion-2026-10-22/public-captions/hAaUgjArzow/source.json",
+    "cue_count": 488
+  },
+  {
+    "id": "3Vaj0Oka_t4",
+    "niche": "Education",
+    "status": "usable_public_captions",
+    "metadata_path": "research/source-expansion-2026-10-22/public-captions/3Vaj0Oka_t4/source.json",
+    "cue_count": 870
+  },
+  {
+    "id": "5hePe01Lva0",
+    "niche": "Streams",
+    "status": "usable_public_captions",
+    "metadata_path": "research/source-expansion-2026-10-22/public-captions/5hePe01Lva0/source.json",
+    "cue_count": 1193
+  }
+]

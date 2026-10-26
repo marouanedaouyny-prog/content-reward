@@ -1,11 +1,75 @@
-import subprocess
 import sys
-from pathlib import Path
 
 import pytest
 
 from clipping import media
 from clipping.workflow import ClippingWorkflow
+
+
+def test_remote_retry_diagnostic_survives_controller_reload_without_provider_details(tmp_path, monkeypatch):
+    from clipping import batch, orchestrator, sections
+    def unavailable(*args, **kwargs):
+        raise ValueError('Server returned 503 Service Unavailable https://media.test/?token=SECRET_SENTINEL')
+    monkeypatch.setattr(media, 'command', unavailable)
+    controller = orchestrator.Controller(tmp_path, orchestrator.Config(provider='public'), emit=lambda _: None,
+                                         sleeper=lambda _: None)
+    with pytest.raises(orchestrator.ConnectionIssue):
+        batch.connected(controller, lambda: sections.remote_command(['synthetic'], 300),
+                        'partial_download', 2, 0)
+    restored = orchestrator.Controller(tmp_path, resume=controller.state['id'], emit=lambda _: None)
+    assert restored.state['source_failure'] == {'reason': 'http_unavailable', 'http_status': 503}
+    assert controller.state['connection_failures'] == 2
+    assert not restored.state.get('skipped_entries')
+    assert 'SECRET_SENTINEL' not in restored.manifest.read_text()
+    assert 'SECRET_SENTINEL' not in (restored.folder / 'events.jsonl').read_text()
+
+
+@pytest.mark.parametrize(('message', 'code'), [
+    ('CERTIFICATE_VERIFY_FAILED certificate verify failed', 'source_tls_verification_failed'),
+    ('Unrecognized option rw_timeout', 'source_downloader_setup_failed'),
+])
+def test_remote_setup_failure_preserves_source_and_stops_retries(tmp_path, monkeypatch, message, code):
+    from clipping import batch, orchestrator, sections
+    attempts = []
+    def unavailable(*args, **kwargs):
+        attempts.append(1)
+        raise ValueError(message + ' https://media.test/?token=SECRET_SENTINEL')
+    monkeypatch.setattr(media, 'command', unavailable)
+    controller = orchestrator.Controller(tmp_path, orchestrator.Config(provider='public'), emit=lambda _: None)
+    with pytest.raises(orchestrator.SetupIssue) as error:
+        batch.connected(controller, lambda: sections.remote_command(['synthetic'], 300),
+                        'partial_download', 3, 0)
+    assert error.value.code == code
+    assert len(attempts) == 1 and not controller.state.get('skipped_entries')
+    assert controller.state['connection_failures'] == 0
+    assert 'SECRET_SENTINEL' not in controller.manifest.read_text()
+
+
+def test_managed_timeout_preserves_bounded_stderr_for_safe_remote_classification():
+    import subprocess
+    with pytest.raises(subprocess.TimeoutExpired) as error:
+        media.command([sys.executable, '-c',
+                       'import sys,time; sys.stderr.write("Server returned 503 Service Unavailable\\n"); '
+                       'sys.stderr.flush(); time.sleep(20)'], timeout=3, kill_tree=True)
+    assert '503' in str(error.value.stderr)
+    diagnostic = media.classify_source_failure(error.value).diagnostic
+    assert diagnostic == {'reason': 'http_unavailable', 'http_status': 503, 'timeout_seconds': 3}
+
+
+def test_remote_access_refusal_is_not_retried_and_retains_safe_status(tmp_path, monkeypatch):
+    from clipping import batch, orchestrator, sections
+    calls = []
+    def denied(*args, **kwargs):
+        calls.append(1)
+        raise ValueError('Server returned 403 Forbidden https://media.test/?token=SECRET_SENTINEL')
+    monkeypatch.setattr(media, 'command', denied)
+    controller = orchestrator.Controller(tmp_path, orchestrator.Config(provider='public'), emit=lambda _: None)
+    with pytest.raises(media.SourceAccessRequired):
+        batch.connected(controller, lambda: sections.remote_command(['synthetic'], 300),
+                        'partial_download', 3, 0)
+    assert len(calls) == 1
+    assert controller.state['source_failure'] == {'reason': 'access_refused', 'http_status': 403}
+    assert 'SECRET_SENTINEL' not in controller.manifest.read_text()
 
 
 def payload(preview=True):

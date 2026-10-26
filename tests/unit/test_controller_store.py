@@ -37,3 +37,19 @@ def test_two_controllers_cannot_overwrite_a_concurrent_update(tmp_path):
         second.update(status='running', stage='stale_reader')
     state, revision = first.store.read_order(first.state['id'])
     assert state['stage'] == 'transcription' and revision == first._revision
+
+
+def test_stale_controller_reloads_under_lock_before_any_execution(tmp_path, monkeypatch):
+    from clipping.orchestrator import Config, Controller
+    first = Controller(tmp_path, Config(), emit=lambda _: None)
+    stale = Controller(tmp_path, resume=first.state['id'], emit=lambda _: None)
+    result = first.folder / 'result.json'
+    result.write_text('new delivery')
+    first.update(status='ready_for_review', stage='finished', result={'clip': 'new export'})
+    def execute(*args):
+        assert stale.state['result'] == {'clip': 'new export'}
+        assert stale._revision == first._revision
+        assert result.read_text() == 'new delivery'
+        return stale.state
+    monkeypatch.setattr(stale, 'execute', execute)
+    assert stale.run()['status'] == 'ready_for_review'

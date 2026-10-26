@@ -35,3 +35,7 @@ out/
 *.egg-info/
 /build/
 /output/
+
+# Local PHP runtime and Composer dependencies (manifests remain tracked)
+/.tools/
+/integrations/social-php/vendor/

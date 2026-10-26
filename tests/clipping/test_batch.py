@@ -20,7 +20,7 @@ def pipeline(tmp_path, monkeypatch):
                  'timestamp': datetime.now(timezone.utc).timestamp() - 86400}
                 for index, identifier in enumerate(('abcdefghijk', 'lmnopqrstuv'))]
 
-    def inspect(source, folder):
+    def inspect(source, folder, **kwargs):
         counts['inspect'] += 1
         segments = []
         topics = [
@@ -37,7 +37,7 @@ def pipeline(tmp_path, monkeypatch):
                          {'start': start + 10, 'end': start + 35, 'text': payoff}]
         return {'id': source['id'], 'title': source['title'], 'duration': 1800, 'segments': segments, 'heatmap': []}
 
-    def download(source, plan, duration, folder):
+    def download(source, plan, duration, folder, **kwargs):
         counts['download'] += 1
         folder.mkdir(parents=True, exist_ok=True)
         path = folder / 'section.mp4'
@@ -49,6 +49,7 @@ def pipeline(tmp_path, monkeypatch):
     def ingest(data, output, folder, storage):
         counts['ingest'] += 1
         assert data.get('source_path') and not data.get('source_url')
+        assert data['source_reference'], 'Every real batch needs independent timed source cues'
         path = storage / data['source_path']
         return {'source_path': data['source_path'], 'source_sha256': media.file_hash(path),
                 'source_duration': 41, 'synthetic_source': False}
@@ -101,9 +102,20 @@ def test_fresh_batch_produces_four_unique_exports_from_one_source_in_one_folder(
     assert all(clip['source_clip_plan']['start_seconds'] >= 100 for clip in clips)
     assert all(clip['post_caption'] for clip in clips)
     assert all(Path(clip['clip']).parent == tmp_path / 'delivered' for clip in clips)
-    assert counts['search'] == 6 and counts['inspect'] == 1
+    assert counts['search'] == len(mod.trends.NICHES) and counts['inspect'] == 1
     assert counts['download'] == counts['render'] == 4
     assert result['result']['full_video_downloaded'] is False
+
+
+def test_batch_persists_render_attempt_outcomes_for_business_metrics(tmp_path, monkeypatch):
+    from analytics.reports import business_metrics
+    mod, config, _ = pipeline(tmp_path, monkeypatch)
+    controller = mod.Controller(tmp_path, config, emit=lambda _: None)
+    state = controller.run(connection_attempts=1)
+    assert state['status'] == 'ready_for_review'
+    report = business_metrics(controller.store)
+    assert report['render_attempts'] == 4
+    assert report['successful_render_rate'] == 1
 
 
 def test_single_colorized_order_excludes_previous_source_and_resumes_without_more_downloads(tmp_path, monkeypatch):
@@ -123,7 +135,7 @@ def test_single_colorized_order_excludes_previous_source_and_resumes_without_mor
     resumed = mod.Controller(tmp_path, resume='latest', emit=lambda _: None)
     assert resumed.state['excluded_source_ids'] == ['abcdefghijk']
     assert resumed.run(connection_attempts=1)['status'] == 'ready_for_review'
-    assert counts['search'] == 6 and counts['download'] == counts['render'] == 1
+    assert counts['search'] == len(mod.trends.NICHES) and counts['download'] == counts['render'] == 1
 
 
 def test_cli_single_clip_uses_partial_downloads(tmp_path, monkeypatch):
@@ -158,7 +170,7 @@ def test_one_fresh_batch_assigns_and_preserves_a_different_style_for_each_clip(t
     assert resumed.config.caption_styles == config.caption_styles
     assert resumed.run(connection_attempts=1)['status'] == 'ready_for_review'
     assert [clip['caption_style'] for clip in resumed.state['result']['clips']] == config.caption_styles
-    assert counts['search'] == 6 and counts['download'] == counts['render'] == 4
+    assert counts['search'] == len(mod.trends.NICHES) and counts['download'] == counts['render'] == 4
 
 
 def test_mixed_style_config_rejects_unknown_styles_and_non_sequences():
@@ -177,10 +189,10 @@ def test_batch_resumes_after_connection_failure_without_redoing_finished_clips(t
     mod, config, counts = pipeline(tmp_path, monkeypatch)
     original = sections.download_section
 
-    def fail_second(source, plan, duration, folder):
+    def fail_second(source, plan, duration, folder, **kwargs):
         if counts['download'] == 1:
             raise media.SourceUnavailable('Connection refused SECRET')
-        return original(source, plan, duration, folder)
+        return original(source, plan, duration, folder, **kwargs)
 
     monkeypatch.setattr(sections, 'download_section', fail_second)
     controller = mod.Controller(tmp_path, config, emit=lambda _: None)
@@ -191,7 +203,7 @@ def test_batch_resumes_after_connection_failure_without_redoing_finished_clips(t
     monkeypatch.setattr(sections, 'download_section', original)
     resumed = mod.Controller(tmp_path, resume='latest', emit=lambda _: None)
     assert resumed.run(connection_attempts=1)['status'] == 'ready_for_review'
-    assert counts['search'] == 6 and counts['inspect'] == 1
+    assert counts['search'] == len(mod.trends.NICHES) and counts['inspect'] == 1
     assert counts['download'] == counts['render'] == 4
 
 
@@ -201,11 +213,11 @@ def test_missing_public_captions_tries_another_source_without_full_download(tmp_
     original = sections.inspect_source
     rejected = []
 
-    def inspect(source, folder):
+    def inspect(source, folder, **kwargs):
         if not rejected:
             rejected.append(source['id'])
             raise media.SourceAccessRequired('No captions SECRET')
-        return original(source, folder)
+        return original(source, folder, **kwargs)
 
     monkeypatch.setattr(sections, 'inspect_source', inspect)
     controller = mod.Controller(tmp_path, config, emit=lambda _: None)
@@ -228,7 +240,7 @@ def test_completed_batch_rechecks_originals_before_presenting_ready_result(tmp_p
     assert result['status'] == 'quality_failed' and result.get('result') is None
     assert not (resumed.folder / 'result.json').exists()
     assert not (tmp_path / 'delivered' / f'{result["id"][:8]}-result.json').exists()
-    assert counts['search'] == 6 and counts['render'] == 4
+    assert counts['search'] == len(mod.trends.NICHES) and counts['render'] == 4
 
 
 def test_new_cli_defaults_to_four_partial_studio_clips_and_legacy_config_is_preserved(tmp_path, monkeypatch):
@@ -287,7 +299,7 @@ def test_browser_startup_failure_falls_back_to_public_search_in_the_same_order(t
     assert result['fallback_reason'] == 'browser_session_not_created'
     assert result['config']['provider'] == 'selenium'
     assert result['config']['partial_downloads'] is True
-    assert counts['search'] == 6 and counts['download'] == 4
+    assert counts['search'] == len(mod.trends.NICHES) and counts['download'] == 4
 
 
 def test_public_fallback_network_failure_is_saved_and_resume_does_not_restart_chrome(tmp_path, monkeypatch):

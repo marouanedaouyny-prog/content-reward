@@ -1,6 +1,7 @@
 import json
 import sqlite3
 import uuid
+from contextlib import closing
 
 import pytest
 
@@ -13,9 +14,10 @@ def state():
 def test_migrations_are_repeatable_and_preserve_existing_job_tables(tmp_path):
     from app.repositories.store import Store
     path = tmp_path / 'domain.db'
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db:
         db.execute('CREATE TABLE clipping_job(id TEXT PRIMARY KEY)')
         db.execute("INSERT INTO clipping_job VALUES ('old-job')")
+        db.commit()
     Store(path)
     store = Store(path)
     with store.connection() as db:
@@ -24,7 +26,7 @@ def test_migrations_are_repeatable_and_preserve_existing_job_tables(tmp_path):
         assert db.execute('PRAGMA foreign_keys').fetchone()[0] == 1
         names = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     assert {'orders', 'sources', 'candidate_moments', 'clips', 'campaigns', 'publications',
-            'performance_metrics', 'rewards', 'pipeline_events', 'experiments'} <= names
+            'performance_metrics', 'rewards', 'pipeline_events', 'experiments', 'posting_queue'} <= names
 
 
 def test_database_order_survives_broken_or_stale_json_export(tmp_path):
@@ -66,3 +68,42 @@ def test_order_optimistic_lock_refuses_stale_writer(tmp_path):
     store.save_order({**order, 'status': 'running'}, expected_revision=revision)
     with pytest.raises(ValueError, match='changed'):
         store.save_order({**order, 'status': 'failed'}, expected_revision=revision)
+
+
+@pytest.mark.parametrize('invalid', [
+    {'status': None}, {'stage': []}, {'config': {'duration': -1}},
+    {'clip_entries': [{'source': {'id': 'source'}, 'source_clip_plan':
+                       {'start_seconds': 0, 'duration_seconds': -3}}]},
+    {'clip_entries': None},
+])
+def test_invalid_historical_shape_cannot_prevent_importing_valid_orders(tmp_path, invalid):
+    from app.repositories.store import Store
+    good, bad = state(), {**state(), **invalid}
+    for order in (bad, good):
+        folder = tmp_path / 'orders' / order['id']
+        folder.mkdir(parents=True)
+        (folder / 'order.json').write_text(json.dumps(order))
+    store = Store(tmp_path / 'domain.db')
+    store.import_orders(tmp_path / 'orders')
+    assert [order['id'] for order in store.list_orders()] == [good['id']]
+    assert len(store.import_warnings()) == 1
+
+
+def test_constraint_failure_rolls_back_one_import_without_blocking_the_rest(tmp_path, monkeypatch):
+    from app.repositories.store import Store
+    orders = [state(), state()]
+    for order in orders:
+        folder = tmp_path / 'orders' / order['id']
+        folder.mkdir(parents=True)
+        (folder / 'order.json').write_text(json.dumps(order))
+    store = Store(tmp_path / 'domain.db')
+    save = store.save_order
+    def reject_first(order, **kwargs):
+        if order['id'] == orders[0]['id']:
+            save(order, **kwargs)
+            raise sqlite3.IntegrityError('Invalid legacy candidate')
+        return save(order, **kwargs)
+    monkeypatch.setattr(store, 'save_order', reject_first)
+    store.import_orders(tmp_path / 'orders')
+    assert [order['id'] for order in store.list_orders()] == [orders[1]['id']]
+    assert len(store.import_warnings()) == 1

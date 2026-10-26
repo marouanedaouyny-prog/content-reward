@@ -44,3 +44,17 @@ def test_validation_changed_content_and_changed_key_input_are_refused(tmp_path):
     path.write_bytes(b'changed')
     with pytest.raises(ValueError, match='changed'):
         manager.publish('clip', {'caption': '#Example'}, campaign_id=campaign.id, platform='youtube', key='second')
+
+
+def test_missing_manual_package_is_rebuilt_and_title_is_preserved(tmp_path):
+    import json
+    from pathlib import Path
+    from publishing.manager import PublishingManager
+    store, campaign, _ = prepared(tmp_path)
+    manager = PublishingManager(store, output=tmp_path / 'prepared')
+    metadata = {'caption': '#Example', 'title': 'Reviewed post title'}
+    first = manager.publish('clip', metadata, campaign_id=campaign.id, platform='youtube', key='rebuild')
+    path = Path(first['metadata']['adapter_result']['package_path'])
+    path.unlink()
+    manager.publish('clip', metadata, campaign_id=campaign.id, platform='youtube', key='rebuild')
+    assert json.loads(path.read_text())['title'] == metadata['title']

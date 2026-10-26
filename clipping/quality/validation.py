@@ -24,23 +24,46 @@ def result(checks, warnings=()):
                          checks=checks, violations=failures, warnings=list(warnings))
 
 
-def validate_candidate(candidate, *, minimum=None, maximum=None, settings=None):
+def validate_candidate(candidate, *, minimum=None, maximum=None, settings=None, strict=False):
+    from clipping.planning import (INTRO_OUTRO, PROMOTION, host_meta_setup, opening_context,
+                                   speech_text, standalone_boundary_checks)
     settings = settings or load_settings()
     plan, quality = candidate.get('clip_plan', {}), candidate.get('quality', {})
+    features = candidate.get('transcript_features') or {}
+    text = speech_text(candidate.get('source_excerpt') or '')
     duration = plan.get('duration_seconds', 0)
+    ratio, gap = quality.get('speech_ratio'), quality.get('largest_speech_gap')
+    unanswered = (quality.get('ending_question') is True or features.get('ending_question') is True
+                  or bool(re.search(r'''\?["'\u201d\u2019)]*$''', text)))
     checks = {
         'duration': isinstance(duration, (int, float)) and not isinstance(duration, bool)
                     and math.isfinite(duration) and (minimum or settings.clips.min_duration) <= duration
                     <= (maximum or settings.clips.max_duration),
         'complete_thought': quality.get('completed_ending') is True,
-        'sentence_opening': not quality.get('mid_sentence_opening', False),
-        'standalone': not quality.get('context_dependent_opening', False),
-        'no_advertising': not quality.get('promotional', False),
-        'no_intro_outro': not quality.get('intro_or_outro', False),
-        'speech_density': quality.get('speech_ratio', 0) >= settings.quality.minimum_speech_ratio,
-        'speech_gaps': quality.get('largest_speech_gap', float('inf')) <= settings.quality.maximum_speech_gap,
+        'answered_ending': not unanswered,
+        'no_mid_sentence_start': not quality.get('mid_sentence_opening', False),
+        'no_mid_sentence_end': not quality.get('filler_opening', False),
+        'standalone': not quality.get('context_dependent_opening', False)
+                      and (not text or not opening_context(text)),
+        'no_advertising': not quality.get('promotional', False) and not PROMOTION.search(text),
+        'no_intro_outro': not quality.get('intro_or_outro', False) and not INTRO_OUTRO.search(text),
+        'no_host_setup': not quality.get('host_meta_setup', False) and not host_meta_setup(text),
+        'speech_density': isinstance(ratio, (int, float)) and not isinstance(ratio, bool)
+                          and math.isfinite(ratio) and settings.quality.minimum_speech_ratio <= ratio <= 1,
+        'speech_gaps': isinstance(gap, (int, float)) and not isinstance(gap, bool)
+                       and math.isfinite(gap) and 0 <= gap <= settings.quality.maximum_speech_gap,
     }
-    return result(checks, ['Transcript boundaries are editorial evidence, not verified semantic completeness.'])
+    if strict:
+        checks.update(standalone_boundary_checks(text))
+        flags = ('completed_ending', 'filler_opening', 'context_dependent_opening',
+                 'mid_sentence_opening', 'promotional', 'intro_or_outro', 'host_meta_setup')
+        ending_evidence = quality.get('ending_question', features.get('ending_question'))
+        checks['transcript_structure_evidence'] = (bool(text) and isinstance(ending_evidence, bool)
+            and all(isinstance(quality.get(key), bool) for key in flags))
+    failures = [name for name, passed in checks.items() if not passed]
+    return QualityResult(passed=not failures, score=round(100 * sum(checks.values()) / max(1, len(checks))),
+                         checks=checks, violations=failures,
+                         warnings=['Transcript boundaries are editorial evidence, not verified semantic completeness.'])
 
 
 def interval_lengths(analysis, name, duration):
@@ -61,7 +84,8 @@ def analyze(clip):
 def validate_media(clip, subtitles, *, duration, aspect='9:16', info=None, analysis=None, settings=None):
     settings = settings or load_settings()
     if not clip.is_file() or not subtitles.is_file():
-        return result({'files_present': False})
+        return QualityResult(passed=False, score=0, checks={}, violations=['clip or subtitle file missing'],
+                             warnings=[])
     try:
         info = info if info is not None else media.probe(clip)
         analysis = analysis if analysis is not None else analyze(clip)
@@ -84,13 +108,16 @@ def validate_media(clip, subtitles, *, duration, aspect='9:16', info=None, analy
             'fps': settings.quality.minimum_fps <= rate <= settings.quality.maximum_fps,
             'audible_audio': math.isfinite(rms) and rms > settings.quality.minimum_audio_db,
             'no_black_frames': max(interval_lengths(analysis, 'black', actual), default=0)
-                               < settings.quality.maximum_black_seconds,
+                            < settings.quality.maximum_black_seconds,
             'no_excessive_silence': sum(interval_lengths(analysis, 'silence', actual)) / max(actual, .001)
-                                    <= settings.quality.maximum_silence_ratio,
+                                <= settings.quality.maximum_silence_ratio,
             'captions': bool(cues) and all(0 <= c['start'] < c['end'] <= actual + .05 for c in cues),
             'subtitle_bounds': bool(display_blocks) and all(1 <= len(lines) <= 2 and
                 all(len(line) <= settings.quality.maximum_subtitle_chars for line in lines) for lines in display_blocks),
         }
-        return result(checks, ['Source-speech accuracy requires independent timed cues and human review.'])
-    except (ValueError, TypeError, KeyError, OSError, ZeroDivisionError):
-        return result({'probe_decode_and_subtitles': False})
+        failures = [name for name, passed in checks.items() if not passed]
+        return QualityResult(passed=not failures, score=round(100 * sum(checks.values()) / max(1, len(checks))),
+                             checks=checks, violations=failures,
+                             warnings=['Source-speech accuracy requires independent timed cues and human review.'])
+    except (ValueError, TypeError, KeyError, OSError, ZeroDivisionError) as e:
+        return QualityResult(passed=False, score=0, checks={}, violations=[str(e)], warnings=[])

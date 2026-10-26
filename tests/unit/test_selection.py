@@ -143,3 +143,85 @@ def test_configured_text_threshold_controls_source_diversity_gate():
         {'start': 10, 'end': 45, 'text': 'Cash flow protects three working reserves before hiring staff. Build a plan.'},
         {'start': 100, 'end': 135, 'text': 'Cash flow protects three working reserves before hiring managers. Build a plan.'}]}
     assert len(select_moments(source, 2, 35, strict=True, settings=settings)) == 2
+
+
+def test_production_growth_ranking_can_choose_a_window_before_overlap_pruning():
+    from app.core.config import load_settings
+    from clipping.sections import select_moments
+    settings = load_settings(environ={})
+    for name in type(settings.growth_scoring).model_fields:
+        setattr(settings.growth_scoring, name, float(name == 'hook_strength'))
+    source = {'title': 'Business', 'duration': 1800, 'segments': [
+        {'start': 0, 'end': 10, 'text': 'Business teams need three business reserves.'},
+        {'start': 10, 'end': 20, 'text': 'The secret mistake made millions disappear overnight.'},
+        {'start': 20, 'end': 30, 'text': 'A written checklist protects every supplier payment.'},
+        {'start': 30, 'end': 40, 'text': 'The owner reviewed accounts before hiring new staff.'},
+    ]}
+    choice = select_moments(source, 1, 30, strict=True, settings=settings)[0]
+    assert choice['clip_plan']['start_seconds'] == 10
+    assert choice['ranking']['basis'] == 'configured_growth_score'
+    assert choice['ranking']['base_score'] == pytest.approx(choice['growth']['score'])
+
+
+@pytest.mark.parametrize(('supported', 'samples', 'adjustment', 'expected_start', 'expected_score'), [
+    (True, 5, .1, 2500, .6),
+    (False, 5, .1, 0, .5),
+    (True, 4, .1, 0, .5),
+    (True, 5, 100, 2500, .6),
+])
+def test_supported_feedback_can_promote_a_window_outside_the_old_top_twenty(
+        supported, samples, adjustment, expected_start, expected_score):
+    from app.core.config import load_settings
+    from clipping.sections import select_moments
+    settings = load_settings(environ={})
+    for name in type(settings.growth_scoring).model_fields:
+        setattr(settings.growth_scoring, name, float(name == 'hook_strength'))
+    source = {'title': 'Business', 'duration': 3000, 'segments': [
+        {'start': index * 100, 'end': index * 100 + 30,
+         'text': f'Business report number {index} protects project reserves. Document decisions before spending.'}
+        for index in range(20)] + [
+        {'start': 2500, 'end': 2530,
+         'text': 'Independent cash control protects payroll reserves. Assign the decision to one owner.'}]}
+
+    def feedback(candidate):
+        return {'supported': supported, 'samples': samples,
+                'adjustment': adjustment if candidate['clip_plan']['start_seconds'] == 2500 else 0,
+                'basis': 'Observed fixture completion from five independent clips.'}
+
+    choice = select_moments(source, 1, 30, strict=True, settings=settings, feedback=feedback)[0]
+    assert choice['clip_plan']['start_seconds'] == expected_start
+    assert choice['feedback']['original_score'] == pytest.approx(.5)
+    assert choice['feedback']['adjusted_score'] == pytest.approx(expected_score)
+
+
+def test_ineligible_high_growth_window_does_not_hide_a_valid_overlapping_window():
+    from app.core.config import load_settings
+    from clipping.sections import select_moments
+    settings = load_settings(environ={})
+    for name in type(settings.growth_scoring).model_fields:
+        setattr(settings.growth_scoring, name, float(name == 'hook_strength'))
+    source = {'title': 'Business', 'duration': 1800, 'segments': [
+        {'start': 0, 'end': 10, 'text': 'The secret mistake cost millions.'},
+        {'start': 20, 'end': 30, 'text': 'Business ownership protects payroll reserves.'},
+        {'start': 30, 'end': 50,
+         'text': 'Assign one owner to each decision and review the accounts.'},
+    ]}
+    choice = select_moments(source, 1, 30, strict=True, settings=settings)[0]
+    assert choice['clip_plan']['start_seconds'] == 20
+    assert choice['quality']['largest_speech_gap'] == 0
+
+
+def test_growth_ranking_falls_back_to_selection_when_its_weighted_evidence_is_missing():
+    from app.core.config import load_settings
+    from clipping.sections import select_moments
+    settings = load_settings(environ={})
+    for name in type(settings.growth_scoring).model_fields:
+        setattr(settings.growth_scoring, name, float(name == 'niche_relevance'))
+    source = {'title': '', 'duration': 1800, 'segments': [
+        {'start': 0, 'end': 30, 'text': 'Practice develops judgment. Review completed decisions.'},
+        {'start': 100, 'end': 130, 'text': 'Why do three reserves protect payroll? Budget before hiring.'},
+    ]}
+    choice = select_moments(source, 1, 30, strict=True, settings=settings)[0]
+    assert choice['clip_plan']['start_seconds'] == 100
+    assert choice['ranking']['basis'] == 'selection_score'
+    assert choice['ranking']['growth_evidence_coverage'] == 0

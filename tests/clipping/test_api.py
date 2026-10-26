@@ -3,17 +3,15 @@ import asyncio
 import shutil
 import time
 from pathlib import Path
-import uuid
 
 import httpx
 import pytest
 
 
 @pytest.mark.asyncio
-async def test_api_queues_approvals_and_rejects_unsafe_upload_paths(monkeypatch):
+async def test_api_queues_approvals_and_rejects_unsafe_upload_paths(tmp_path, monkeypatch):
     assert Path('clipping/app.py').exists(), 'Clipping API is missing'
-    folder = Path('.workflow-tests') / uuid.uuid4().hex
-    folder.mkdir(parents=True)
+    folder = tmp_path
     monkeypatch.setenv('CLIPPING_DATABASE', str(folder / 'api.db'))
     monkeypatch.setenv('CLIPPING_STORAGE', str(folder / 'storage'))
     app = importlib.import_module('clipping.app').app
@@ -48,9 +46,8 @@ async def test_api_queues_approvals_and_rejects_unsafe_upload_paths(monkeypatch)
 
 @pytest.mark.asyncio
 @pytest.mark.skipif(not shutil.which('ffmpeg') or not shutil.which('ffprobe'), reason='FFmpeg required')
-async def test_native_worker_prepares_direct_jobs_and_resumes_after_review(monkeypatch):
-    folder = Path('.workflow-tests') / uuid.uuid4().hex
-    folder.mkdir(parents=True)
+async def test_native_worker_prepares_direct_jobs_and_resumes_after_review(tmp_path, monkeypatch):
+    folder = tmp_path
     monkeypatch.setenv('CLIPPING_DATABASE', str(folder / 'api.db'))
     monkeypatch.setenv('CLIPPING_STORAGE', str(folder / 'storage'))
     app = importlib.import_module('clipping.app').app

@@ -59,6 +59,106 @@ def test_saved_asr_and_matching_subtitles_must_also_match_source_speech(tmp_path
         verify_export(engine, job, tmp_path / 'bad-review')
 
 
+def test_displayed_zero_duration_insertions_are_checked_against_source_speech(tmp_path, monkeypatch):
+    from clipping.captions import cues_for_window
+    from clipping.clip_review import verify_export
+    engine, job = fixture(tmp_path, monkeypatch)
+    job['payload']['source_reference'] = [{'start': 0, 'end': 5, 'text': 'A complete point.'}]
+    # Zero-duration tokens are not timed speech evidence but the caption grouper
+    # retains them with a neighbor. The displayed result needs its own assessment.
+    segment = {'start': 0, 'end': 5, 'text': 'Cosmic geese eat rice A complete point.', 'words': [
+        {'start': 0, 'end': 0, 'word': 'Cosmic geese eat rice'},
+        {'start': 0, 'end': 1, 'word': ' A'},
+        {'start': 1, 'end': 3, 'word': ' complete'},
+        {'start': 3, 'end': 5, 'word': ' point.'}]}
+    engine.safe_path(job['output']['transcript_path']).write_text(json.dumps({'segments': [segment]}))
+    cues = cues_for_window([segment], 0, 5)
+    engine.safe_path(job['output']['subtitle_path']).write_text('\n\n'.join(
+        f"{index}\n{media.srt_time(cue['start'])} --> {media.srt_time(cue['end'])}\n{cue['text']}"
+        for index, cue in enumerate(cues, 1)) + '\n')
+    with pytest.raises(ValueError, match='displayed_caption_coverage'):
+        verify_export(engine, job, tmp_path / 'review')
+
+
+def test_missing_source_evidence_is_explicit_in_a_mechanical_review(tmp_path, monkeypatch):
+    from clipping.clip_review import verify_export
+    engine, job = fixture(tmp_path, monkeypatch)
+    report = verify_export(engine, job, tmp_path / 'review')
+    assert report['caption_evidence']['evaluated'] is False
+    assert report['caption_evidence']['reason'] == 'missing_independent_source_cues'
+    assert report['speech_accuracy'] == 'not_verified'
+
+
+def test_operator_srt_recovery_with_independent_cues_can_complete_export_review(tmp_path, monkeypatch):
+    from clipping.clip_review import verify_export
+    engine, prepared = fixture(tmp_path, monkeypatch)
+    ingest_count = []
+    output = prepared['output']
+
+    def ingest(*args):
+        ingest_count.append(True)
+        return {key: output[key] for key in ('source_path', 'source_sha256', 'synthetic_source')} | {
+            'source_duration': 5}
+
+    command = media.command
+
+    def unavailable_inference(args, **kwargs):
+        if any(str(argument).endswith('_transcribe.py') for argument in args):
+            return json.dumps({'language': 'en', 'segments': []})
+        return command(args, **kwargs)
+
+    monkeypatch.setattr(media, 'ingest', ingest)
+    monkeypatch.setattr(media, 'command', unavailable_inference)
+    monkeypatch.setattr(media, 'render', lambda *args: {key: output[key] for key in
+        ('clip_path', 'clip_sha256', 'subtitle_path')})
+    job = engine.create({'campaign': {'title': 'Recovery test', 'url': 'https://example.com/source',
+        'platform': 'youtube', 'rules': 'Local fixture', 'rights_notes': 'Local fixture'},
+        'preview_only': True, 'dry_run': False, 'source_path': output['source_path'], 'language': 'en',
+        'source_reference': [{'start': 0, 'end': 5, 'text': 'A complete point.'}],
+        'clip_plan': output['selected_clip_plan']})
+    assert engine.consume_once()
+    assert engine.get(job['id'])['status'] == 'awaiting_transcript'
+    engine.provide_transcript(job['id'], '1\n00:00:00,000 --> 00:00:05,000\nA complete point.\n')
+    assert engine.consume_once()
+    recovered = engine.get(job['id'])
+    assert recovered['status'] == 'completed'
+    assert recovered['output']['transcript_origin'] == 'operator_supplied'
+    recovered['output']['selected_clip_plan'] = recovered['payload']['clip_plan']
+    report = verify_export(engine, recovered, tmp_path / 'recovered-review')
+    assert report['checks']['speech_transcript'] is True
+    assert report['checks']['displayed_caption_coverage'] is True
+    assert report['transcript_origin'] == 'operator_supplied'
+    assert report['speech_accuracy'] == 'not_verified'
+    assert report['human_review_required'] is True
+    assert any('accuracy' in warning.lower() for warning in report['warnings'])
+    assert len(ingest_count) == 1
+
+
+@pytest.mark.parametrize('evidence', ['missing', 'disagrees', 'practice'])
+def test_operator_supplied_origin_requires_independent_supported_real_speech(tmp_path, monkeypatch, evidence):
+    from clipping.clip_review import verify_export
+    engine, job = fixture(tmp_path, monkeypatch)
+    job['output']['transcript_origin'] = 'operator_supplied'
+    if evidence != 'missing':
+        job['payload']['source_reference'] = [{'start': 0, 'end': 5, 'text':
+            'A complete point.' if evidence == 'practice' else 'Entirely different source speech.'}]
+    if evidence == 'practice':
+        job['payload']['dry_run'] = True
+    with pytest.raises(ValueError, match='speech_transcript|caption_coverage'):
+        verify_export(engine, job, tmp_path / 'review')
+
+
+@pytest.mark.parametrize('origin', ['operator_supplied_practice', 'synthetic_practice', 'mock', 'demo',
+    'faster_whisper:mock', 'faster_whisper:demo', 'faster_whisper:'])
+def test_synthetic_or_mock_origins_cannot_bypass_export_review_with_matching_cues(tmp_path, monkeypatch, origin):
+    from clipping.clip_review import verify_export
+    engine, job = fixture(tmp_path, monkeypatch)
+    job['output']['transcript_origin'] = origin
+    job['payload']['source_reference'] = [{'start': 0, 'end': 5, 'text': 'A complete point.'}]
+    with pytest.raises(ValueError, match='speech_transcript'):
+        verify_export(engine, job, tmp_path / 'review')
+
+
 @pytest.mark.parametrize('problem', ['changed_clip', 'changed_source', 'wrong_subtitles', 'paragraph', 'silent', 'synthetic'])
 def test_export_review_rejects_unreliable_outputs(tmp_path, monkeypatch, problem):
     from clipping.clip_review import verify_export

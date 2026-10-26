@@ -31,7 +31,8 @@ def current_reservations(entries, order_id):
 def scan_sources(controller, attempts, delay):
     niches = [niche for niche in trends.NICHES
               if not controller.config.niche or niche['name'] == controller.config.niche]
-    research = trends.TrendResearchAgent(controller.engine, niches=niches)
+    research = trends.TrendResearchAgent(controller.engine, niches=niches,
+        cache_database=controller.store.path)
     if not controller.state.get('research_run_id'):
         batch.connect_discovery(controller, attempts, delay)
     return controller.connected(lambda: controller.search(research), 'youtube_search', attempts, delay)
@@ -64,7 +65,9 @@ def allocate_source(controller, history, attempts, delay):
                 if metadata['id'] != source['id']:
                     raise ValueError('Cached captions belong to a different source')
             else:
-                metadata = batch.connected(controller, lambda: sections.inspect_source(source, directory),
+                cache = batch.cache_for(controller)
+                metadata = batch.connected(controller, lambda: sections.inspect_source(
+                    source, directory, cache=cache),
                                            'source_captions', attempts, delay)
                 atomic_json(metadata_path, metadata)
             duration = metadata.get('duration')
@@ -155,20 +158,42 @@ def skip_bad_captions(controller, index):
                       skipped_entries=[*controller.state.get('skipped_entries', []), entry])
 
 
+def skip_bad_candidate(controller, index):
+    entries = controller.state['clip_entries']
+    rejected = entries.pop(index)
+    rejected['skip_reason'] = 'candidate_quality_failed'
+    for number, remaining in enumerate(entries[index:], start=index + 1):
+        if remaining.get('job_id'):
+            raise ValueError('Cannot renumber an already processed later clip')
+        remaining['number'] = number
+    controller.update(clip_entries=entries,
+                      skipped_entries=[*controller.state.get('skipped_entries', []), rejected],
+                      planned_clip_count=len(entries))
+
+
 def run_production(controller, attempts, delay):
     atomic_json(controller.orders / 'latest.json', {'id': controller.state['id']})
-    controller.engine = ClippingWorkflow(controller.folder / 'workflow.db', controller.storage)
+    controller.engine = controller.bind_render_metrics(
+        ClippingWorkflow(controller.folder / 'workflow.db', controller.storage))
     delivery = (Path(controller.config.delivery_dir) if controller.config.delivery_dir
                 else Path(__file__).resolve().parents[1] / 'clips').resolve()
     delivery.mkdir(parents=True, exist_ok=True)
     prefix = controller.state['id'][:8]
+    refresh_scan = controller.state['status'] == 'insufficient_sources'
+    entries = controller.state.get('clip_entries', [])
+    all_done = len(entries) == controller.config.clip_count and all(
+        entry.get('job_id') and controller.engine.get(entry['job_id'])['status'] == 'completed' for entry in entries)
+    controller.update(status='running', stage='preflight', action=None, reason=None,
+                      delivery_dir=str(delivery), requested_clip_count=controller.config.clip_count)
+    if not all_done:
+        provider = controller.state.get('discovery_provider') or controller.config.provider
+        orchestrator.check_environment(replace(controller.config, provider=provider), controller.storage)
     for path in (controller.folder / 'result.json', delivery / f'{prefix}-result.json',
                  delivery / f'{prefix}-CLIPS.txt'):
         path.unlink(missing_ok=True)
     latest = delivery / 'LATEST-CLIPS.txt'
     if latest.is_file() and controller.state['id'] in latest.read_text(encoding='utf-8')[:512]:
         latest.unlink()
-    refresh_scan = controller.state['status'] == 'insufficient_sources'
     controller.update(status='running', stage='preflight', action=None, reason=None, result=None,
                       review=None, delivery_dir=str(delivery), requested_clip_count=controller.config.clip_count,
                       batch_results=[], completed_clip_count=0, partial_index=None,
@@ -176,11 +201,6 @@ def run_production(controller, attempts, delay):
     if refresh_scan:
         controller.update(research_run_id=None)
     entries = controller.state['clip_entries']
-    all_done = len(entries) == controller.config.clip_count and all(
-        entry.get('job_id') and controller.engine.get(entry['job_id'])['status'] == 'completed' for entry in entries)
-    if not all_done:
-        provider = controller.state.get('discovery_provider') or controller.config.provider
-        orchestrator.check_environment(replace(controller.config, provider=provider), controller.storage)
     previous = controller.store.reservations(controller.state['id'])
     history = previous + current_reservations(entries + controller.state.get('skipped_entries', []),
                                               controller.state['id'])
@@ -205,6 +225,11 @@ def run_production(controller, attempts, delay):
             else:
                 job = controller.engine.get(entry['job_id'])
         except SetupIssue as exc:
+            if exc.code == 'candidate_quality_failed':
+                skip_bad_candidate(controller, index)
+                history = previous + current_reservations(
+                    controller.state['clip_entries'] + controller.state.get('skipped_entries', []), controller.state['id'])
+                continue
             if exc.code != 'partial_source_access_required':
                 raise
             skip_source(controller, index)

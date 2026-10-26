@@ -37,7 +37,7 @@ TOPICS = [
 
 def pipeline(tmp_path, monkeypatch, count=20):
     from clipping import media, orchestrator, sections, trends
-    calls = {'search': 0, 'inspect': 0, 'download': 0, 'render': 0, 'review': 0}
+    calls = {'search': 0, 'inspect': 0, 'cache': 0, 'download': 0, 'render': 0, 'review': 0}
     monkeypatch.setattr(orchestrator, 'check_environment', lambda *args: None)
     monkeypatch.setattr(orchestrator, 'check_browser', lambda *args: None)
 
@@ -48,8 +48,9 @@ def pipeline(tmp_path, monkeypatch, count=20):
                  'duration': 1800, 'timestamp': datetime.now(timezone.utc).timestamp() - 86400}
                 for i in range(6)]
 
-    def inspect(source, folder):
+    def inspect(source, folder, **kwargs):
         calls['inspect'] += 1
+        calls['cache'] += kwargs.get('cache') is not None
         index = int(source['id'][-5:])
         segments = []
         for i, (opening, payoff) in enumerate(TOPICS[index * 4:index * 4 + 4]):
@@ -59,7 +60,7 @@ def pipeline(tmp_path, monkeypatch, count=20):
         return {'id': source['id'], 'title': source['title'], 'duration': 1800,
                 'segments': segments, 'heatmap': [], 'transcript_origin': 'fixture_public_captions'}
 
-    def download(source, plan, duration, folder):
+    def download(source, plan, duration, folder, **kwargs):
         calls['download'] += 1
         assert 15 <= plan['duration_seconds'] <= 60
         folder.mkdir(parents=True, exist_ok=True)
@@ -117,11 +118,37 @@ def test_twenty_clips_use_five_sources_and_resume_without_regenerating(tmp_path,
     assert len({(c['source']['id'], c['source_clip_plan']['start_seconds']) for c in clips}) == 20
     assert all(c['caption_style'] == 'colorized' for c in clips)
     assert state['result']['full_video_downloaded'] is False
-    assert calls['search'] == 6 and calls['download'] == calls['render'] == 20
+    assert calls['search'] == len(mod.trends.NICHES) and calls['download'] == calls['render'] == 20
+    assert calls['cache'] == calls['inspect']
     assert Path(state['result']['index']).is_file()
     resumed = mod.Controller(tmp_path, resume='latest', emit=lambda _: None)
     assert resumed.run(connection_attempts=1)['status'] == 'ready_for_review'
-    assert calls['search'] == 6 and calls['download'] == calls['render'] == 20
+    assert calls['search'] == len(mod.trends.NICHES) and calls['download'] == calls['render'] == 20
+
+
+def test_failed_candidate_is_skipped_and_replaced_without_stopping_order(tmp_path, monkeypatch):
+    from clipping import batch
+    from clipping.orchestrator import SetupIssue
+    mod, config, calls = pipeline(tmp_path, monkeypatch)
+    original = batch.create_clip_job
+    rejected = []
+
+    def reject_one(controller, entry, moment, metadata, attempts, delay):
+        if not rejected:
+            rejected.append(moment['source_excerpt'])
+            raise SetupIssue('candidate_quality_failed')
+        return original(controller, entry, moment, metadata, attempts, delay)
+
+    monkeypatch.setattr(batch, 'create_clip_job', reject_one)
+    controller = mod.Controller(tmp_path, config, emit=lambda _: None)
+    state = controller.run(connection_attempts=1)
+    assert state['status'] == 'ready_for_review', state
+    assert state['completed_clip_count'] == 20
+    assert calls['download'] == calls['render'] == 20
+    assert len(state['skipped_entries']) == 1
+    assert state['skipped_entries'][0]['skip_reason'] == 'candidate_quality_failed'
+    clips = state['result']['clips']
+    assert len({(c['source']['id'], c['source_clip_plan']['start_seconds']) for c in clips}) == 20
 
 
 def test_larger_requested_count_has_no_twenty_clip_ceiling(tmp_path, monkeypatch):
@@ -161,8 +188,8 @@ def test_failed_caption_window_can_be_replaced_from_the_same_source(tmp_path, mo
     discover, inspect, transcribe = trends.discover, sections.inspect_source, media.transcribe
     monkeypatch.setattr(trends, 'discover', lambda niche: discover(niche)[:1 if count == 5 else 2])
 
-    def more_moments(source, folder):
-        metadata = inspect(source, folder)
+    def more_moments(source, folder, **kwargs):
+        metadata = inspect(source, folder, **kwargs)
         for index, (opening, payoff) in enumerate(TOPICS[4:8], start=4):
             start = 100 + index * 100
             metadata['segments'] += [{'start': start, 'end': start + 10, 'text': opening},
@@ -211,10 +238,10 @@ def test_connection_failure_after_nine_exports_resumes_in_same_order(tmp_path, m
     mod, config, calls = pipeline(tmp_path, monkeypatch)
     original = sections.download_section
 
-    def interrupted(*args):
+    def interrupted(*args, **kwargs):
         if calls['download'] == 9:
             raise media.SourceUnavailable('Connection refused SECRET')
-        return original(*args)
+        return original(*args, **kwargs)
 
     monkeypatch.setattr(sections, 'download_section', interrupted)
     controller = mod.Controller(tmp_path, config, emit=lambda _: None)
@@ -227,7 +254,54 @@ def test_connection_failure_after_nine_exports_resumes_in_same_order(tmp_path, m
     result = resumed.run(connection_attempts=1)
     assert result['id'] == state['id'] and result['status'] == 'ready_for_review'
     assert calls['render'] == calls['download'] == 20
-    assert calls['search'] == 6 and 'SECRET' not in resumed.manifest.read_text()
+    assert calls['search'] == len(mod.trends.NICHES) and 'SECRET' not in resumed.manifest.read_text()
+
+
+def test_production_routes_new_exports_into_the_chosen_niche_folder(tmp_path, monkeypatch):
+    mod, config, calls = pipeline(tmp_path, monkeypatch, count=5)
+    config.niche = 'Business'
+    config.organize_by_niche = True
+    controller = mod.Controller(tmp_path, config, emit=lambda _: None)
+    state = controller.run(connection_attempts=1)
+    assert state['status'] == 'ready_for_review', state
+    assert {Path(clip['clip']).parent for clip in state['result']['clips']} == {tmp_path / 'delivered' / 'business'}
+    assert all(clip['delivery_niche'] == 'business' for clip in state['result']['clips'])
+    from clipping.library import niche_library
+    category = next(item for item in niche_library(controller.store)['categories'] if item['id'] == 'business')
+    assert category['available_clip_count'] == category['clip_count'] == 5
+    before = calls['download']
+    resumed = mod.Controller(tmp_path, resume=state['id'], emit=lambda _: None)
+    assert resumed.run(connection_attempts=1)['status'] == 'ready_for_review'
+    assert calls['download'] == before
+
+
+@pytest.mark.parametrize('count', [4, 5])
+def test_failed_resume_preflight_preserves_completed_partial_deliveries(tmp_path, monkeypatch, count):
+    from clipping import media, sections
+    mod, config, calls = pipeline(tmp_path, monkeypatch, count=count)
+    original = sections.download_section
+
+    def interrupted(*args, **kwargs):
+        if calls['download'] == 2:
+            raise media.SourceUnavailable('Connection unavailable')
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(sections, 'download_section', interrupted)
+    controller = mod.Controller(tmp_path, config, emit=lambda _: None)
+    state = controller.run(connection_attempts=1)
+    assert state['completed_clip_count'] == 2
+    completed = list(state['batch_results'])
+
+    def broken_environment(*args):
+        raise mod.SetupIssue('ffmpeg_section_seek_unsupported')
+
+    monkeypatch.setattr(mod, 'check_environment', broken_environment)
+    resumed = mod.Controller(tmp_path, resume=state['id'], emit=lambda _: None)
+    failed = resumed.run(connection_attempts=1)
+    assert failed['status'] == 'setup_required'
+    assert failed['completed_clip_count'] == 2
+    assert failed['batch_results'] == completed
+    assert all(Path(clip['clip']).is_file() for clip in failed['batch_results'])
 
 
 def test_unavailable_source_does_not_limit_twenty_clip_order_to_three_candidates(tmp_path, monkeypatch):
@@ -235,10 +309,10 @@ def test_unavailable_source_does_not_limit_twenty_clip_order_to_three_candidates
     mod, config, calls = pipeline(tmp_path, monkeypatch)
     original = sections.inspect_source
 
-    def inaccessible(source, folder):
+    def inaccessible(source, folder, **kwargs):
         if source['id'] == 'source00000':
             raise media.SourceAccessRequired('Source refused SECRET')
-        return original(source, folder)
+        return original(source, folder, **kwargs)
 
     monkeypatch.setattr(sections, 'inspect_source', inaccessible)
     controller = mod.Controller(tmp_path, config, emit=lambda _: None)
@@ -258,7 +332,7 @@ def test_next_fresh_order_excludes_previous_windows_and_reports_shortfall(tmp_pa
     second = mod.Controller(tmp_path, config, emit=lambda _: None)
     state = second.run(connection_attempts=1)
     assert state['status'] == 'insufficient_sources'
-    assert state['id'] != first.state['id'] and calls['search'] == 12
+    assert state['id'] != first.state['id'] and calls['search'] == 2 * len(mod.trends.NICHES)
     assert state['completed_clip_count'] == 4 and not state.get('result')
     new_windows = {(c['source']['id'], c['source_clip_plan']['start_seconds']) for c in state['batch_results']}
     assert not old_windows & new_windows
@@ -269,8 +343,8 @@ def test_caption_inspection_rechecks_actual_long_source_duration(tmp_path, monke
     mod, config, calls = pipeline(tmp_path, monkeypatch)
     original = sections.inspect_source
 
-    def misleading_duration(source, folder):
-        metadata = original(source, folder)
+    def misleading_duration(source, folder, **kwargs):
+        metadata = original(source, folder, **kwargs)
         if source['id'] == 'source00000':
             metadata['duration'] = 7300
         return metadata
@@ -287,11 +361,11 @@ def test_replacement_source_cannot_reuse_the_previous_sources_cached_section(tmp
     mod, config, calls = pipeline(tmp_path, monkeypatch)
     original = sections.download_section
 
-    def leaves_cache(source, plan, duration, folder):
+    def leaves_cache(source, plan, duration, folder, **kwargs):
         cached = folder / 'section.mp4'
         if cached.is_file():
             assert source['id'] in cached.read_text(), 'Wrong source reused from the section cache'
-        result = original(source, plan, duration, folder)
+        result = original(source, plan, duration, folder, **kwargs)
         if source['id'] == 'source00000':
             raise media.SourceAccessRequired('Refused after leaving a cached section')
         return result
@@ -317,6 +391,88 @@ def test_failed_recheck_removes_ready_manifest_and_index(tmp_path, monkeypatch):
     assert not (tmp_path / 'delivered' / 'LATEST-CLIPS.txt').exists()
     assert not (tmp_path / 'delivered' / f'{result["id"][:8]}-result.json').exists()
     assert calls['render'] == 20
+
+
+@pytest.mark.parametrize('stale_excerpt', [
+    'Yes, sir. I agree. We should do a fight at the White House.',
+    'I believed I could be successful when I was younger, but let me tell you what.',
+])
+def test_completed_production_resume_rechecks_current_candidate_before_redelivery(tmp_path, monkeypatch, stale_excerpt):
+    mod, config, calls = pipeline(tmp_path, monkeypatch, count=5)
+    controller = mod.Controller(tmp_path, config, emit=lambda _: None)
+    state = controller.run(connection_attempts=1)
+    assert state['status'] == 'ready_for_review'
+    entries = json.loads(json.dumps(state['clip_entries']))
+    completed = {entry['job_id']: controller.engine.get(entry['job_id']) for entry in entries}
+    assert all(job['status'] == 'completed' for job in completed.values())
+    missing_delivery = Path(state['result']['clips'][0]['clip'])
+    missing_delivery.unlink()
+    entries[0]['moment']['source_excerpt'] = stale_excerpt
+    assert entries[0]['moment']['quality']['completed_ending'] is True
+    assert entries[0]['moment']['quality']['filler_opening'] is False
+    controller.update(clip_entries=entries)
+    before_calls = calls.copy()
+
+    resumed = mod.Controller(tmp_path, resume='latest', emit=lambda _: None)
+    result = resumed.run(connection_attempts=1)
+
+    assert result['status'] == 'setup_required' and result['reason'] == 'candidate_quality_failed'
+    assert result.get('result') is None and result['batch_results'] == []
+    assert not missing_delivery.exists()
+    assert calls == before_calls, 'A rejected completed moment must not reach full review, acquisition or rendering'
+    assert result['clip_entries'] == entries
+    assert {identifier: resumed.engine.get(identifier) for identifier in completed} == completed
+
+
+def test_production_creation_rejects_saved_intro_before_acquisition(tmp_path, monkeypatch):
+    from clipping import batch, production
+    mod, config, calls = pipeline(tmp_path, monkeypatch, count=5)
+    controller = mod.Controller(tmp_path, config, emit=lambda _: None)
+    state = controller.run(connection_attempts=1)
+    assert state['status'] == 'ready_for_review'
+    entry = state['clip_entries'][0]
+    before_entry = json.loads(json.dumps(entry))
+    before_job = controller.engine.get(entry['job_id'])
+    metadata = production.metadata_for(controller, entry)
+    start = entry['source_clip_plan']['start_seconds']
+    metadata['chapters'] = [{'title': 'Intro', 'start_time': start + 5, 'end_time': start + 10}]
+    before_calls = calls.copy()
+    with pytest.raises(mod.SetupIssue) as rejected:
+        batch.create_clip_job(controller, entry, entry['moment'], metadata, 1, 0)
+    assert rejected.value.code == 'candidate_chapter_excluded'
+    assert calls == before_calls and entry == before_entry
+    assert controller.engine.get(entry['job_id']) == before_job
+
+
+@pytest.mark.parametrize('blocked', [True, False])
+def test_completed_production_resume_checks_chapters_in_source_coordinates(tmp_path, monkeypatch, blocked):
+    mod, config, calls = pipeline(tmp_path, monkeypatch, count=5)
+    controller = mod.Controller(tmp_path, config, emit=lambda _: None)
+    state = controller.run(connection_attempts=1)
+    assert state['status'] == 'ready_for_review'
+    entries = json.loads(json.dumps(state['clip_entries']))
+    first = entries[0]
+    before_jobs = {entry['job_id']: controller.engine.get(entry['job_id']) for entry in entries}
+    metadata_path = controller.folder / first['metadata_path']
+    metadata = json.loads(metadata_path.read_text(encoding='utf-8'))
+    start = first['source_clip_plan']['start_seconds']
+    assert first['local_clip_plan']['start_seconds'] == 3 and start >= 100
+    metadata['chapters'] = [{'title': 'Intro', 'start_time': start + 5 if blocked else 0,
+                             'end_time': start + 10 if blocked else 50}]
+    metadata_path.write_text(json.dumps(metadata), encoding='utf-8')
+    missing = Path(state['result']['clips'][0]['clip'])
+    missing.unlink()
+    before_calls = calls.copy()
+    resumed = mod.Controller(tmp_path, resume='latest', emit=lambda _: None)
+    result = resumed.run(connection_attempts=1)
+    if blocked:
+        assert result['status'] == 'setup_required' and result['reason'] == 'candidate_chapter_excluded'
+        assert not missing.exists() and calls == before_calls
+    else:
+        assert result['status'] == 'ready_for_review' and missing.is_file()
+        assert calls['download'] == before_calls['download'] and calls['render'] == before_calls['render']
+    assert result['clip_entries'] == entries
+    assert {identifier: resumed.engine.get(identifier) for identifier in before_jobs} == before_jobs
 
 
 @pytest.mark.parametrize('count', [0, -1, True, 1.5])

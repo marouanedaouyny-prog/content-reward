@@ -50,6 +50,7 @@ def api_probe(folder):
 
 def check_environment(*, storage=None, check_api=True):
     from app.core.config import load_settings
+    from clipping.orchestrator import ffmpeg_supports_bounded_sections
     from clipping.workflow import ClippingWorkflow
 
     checks = {}
@@ -67,10 +68,15 @@ def check_environment(*, storage=None, check_api=True):
         okay = False
         if binary:
             try:
-                okay = subprocess.run([binary, '-version'], capture_output=True, timeout=5).returncode == 0
+                response = subprocess.run([binary, '-version'], capture_output=True, timeout=5,
+                                          text=True, encoding='utf-8', errors='replace')
+                okay = response.returncode == 0 and (
+                    name != 'ffmpeg' or ffmpeg_supports_bounded_sections(response.stdout))
             except (OSError, subprocess.TimeoutExpired):
                 pass
-        record(name, okay, 'Executable version probe')
+        detail = ('FFmpeg 9.0+ or an autobuild from 2026-08-05 is required for bounded sections'
+                  if name == 'ffmpeg' else 'Executable version probe')
+        record(name, okay, detail)
     modules = ('fastapi', 'uvicorn', 'multipart', 'pydantic', 'yaml', 'yt_dlp')
     record('dependencies', all(importlib.util.find_spec(name) for name in modules), 'Core import availability')
     record('whisper', importlib.util.find_spec('faster_whisper') is not None,

@@ -4,8 +4,10 @@ This is the working local entry point for clipping. It prepares a real video, pe
 
 The user's standing workflow and caption preferences are saved in
 [AGENTS.md](../AGENTS.md): identify the current order, search YouTube, choose
-strong standalone moments, render three or four highlights, add approved studio
-captions, review the export, and deliver that order's result.
+strong standalone moments, review captions and the actual exports, and deliver
+the current order's result. The production launcher targets 20 colorized/fit
+clips; the general four-clip workflow uses studio/fit. Saved orders preserve
+their original settings.
 
 ## Run one complete clipping order
 
@@ -35,6 +37,71 @@ This runs when requested in chat or launched locally. It inherits its process's
 network access and reports connection failures with a saved resume command.
 It cannot remove restrictions on the tool session's YouTube access. The manual
 launcher below remains available for running in your normal terminal.
+
+### Niche folders and retained-export recovery
+
+The workspace's **Niche library** section and `content-reward library` show
+recorded clips by niche, including missing or changed delivery files. New
+production orders put MP4s, subtitles and separate post captions under
+`clips/sports/`, `streams/`, `business/`, `education/`, `gaming/`,
+`ai-technology/`, `fitness/` or `comedy/`. Ambiguous discovery labels go to
+`unclassified/` for review. Narrow topic checks flag conflicts between the
+excerpt and discovery label. An explicit per-clip niche review can resolve
+those conflicts. This is not a verified semantic classifier.
+
+An older saved order retains its paths and settings. Audit its retained local
+artifacts without starting discovery or writing order/job records:
+
+```powershell
+.\.venv\Scripts\content-reward.exe recover ORDER_ID
+```
+
+Explicit restoration runs current caption/editorial gates, hashes, full media
+decode and export checks before copying any eligible delivery group:
+
+```powershell
+.\.venv\Scripts\content-reward.exe recover ORDER_ID --restore --organize
+```
+
+`--organize` requires `--restore` and also creates niche-folder copies. Original
+paths, completed jobs and historical counts stay intact. Existing different
+files are never overwritten. Per-clip failures remain blocked and produce exit
+code 2; a busy saved order produces code 3. A recovery report records the actual
+copies, checks and remaining human review. This workflow uses retained bounded
+media and does not download a source or create a fresh batch. A manual export or
+recovery does not create a public post. The library prefers an available niche
+copy when its recorded integrity checks pass.
+
+Measured learning is optional. Use `--learning-context learning-context.json`
+for a new order to select a comparable account, reporting window and view
+definition; see [configuration](../docs/CONFIGURATION.md). Observations without
+that context remain descriptive, and sparse or copied history cannot establish
+supported learned adjustments.
+
+### Correct a retained clip's captions
+
+Use a small local JSON file containing `segments` with actual speech and existing
+word alignment. Optional `source_sha256` and `source_job_id` bind the correction
+to its retained source. Do not manufacture word times or replace speech with a
+post caption.
+
+```powershell
+.\.venv\Scripts\content-reward.exe revise CLIP_ID --transcript correction.json
+```
+
+The revision renders only the retained bounded section, compares captions with
+independent source cues and checks the full export. It creates an `-r1` (then
+`-r2`, etc.) delivery group and a child job. Promotion preserves the original job,
+artifacts, order settings and logical clip count; the library hides the superseded
+record. Resuming the order preserves the revision path and provenance. Failed
+review leaves the existing delivery authoritative. An active order or unrelated
+pending jobs must finish before a revision can run.
+
+Optional `--post-caption "TEXT"` supplies a separate post caption.
+`--niche-review review.json` accepts a canonical `niche` and a nonempty `rationale`
+to place this revision in the reviewed niche folder. Human speech and visual
+review remain required; a token-agreement score cannot establish transcription
+truth. No publishing or new source download occurs.
 
 ### Make 20 colorized clips per run
 
@@ -99,8 +166,9 @@ with posts prepared for review**. The user will connect credentials locally,
 one account at a time, starting with the existing Instagram hidden-token
 launcher. Publishing remains disabled. The Instagram connector does not
 establish YouTube or TikTok access; verify each account separately before
-claiming it is connected. A main niche and public profile targets are still
-needed for account-specific post preparation.
+claiming it is connected. The user requested a library across several viral
+niches; account-specific profile targets and niche assignments still need to
+be supplied before preparing account-specific posts.
 
 The current controller defaults to **four distinct highlights from one newly
 discovered popular long video**, using partial downloads and the new `studio`
@@ -114,7 +182,7 @@ From the project folder in a normal Windows terminal:
 ```
 
 This controller checks the local tools and source connectivity, searches all
-six niches, compares eligible long sources and reads public English captions
+eight niches, compares eligible long sources and reads public English captions
 plus available replay data. It selects four separate moments (three if only
 three distinct windows fit), then downloads only those windows with three
 seconds of context on each side. Local Whisper transcribes each small section
@@ -401,7 +469,7 @@ For automatic transcription of real footage on Windows, run the setup command:
 
 This installs dependencies in the project's Python 3.11 environment and prepares `tiny.en` on CPU. **Select English** as the spoken language to use that model. Start the app with the `.venv` executable above so it uses the installed libraries. To prepare a multilingual model for French, Arabic, and automatic language detection, run `.\setup-transcription.ps1 -Model small`. Model downloads need internet access and disk space.
 
-The app prefers a complete local `models/small` folder, then local `models/tiny.en` for explicitly selected English. An explicit `WHISPER_MODEL` takes precedence. Without a usable model, the job asks for a timed SRT transcript. Import a `.srt` file or paste its text during intake or after that pause; preparation resumes from the saved source.
+The app honors `whisper.model` from the effective YAML settings; `WHISPER_MODEL` takes precedence. It resolves the selected model in the local cache before using its model name. The default is `tiny.en` for English; non-English or automatic-language input uses a compatible multilingual model. An unrelated cached tiny model cannot override a configured larger model. Without a usable model, the job asks for a timed SRT transcript. Import a `.srt` file or paste its text during intake or after that pause; preparation resumes from the saved source.
 
 For a subtitle mockup, open **Use your own timed subtitles** and click **Load five-second subtitle demo** while practice mode is checked. Create and approve that practice job to render the three sample captions. The [sample SRT](examples/practice.srt) is demonstration text for the generated practice video, rather than recognition of its tone audio. Source URLs use yt-dlp; uploading authorized footage is the most direct path.
 
@@ -753,3 +821,9 @@ All 27 focused tests passed after the subtitle changes. The running app in the i
 Compose configuration validated, but Docker's daemon was inaccessible and browser launch was denied by the environment. Those runtime checks remain unverified. Speech recognition accuracy on actual campaign footage still needs review; the model check and subtitle demo do not establish caption accuracy for that footage.
 
 The earlier review findings in the legacy backend, frontend, project skills, OAuth connector, and legacy workflows remain separate work. Full legacy test collection is still blocked by missing SQLModel. This clipping entry point is a usable local workflow, not a claim that the entire repository is production ready. Caption quality, speaker framing, campaign compliance, and earning eligibility still require human review; checks here cover media integrity and the workflow's state transitions.
+
+## Optional social SDK companion
+
+`content-reward social status` checks the local PHP/TikTok SDK installation without
+contacting an account. See [setup and Python integration](../docs/SOCIAL_PHP.md).
+Publishing remains disabled; clipping does not require PHP or social login.

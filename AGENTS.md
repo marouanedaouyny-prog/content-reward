@@ -1,5 +1,27 @@
 # Project instructions: YouTube clipping
 
+## Supported architecture after hardening
+
+`clipping/` is the core runtime. Shared typed routes, settings and SQLite
+repositories are under `app/`; rules, safe manual preparation and measured
+feedback are in `campaigns/`, `publishing/` and `analytics/`. Do not import old
+`legacy/` applications into the supported runtime. Dependency source:
+`pyproject.toml`; non-secret configuration: `config/default.yaml` and profiles.
+Read `docs/ARCHITECTURE.md` and `docs/REFACTOR_PLAN.md` before structural changes.
+
+Canonical commands are `content-reward run|resume|status|worker|api`, `clips list`,
+`campaigns list|import`, `validate`, `prepare`, `metrics` and `smoke`.
+`python -m clipping` and existing Windows wrappers remain compatible. Production
+orders are authoritative in `storage/clipping/content-reward.db`; JSON manifests
+are exports/import sources and must never override an existing DB order.
+
+Run `.venv/Scripts/python.exe tests/clipping/run_tests.py tests -q`, configured
+Ruff checks and `.venv/Scripts/content-reward.exe smoke` after significant runtime
+changes. Tests use synthetic media/mocks and must not contact social accounts.
+All standing caption, fresh-discovery, bounded-download, final `clips/` delivery,
+credential handling, publishing-disabled and saved-order preferences below remain
+in force. Manual export never means a public post exists.
+
 ## User's standing workflow
 
 The user wants the complete workflow: search for popular long YouTube videos,
@@ -106,6 +128,14 @@ have not yet been supplied.
 
 Prepared posts from the newer production launcher use its explicitly approved
 colorized style; publishing remains disabled.
+
+On October 22 the user requested a niche library and separate folders for streams,
+sports, business, education and other niches. New canonical runs/API orders place
+exports inside niche subfolders of the same project `clips/` root. Route using
+saved discovery labels or the selected niche; ambiguous labels require niche
+review. Keep historical saved-order delivery paths/settings. The workspace's
+Niche library and `content-reward library` report current file availability and
+recorded hashes; missing delivery copies never mean a new clip is ready.
 
 The user will enter credentials locally. For Instagram, use the existing
 `connect-instagram-token.ps1` hidden prompt in a normal PowerShell terminal;

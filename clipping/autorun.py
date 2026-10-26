@@ -18,22 +18,56 @@ def summary(controller, mode, state=None):
     state = state if state is not None else controller.state
     result = state.get('result') or {}
     clips = result.get('clips') or state.get('batch_results') or []
-    return {'id': state['id'], 'mode': mode, 'status': state['status'],
+    from clipping.library import delivery_availability
+    records = {clip['id']: clip for clip in controller.store.list_clips(state['id'])}
+    available, missing = [], []
+    for clip in clips:
+        record = records.get(clip.get('job_id'), {})
+        hashes = dict(record.get('settings', {}).get('delivery_hashes') or {})
+        if record.get('sha256'):
+            hashes['video'] = record['sha256']
+        availability = delivery_availability(clip.get('clip'), clip.get('subtitles'), expected_hashes=hashes)
+        if availability['available']:
+            available.append(clip['clip'])
+        else:
+            missing.append({'number': clip.get('number'), **availability})
+    unavailable = bool(missing) and state['status'] in {'ready_for_review', 'completed'}
+    index = result.get('index') or state.get('partial_index')
+    diagnostic = state.get('source_failure')
+    if isinstance(diagnostic, dict):
+        from clipping.media import SourceFailure
+        diagnostic = SourceFailure('', reason=diagnostic.get('reason'),
+            http_status=diagnostic.get('http_status'), timeout_seconds=diagnostic.get('timeout_seconds')).diagnostic
+    else:
+        diagnostic = None
+    return {'id': state['id'], 'mode': mode,
+            'status': 'delivery_unavailable' if unavailable else state['status'],
+            'recorded_status': state['status'],
             'stage': state['stage'], 'reason': state.get('reason'),
             'requested_clip_count': controller.config.clip_count,
             'completed_clip_count': state.get('completed_clip_count', len(clips)),
-            'clips': [clip['clip'] for clip in clips],
-            'index': result.get('index') or state.get('partial_index'),
+            'available_clip_count': len(available), 'missing_artifacts': missing,
+            'clips': available,
+            'index': index if index and Path(index).is_file() else None,
             'manifest': str(controller.manifest),
             'events': str(controller.folder / 'events.jsonl'),
             'resume_command': f'run-clipping-auto.cmd --resume {state["id"]}',
-            'action': state.get('action'), 'human_review_required': True}
+            'action': ('Delivery files are missing. Resume this saved order to recheck retained jobs and restore exports.'
+                       if unavailable else state.get('action')),
+            'source_failure': diagnostic, 'human_review_required': True}
 
 
 def execute(options):
     from app.repositories.store import Store
     database = options.storage / 'content-reward.db'
     orders = options.storage / 'orders'
+    context_path = getattr(options, 'learning_context', None)
+    context = None
+    if context_path is not None:
+        from analytics.models import MeasurementContext
+        if context_path.stat().st_size > 8192:
+            raise ValueError('Learning context must be a small local JSON file')
+        context = MeasurementContext.model_validate_json(context_path.read_text(encoding='utf-8')).model_dump(mode='json')
     if options.status and not database.exists() and not orders.exists():
         return {'status': 'not_started', 'mode': 'status', 'clips': [], 'index': None}, 0
     store = Store(options.storage / 'content-reward.db')
@@ -53,7 +87,8 @@ def execute(options):
     output = str(options.output.resolve()) if options.output else None
     if resume:
         overrides = {'clip_count': options.clips, 'niche': options.niche,
-                     'provider': options.provider, 'delivery_dir': output}
+                     'provider': options.provider, 'delivery_dir': output, 'campaign_id': options.campaign,
+                     'measurement_context': context}
         if any(value is not None and value != getattr(controller.config, key)
                for key, value in overrides.items()):
             return {**summary(controller, 'resumed'), 'status': 'setup_required',
@@ -67,7 +102,8 @@ def execute(options):
                         clips_per_source=settings.production.clips_per_source, partial_downloads=True,
                         caption_style=settings.production.caption_style,
                         framing_mode=settings.video.framing, duration=settings.clips.target_duration,
-                        delivery_dir=output)
+                        delivery_dir=output, campaign_id=options.campaign, organize_by_niche=True,
+                        measurement_context=context)
         controller = Controller(options.storage, config)
     state = controller.run(options.connection_attempts, options.retry_delay)
     report = summary(controller, 'resumed' if resume else 'new', state)
@@ -85,6 +121,8 @@ def main(argv=None):
     modes.add_argument('--resume', nargs='?', const='latest', help='Resume an exact order ID or latest')
     parser.add_argument('--clips', type=int, help='New-run target (default: 20)')
     parser.add_argument('--niche', choices=[niche['name'] for niche in trends.NICHES])
+    parser.add_argument('--campaign', help='Saved campaign ID; its rules gate preparation')
+    parser.add_argument('--learning-context', type=Path, help='Local JSON describing the account, reporting window and metric definitions')
     parser.add_argument('--provider', choices=('public', 'selenium'))
     parser.add_argument('--output', type=Path)
     parser.add_argument('--storage', type=Path, default=DEFAULT_STORAGE)

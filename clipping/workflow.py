@@ -12,6 +12,8 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from clipping.template import CAPTION_STYLES, DEFAULT_CAPTION_STYLE, DEFAULT_FRAMING_MODE
+from clipping.hashtags import HashtagGenerator
+from clipping.description import generate_description
 from app.core.config import load_settings
 from app.core.errors import PipelineError, retry_delay
 from app.core.logging import event_record, redact
@@ -131,8 +133,8 @@ def validate_request(data):
         raise ValueError('Caption must be text')
     if data.get('caption_style', DEFAULT_CAPTION_STYLE) not in CAPTION_STYLES:
         raise ValueError('Choose classic, colorized, pro, or studio caption style')
-    if data.get('framing_mode', DEFAULT_FRAMING_MODE) not in ('crop', 'fit'):
-        raise ValueError('Choose crop or fit framing')
+    if data.get('framing_mode', DEFAULT_FRAMING_MODE) not in ('crop', 'fit', 'speaker-focus'):
+        raise ValueError('Choose crop, fit, or speaker-focus framing')
     data.setdefault('dry_run', False)
     return data
 
@@ -431,15 +433,16 @@ class ClippingWorkflow:
                 self._event(db, row['id'], 'running', 'queued', row['current_step'])
             db.commit()
 
-    def consume_once(self):
+    def consume_once(self, *, job_id=None):
         if self.killed() or self.shutdown_requested:
             return False
         with self.connection() as db:
             db.execute('BEGIN IMMEDIATE')
-            row = db.execute("""SELECT id, output, status, current_step FROM clipping_job WHERE status='queued'
+            row = db.execute("""SELECT id, output, status, current_step FROM clipping_job
+                WHERE (? IS NULL OR id=?) AND (status='queued'
                 OR (status='retry_scheduled' AND json_extract(output,
-                    '$.automation_retry.next_attempt_at') <= ?)
-                ORDER BY created_at LIMIT 1""", (utcnow(),)).fetchone()
+                    '$.automation_retry.next_attempt_at') <= ?))
+                ORDER BY created_at LIMIT 1""", (job_id, job_id, utcnow())).fetchone()
             if not row:
                 db.commit()
                 return False
@@ -489,7 +492,7 @@ class ClippingWorkflow:
                     output = current['output']
                     code = 'RENDER_ERROR' if current['current_step'] == 'render_and_quality_check' else 'VALIDATION_ERROR'
                     output['failure'] = PipelineError(code, stage=current['current_step']).as_dict()
-                    self._save(job_id, output, 'failed', current['current_step'], error=redact(str(exc)))
+                    self._save(job_id, output, 'failed', current['current_step'], error=output['failure']['message'])
         finally:
             self.active_job = None
         return True
@@ -518,25 +521,82 @@ class ClippingWorkflow:
                 return
             if checkpoint not in output:
                 self._save(job_id, output, 'running', step)
+                is_render = checkpoint == 'clip_path'
+                render_event = getattr(self, 'render_event', None)
+                attempt_id = uuid.uuid4().hex if is_render and render_event else None
+                if attempt_id:
+                    render_event(job_id, 'started', attempt_id)
                 try:
-                    output.update(action(data, output, folder, self.storage))
+                    from clipping.pipeline.resources import resource_gate
+                    resource = 'render' if checkpoint == 'clip_path' else 'transcription' if checkpoint == 'transcript_path' else 'download'
+                    capacity = (self.settings.worker.render_concurrency if resource == 'render' else
+                                1 if resource == 'transcription' else self.settings.worker.download_concurrency)
+                    with resource_gate(resource, capacity):
+                        output.update(action(data, output, folder, self.storage))
                 except media.TranscriptRequired as exc:
                     self._save(job_id, output, 'awaiting_transcript', step, error=str(exc))
                     return
+                except BaseException:
+                    if attempt_id:
+                        render_event(job_id, 'failed', attempt_id)
+                    raise
+                if attempt_id:
+                    render_event(job_id, 'succeeded', attempt_id)
                 self._save(job_id, output, 'running', step)
         if self.get(job_id)['status'] != 'running':
             return
         package = folder / 'submission-package.json'
         preview = data.get('preview_only', False)
         caption = (output.get('clip_suggestions') or [{}])[0].get('caption') if preview else None
-        package.write_text(json.dumps({'campaign': data['campaign'], 'caption': data.get('caption', ''),
+
+        # Generate hashtags per PRD-GROWTH §21-22
+        niche_keywords = data.get('research_keywords', '').lower().split() if data.get('research_keywords') else []
+        topic_keywords = output.get('topic_keywords', set()) or set()
+        account_history = output.get('account_history', {}) or {}
+        recent_posts = output.get('recent_posts', []) or []
+        hashtag_gen = HashtagGenerator(
+            niche_keywords=niche_keywords,
+            topic_keywords=topic_keywords,
+            account_history=account_history,
+            recent_posts=recent_posts,
+        )
+        hashtag_result = hashtag_gen.generate(clip_topic=data.get('campaign', {}).get('title', ''),
+                                            account_handle=data.get('campaign', {}).get('platform', ''))
+
+        # Generate description + CTA per PRD-GROWTH §19-20
+        hook_text = output.get('hook_text', '') or data.get('caption', '') or ''
+        context_text = output.get('context_text', '') or ''
+        desc_result = generate_description(
+            hook_text=hook_text,
+            context_text=context_text,
+            exploration=not bool(account_history),
+            default_cta='none',
+            account_has_data=bool(account_history),
+        )
+
+        package.write_text(json.dumps({
+            'campaign': data['campaign'],
+            'caption': data.get('caption', ''),
             'clip_plan': output.get('selected_clip_plan') or data['clip_plan'],
-            'clip_path': output['clip_path'], 'clip_sha256': output['clip_sha256'],
-            'dry_run': data['dry_run'], 'submission_status': 'not_submitted',
+            'clip_path': output['clip_path'],
+            'clip_sha256': output['clip_sha256'],
+            'dry_run': data['dry_run'],
+            'submission_status': 'not_submitted',
+            'hashtags': hashtag_result['hashtags'],
+            'hashtag_score': hashtag_result['score'],
+            'hashtag_breakdown': hashtag_result['layer_breakdown'],
+            'description': desc_result['description'],
+            'cta': desc_result['cta'],
+            'cta_category': desc_result['cta_category'],
             **({'preview_only': True, 'caption': caption or data.get('caption', ''),
                 'source_selection': output.get('source_selection'),
                 'instructions': 'Private local preview complete. Campaign and reposting authorization are not recorded.'}
-               if preview else {'instructions': 'Publish the reviewed clip, then submit its public URL in the selected campaign.'})},
+               if preview else {'instructions': 'Publish the reviewed clip, then submit its public URL in the selected campaign.',
+                              'hashtags': hashtag_result['hashtags'],
+                              'description': desc_result['description'],
+                              'cta': desc_result['cta'],
+                              'cta_category': desc_result['cta_category']})
+            },
             indent=2), encoding='utf-8')
         output['package_path'] = package.relative_to(self.storage).as_posix()
         if preview:

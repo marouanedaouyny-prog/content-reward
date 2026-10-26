@@ -1,0 +1,23 @@
+[
+  {
+    "niche": "Business",
+    "query": "business entrepreneur podcast full episode",
+    "provider": "yt_dlp",
+    "sort": "date",
+    "error_type": "ValueError"
+  },
+  {
+    "niche": "Education",
+    "query": "science education full lecture",
+    "provider": "yt_dlp",
+    "sort": "date",
+    "error_type": "ValueError"
+  },
+  {
+    "niche": "Streams",
+    "query": "streamer full interview",
+    "provider": "yt_dlp",
+    "sort": "date",
+    "error_type": "ValueError"
+  }
+]
