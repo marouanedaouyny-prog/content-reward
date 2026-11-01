@@ -1,0 +1,115 @@
+name: CI
+
+on:
+  push:
+    branches: [main, refactor/**]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1'  # Weekly Monday 06:00 UTC - verify discovery still works
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  lint-and-test:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[transcription,dev]"
+
+      - name: Ruff check
+        run: .venv/bin/ruff check .
+
+      - name: Run tests
+        run: .venv/bin/python tests/clipping/run_tests.py tests -q
+
+      - name: Smoke test
+        run: .venv/bin/content-reward smoke
+
+  discovery-dry-run:
+    name: Discovery Dry Run
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies (no transcription for speed)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Verify discovery logic (no network downloads)
+        run: |
+          .venv/bin/content-reward discover --dry-run --mode fast --niche Business
+        env:
+          CONTENT_REWARD_CONFIG: config/default.yaml
+
+  build-docker:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.clipping
+          push: false
+          load: true
+          tags: content-reward:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Test image runs
+        run: |
+          docker run --rm content-reward:latest content-reward --help
+          docker run --rm content-reward:latest content-reward smoke
+
+  notify:
+    name: Notify on Failure
+    needs: [lint-and-test, discovery-dry-run, build-docker]
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send ntfy alert (configure NTFY_TOPIC in repo secrets)
+        if: env.NTFY_TOPIC != ''
+        run: |
+          curl -d "content-reward CI failed: ${{ github.workflow }} #${{ github.run_number }}" \
+            -H "Title: CI Failure" \
+            -H "Priority: high" \
+            -H "Tags: warning" \
+            "https://ntfy.sh/${NTFY_TOPIC}"
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}

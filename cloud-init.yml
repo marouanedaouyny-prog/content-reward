@@ -1,0 +1,93 @@
+#cloud-config
+# Oracle Cloud Free Tier VM initialization for content-reward
+# Use: paste into "Cloud-init" field when creating VM.Standard.A1.Flex (4 OCPU, 24 GB, Ubuntu 24.04)
+
+package_update: true
+package_upgrade: true
+packages:
+  - git
+  - python3.11-venv
+  - ffmpeg
+  - chromium-browser
+  - chromium-chromedriver
+  - curl
+  - unzip
+  - htop
+  - jq
+
+write_files:
+  - path: /home/ubuntu/setup-content-reward.sh
+    permissions: '0755'
+    owner: ubuntu:ubuntu
+    content: |
+      #!/bin/bash
+      set -euo pipefail
+      cd /home/ubuntu
+      if [ ! -d content-reward ]; then
+        git clone https://github.com/<YOUR_GITHUB_USER>/content-reward.git
+      fi
+      cd content-reward
+      python3.11 -m venv .venv
+      . .venv/bin/activate
+      pip install --upgrade pip
+      pip install -e ".[transcription,dev]"
+      # Download Whisper tiny.en model (first run caches it)
+      .venv/bin/python -c "from faster_whisper import WhisperModel; WhisperModel('tiny.en', device='cpu', download_root='models')"
+      # Ensure storage dirs exist
+      mkdir -p storage/clipping/orders clips logs
+      # Copy config if not present
+      [ -f config/local.yaml ] || cp config/default.yaml config/local.yaml
+      echo "Setup complete. Run: sudo systemctl enable --now content-reward-worker"
+
+  - path: /etc/systemd/system/content-reward-worker.service
+    permissions: '0644'
+    content: |
+      [Unit]
+      Description=Content Reward Clipping Worker
+      After=network-online.target
+      Wants=network-online.target
+
+      [Service]
+      Type=simple
+      User=ubuntu
+      Group=ubuntu
+      WorkingDirectory=/home/ubuntu/content-reward
+      Environment=CLIPPING_STORAGE=/home/ubuntu/content-reward/storage/clipping
+      Environment=CONTENT_REWARD_CONFIG=/home/ubuntu/content-reward/config/local.yaml
+      ExecStart=/home/ubuntu/content-reward/.venv/bin/python -m clipping worker
+      Restart=always
+      RestartSec=10
+      StandardOutput=journal
+      StandardError=journal
+      # Resource limits
+      MemoryMax=2G
+      CPUWeight=100
+
+      [Install]
+      WantedBy=multi-user.target
+
+  - path: /etc/cron.d/content-reward
+    permissions: '0644'
+    content: |
+      # Content Reward scheduled jobs
+      SHELL=/bin/bash
+      PATH=/home/ubuntu/content-reward/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+      CLIPPING_STORAGE=/home/ubuntu/content-reward/storage/clipping
+      CONTENT_REWARD_CONFIG=/home/ubuntu/content-reward/config/local.yaml
+
+      # Fresh discovery batch every 6 hours (0,6,12,18)
+      0 */6 * * * ubuntu cd /home/ubuntu/content-reward && .venv/bin/python -m clipping run --new --target 20 >> /home/ubuntu/cron.log 2>&1
+
+      # Weekly cache cleanup (Sunday 03:00)
+      0 3 * * 0 ubuntu cd /home/ubuntu/content-reward && scripts/clean_caches.py --apply >> /home/ubuntu/cleaner.log 2>&1
+
+      # Daily metrics export (02:00)
+      0 2 * * * ubuntu cd /home/ubuntu/content-reward && .venv/bin/content-reward metrics report > /home/ubuntu/metrics-$(date +\%F).json 2>&1
+
+runcmd:
+  - systemctl daemon-reload
+  - systemctl enable content-reward-worker
+  - systemctl start content-reward-worker
+  - /home/ubuntu/setup-content-reward.sh
+
+final_message: "content-reward VM ready. Worker running. Cron jobs installed."
