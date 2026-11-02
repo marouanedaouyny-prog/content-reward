@@ -36,13 +36,13 @@ jobs:
           pip install -e ".[transcription,dev]"
 
       - name: Ruff check
-        run: .venv/bin/ruff check .
+        run: ruff check .
 
       - name: Run tests
-        run: .venv/bin/python tests/clipping/run_tests.py tests -q
+        run: python tests/clipping/run_tests.py tests -q
 
       - name: Smoke test
-        run: .venv/bin/content-reward smoke
+        run: content-reward smoke
 
   discovery-dry-run:
     name: Discovery Dry Run
@@ -65,7 +65,7 @@ jobs:
 
       - name: Verify discovery logic (no network downloads)
         run: |
-          .venv/bin/content-reward discover --dry-run --mode fast --niche Business
+          content-reward discover --dry-run --mode fast --niche Business
         env:
           CONTENT_REWARD_CONFIG: config/default.yaml
 
